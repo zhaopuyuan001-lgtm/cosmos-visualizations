@@ -1,0 +1,669 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>膨胀的宇宙 · The Expanding Universe</title>
+<style>
+:root{--bg:#04060c;--panel:rgba(13,18,30,.94);--line:rgba(120,150,200,.16);--gold:#ffd27a;--cyan:#6fd7ff;--teal:#37e0c8;--red:#ff6a5e;--vio:#b48bff;--tx:#d7e3f4;--dim:#8fa3c0}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font:14px/1.6 -apple-system,"PingFang SC","Noto Sans SC",sans-serif;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:7px 14px;border-bottom:1px solid var(--line);background:var(--panel);z-index:6;flex-wrap:wrap}
+header h1{font-size:16px;color:var(--gold);font-weight:700;letter-spacing:.5px;white-space:nowrap}
+header h1 small{color:var(--dim);font-weight:400;font-size:11px;margin-left:8px}
+.hbtn{padding:4px 11px;border:1px solid var(--line);border-radius:14px;cursor:pointer;color:var(--cyan);font-size:12.5px;user-select:none;white-space:nowrap}
+.hbtn:hover{background:rgba(111,215,255,.1)}
+.hspace{margin-left:auto}
+main{flex:1;display:flex;min-height:0}
+#v3d{flex:1;position:relative;min-width:0}
+#gl{width:100%;height:100%;display:block;cursor:grab}
+#gl:active{cursor:grabbing}
+#lbls div{position:absolute;font-size:11px;color:var(--tx);pointer-events:none;text-shadow:0 0 5px #000,0 0 3px #000;white-space:nowrap;transform:translate(-50%,-140%)}
+#lbls .obs{color:var(--cyan);font-weight:700;font-size:12px}
+#lbls .feat{color:#ffe3ad}
+#lbls .bound{color:var(--teal)}
+#lbls .ph{color:var(--vio);font-weight:600}
+#banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:78%;text-align:center;font-size:14px;color:var(--gold);background:rgba(5,8,14,.72);border:1px solid rgba(255,210,122,.3);padding:7px 18px;border-radius:20px;transition:opacity .5s;pointer-events:none}
+#read{position:absolute;top:52px;left:10px;font-size:11.5px;color:var(--dim);background:rgba(5,8,14,.6);padding:6px 10px;border-radius:8px;line-height:1.8;pointer-events:none}
+#read b{color:var(--gold)}#read i{color:var(--cyan);font-style:normal}
+#legend{position:absolute;left:10px;bottom:8px;display:flex;gap:8px;font-size:10.5px;color:var(--dim);background:rgba(5,8,14,.55);padding:3px 10px;border-radius:10px;pointer-events:none}
+#legend b{font-weight:400}
+#zpop{position:absolute;right:14px;top:52px;width:250px;background:rgba(9,12,22,.95);border:1px solid var(--vio);border-radius:12px;padding:10px 13px;font-size:12px;display:none;line-height:1.7}
+#zpop b{color:var(--vio)}
+#zpop canvas{width:100%;height:56px;display:block;margin-top:6px}
+aside{width:296px;border-left:1px solid var(--line);background:var(--panel);padding:10px 12px;overflow-y:auto;font-size:12.5px;flex-shrink:0}
+aside h3{font-size:12px;color:var(--gold);margin:11px 0 6px;letter-spacing:1px}
+aside h3:first-child{margin-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:4px 10px;border:1px solid var(--line);border-radius:12px;cursor:pointer;color:var(--tx);font-size:12px;user-select:none}
+.chip:hover{border-color:var(--cyan)}
+.chip.on{background:rgba(255,210,122,.16);border-color:var(--gold);color:var(--gold);font-weight:600}
+.row{display:flex;gap:6px;margin:6px 0}
+.abtn{flex:1;padding:7px 4px;border:1px solid var(--gold);border-radius:9px;background:rgba(255,210,122,.1);color:var(--gold);font-size:13px;cursor:pointer;text-align:center;user-select:none}
+.abtn:hover{background:rgba(255,210,122,.2)}
+.abtn.sec{border-color:var(--line);color:var(--cyan);background:transparent}
+.abtn.sec:hover{background:rgba(111,215,255,.08)}
+.srow{display:flex;align-items:center;gap:8px;margin:7px 0}
+.srow label{width:70px;color:var(--dim);font-size:12px;flex-shrink:0}
+.srow input[type=range]{flex:1;accent-color:var(--gold);min-width:0}
+.srow output{width:74px;text-align:right;color:var(--cyan);font-size:11.5px;flex-shrink:0}
+.trow{display:flex;align-items:center;gap:6px;margin:4px 0;color:var(--dim);cursor:pointer;user-select:none;font-size:12px}
+.trow input{accent-color:var(--gold)}
+.note{color:var(--dim);font-size:11px;line-height:1.65;margin:6px 0}
+.formula{margin:8px 0;padding:8px 12px;background:rgba(111,215,255,.06);border-left:2px solid var(--cyan);border-radius:0 8px 8px 0;font-size:12px;line-height:1.7}
+.formula b{color:var(--cyan);font-size:14px}
+#charts{height:172px;border-top:1px solid var(--line);background:#070a12;display:flex;flex-shrink:0}
+#chA{flex:1.5;min-width:0;cursor:ew-resize}
+#chH{flex:1;min-width:0;border-left:1px solid var(--line)}
+canvas{display:block}
+#modal{position:fixed;inset:0;background:rgba(3,5,9,.8);display:none;z-index:40;align-items:center;justify-content:center}
+#mcard{width:min(680px,94vw);max-height:86vh;overflow-y:auto;background:#0b101c;border:1px solid rgba(255,210,122,.35);border-radius:14px;padding:20px 24px}
+#mcard h2{color:var(--gold);font-size:17px;margin-bottom:10px}
+#mcard .bd{font-size:13.5px;line-height:1.85}
+#mcard .bd em{color:var(--cyan);font-style:normal}
+#mcard .bd .fm{display:block;margin:8px 0;padding:7px 12px;background:rgba(111,215,255,.07);border-left:2px solid var(--cyan);color:var(--cyan);font-size:13px;border-radius:0 8px 8px 0}
+#mnav{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+#mx{float:right;cursor:pointer;color:var(--dim);font-size:18px;padding:0 4px}
+#mcanvas{width:100%;height:auto;display:none;background:#070a12;border-radius:10px;margin-top:8px;cursor:pointer}
+footer{display:flex;gap:14px;align-items:center;padding:4px 14px;border-top:1px solid var(--line);background:var(--panel);font-size:11px;color:var(--dim)}
+#fps{margin-left:auto}
+#toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:#0d1424;border:1px solid var(--gold);color:var(--gold);padding:8px 18px;border-radius:20px;font-size:13px;display:none;z-index:50;max-width:80vw;text-align:center}
+@media(max-width:900px){aside{width:236px}}
+</style>
+<div id="app">
+<header>
+  <h1>🎈 膨胀的宇宙<small>THE EXPANDING UNIVERSE · 宇宙可视化系列 · 第十四作</small></h1>
+  <div class="hspace"></div>
+  <div class="hbtn" id="analogyBtn">🍞 类比视图</div>
+  <div class="hbtn" id="conclBtn">📊 结论对比</div>
+  <div class="hbtn" id="dictBtn">词典</div>
+  <div class="hbtn" id="declBtn">声明</div>
+</header>
+<main>
+  <div id="v3d">
+    <canvas id="gl"></canvas>
+    <div id="lbls"></div>
+    <div id="banner"></div>
+    <div id="read"></div>
+    <div id="legend"><b style="color:#37e0c8">— 空间网格</b><b style="color:#ffe3ad">● 星系</b><b style="color:#fff">┄ 距离线</b><b style="color:#ff9a5a">→ 退行速度</b><b style="color:#b48bff">〜 光信号</b></div>
+    <div id="zpop"></div>
+  </div>
+  <aside>
+    <h3>膨胀模式</h3>
+    <div class="chips" id="modes">
+      <div class="chip" data-m="0">不膨胀</div>
+      <div class="chip" data-m="1">匀速膨胀</div>
+      <div class="chip on" data-m="2">加速膨胀(真实宇宙)</div>
+    </div>
+    <div class="note" id="modeNote"></div>
+    <h3>时间机器</h3>
+    <div class="row"><div class="abtn" id="playBtn">▶ 播放</div><div class="abtn sec" id="resetBtn">⟲ 回到今天</div></div>
+    <div class="srow"><label>时间流速</label><input type="range" id="sSpd" min="-0.7" max="1.5" step="0.05" value="0"><output id="oSpd"></output></div>
+    <h3>观察者</h3>
+    <div class="row"><div class="abtn sec" id="obsBtn">🔭 切换观察者</div></div>
+    <div class="note">也可以直接<b style="color:var(--gold)">点击任意星系</b>坐过去——你会发现从谁看都一样。</div>
+    <h3>光信号实验</h3>
+    <div class="row"><div class="abtn" id="ph1Btn">✨ 从「丙」发光</div><div class="abtn sec" id="ph2Btn">从「戊」发光</div></div>
+    <div class="note">看着光在被拉伸的空间里赶路,波长一路被拉长——这就是宇宙学红移。试试在「不膨胀」模式重发一次作对照。</div>
+    <h3>图层</h3>
+    <div class="trow"><input type="checkbox" id="tGrid" checked>空间坐标网格</div>
+    <div class="trow"><input type="checkbox" id="tLine" checked>距离线 + 读数</div>
+    <div class="trow"><input type="checkbox" id="tArrow" checked>退行速度箭头</div>
+    <div class="trow"><input type="checkbox" id="tLab" checked>星系标签</div>
+    <div class="formula"><b>v = H(t) × d</b><br>哈勃定律:两倍远 = 中间有两倍多"正在拉伸的空间" = 退得两倍快。今天 H₀=67.4 km/s/Mpc。</div>
+  </aside>
+</main>
+<div id="charts"><canvas id="chA"></canvas><canvas id="chH"></canvas></div>
+<footer>
+  <span>参数取 Planck 2018:Ωm=0.315 · ΩΛ=0.685 · H₀=67.4——宇宙年龄 138 亿年是算出来的</span>
+  <span id="fps"></span>
+</footer>
+</div>
+<div id="modal"><div id="mcard"><span id="mx">✕</span><h2 id="mh"></h2><div class="bd" id="mb"></div><canvas id="mcanvas"></canvas><div id="mnav"></div></div></div>
+<div id="toast"></div>
+<script>
+'use strict';
+/* ════════ 工具 ════════ */
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
+const RNG=s=>{let a=s>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};};
+
+/* ════════ 宇宙学内核（与 proto.mjs 同式,16 项 Node 对拍通过） ════════ */
+const H0=67.4/977.792, OM=0.315, OL=0.685, CKMS=299792.458;
+const A0C=Math.pow(OM/OL,1/3);
+const T0=2/(3*Math.sqrt(OL)*H0)*Math.asinh(Math.sqrt(OL/OM));
+const aOf=(t,m)=>m===0?1:m===1?Math.max(1e-9,1+H0*(t-T0)):A0C*Math.pow(Math.sinh(1.5*Math.sqrt(OL)*H0*Math.max(t,1e-6)),2/3);
+const HOf=(t,m)=>m===0?0:m===1?H0/Math.max(1e-9,1+H0*(t-T0)):Math.sqrt(OL)*H0/Math.tanh(1.5*Math.sqrt(OL)*H0*Math.max(t,1e-6));
+const tOfA=a=>2/(3*Math.sqrt(OL)*H0)*Math.asinh(Math.sqrt(OL/OM)*Math.pow(a,1.5));
+const TSTAR=tOfA(Math.pow(OM/(2*OL),1/3)); // 减速→加速转折 ≈7.7 Gyr
+
+/* ════════ 状态 ════════ */
+const S={mode:2,t:T0,play:false,speed:1,obs:0,still:0,qLow:false};
+/* 星系:共动坐标(Gly),z 向略压扁便于观察(声明) */
+const NG=118, gal=[];
+{const rnd=RNG(20260717);
+ for(let i=0;i<NG;i++){
+  const x=rnd()*8.8-4.4,y=rnd()*8.8-4.4,z=rnd()*5.2-2.6;
+  if(Math.hypot(x,y,z)<0.35&&i>0)continue;
+  const t=rnd();
+  gal.push({p:[x,y,z],col:[.85+.15*t,.8+.1*(1-t),.68+.3*(1-t)],sz:3.6+4*Math.pow(rnd(),2.2)});}
+ gal[0].p=[0,0,0];}
+/* 特写星系 甲乙丙丁戊:观察者变了就重挑(接近目标距离且贴平面) */
+const FEAT_D=[1.2,2.2,3.2,4.2,5.3], FNAME=['甲','乙','丙','丁','戊'];
+let feat=[];
+const pickFeat=()=>{
+ const o=gal[S.obs].p;feat=[];const used=new Set([S.obs]);
+ for(const D of FEAT_D){let best=-1,bs=1e9;
+  for(let i=0;i<gal.length;i++){if(used.has(i))continue;
+   const g=gal[i].p,X=Math.hypot(g[0]-o[0],g[1]-o[1],g[2]-o[2]);
+   const s=Math.abs(X-D)+Math.abs(g[2]-o[2])*.25;
+   if(s<bs){bs=s;best=i;}}
+  used.add(best);feat.push(best);}
+};
+/* 邻居星系(引力束缚):固定物理距离绕观察者转 */
+const BOUND_R=0.55;let boundAng=0;
+/* 光子 */
+let photons=[];
+const emitPhoton=k=>{
+ if(S.mode!==0&&S.mode!==1&&S.mode!==2)return;
+ const src=feat[k],o=gal[S.obs].p,g=gal[src].p;
+ const X=Math.hypot(g[0]-o[0],g[1]-o[1],g[2]-o[2]);
+ photons.push({src,obs:S.obs,X,chi:0,tEm:S.t,aEm:aOf(S.t,S.mode),done:false});
+ if(!S.play)togglePlay(true);
+ toast(`光从「${FNAME[k]}」出发了——盯着它的波长`);
+};
+
+/* ════════ WebGL（预乘 alpha 约定,系列引擎） ════════ */
+const cv=$('#gl'),gl=cv.getContext('webgl2',{antialias:true,preserveDrawingBuffer:true});
+const compile=(vs,fs)=>{const P=gl.createProgram();for(const[t,s]of[[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){const h=gl.createShader(t);gl.shaderSource(h,s);gl.compileShader(h);if(!gl.getShaderParameter(h,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(h));gl.attachShader(P,h);}gl.linkProgram(P);if(!gl.getProgramParameter(P,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(P));return P;};
+const progLine=compile(`#version 300 es
+layout(location=0) in vec3 aPos;layout(location=1) in vec4 aCol;
+uniform mat4 uVP,uM;out vec4 vC;
+void main(){vC=aCol;gl_Position=uVP*uM*vec4(aPos,1.);}`,`#version 300 es
+precision highp float;in vec4 vC;uniform float uFade;out vec4 O;
+void main(){float a=vC.a*uFade;O=vec4(vC.rgb*a,a);}`);
+const progPts=compile(`#version 300 es
+layout(location=0) in vec3 aPos;layout(location=1) in vec4 aCol;layout(location=2) in float aSz;
+uniform mat4 uVP,uM;uniform float uPx;out vec4 vC;
+void main(){vC=aCol;gl_Position=uVP*uM*vec4(aPos,1.);gl_PointSize=aSz*uPx;}`,`#version 300 es
+precision highp float;in vec4 vC;uniform float uFade;out vec4 O;
+void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,.08,d);O=vec4(vC.rgb*a*vC.a*uFade,1.);}`);
+const progBill=compile(`#version 300 es
+uniform mat4 uView,uProj;uniform vec3 uC,uR,uU;uniform float uSz;out vec2 q;
+void main(){q=vec2(float(gl_VertexID&1),float(gl_VertexID>>1))*2.-1.;
+vec3 wp=uC+(uR*q.x+uU*q.y)*uSz;vec4 vp=uView*vec4(wp,1.);
+if(vp.z>-.06){gl_Position=vec4(0.,0.,-3.,1.);return;}
+gl_Position=uProj*vp;}`,`#version 300 es
+precision highp float;in vec2 q;uniform vec3 uCol;uniform float uA;out vec4 O;
+void main(){float r2=dot(q,q);float g=exp(-r2*3.4);O=vec4(uCol*g*uA,1.);}`);
+const buf=()=>gl.createBuffer();
+const setVB=(b,arr)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.DYNAMIC_DRAW);};
+const M4={mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+r]*b[c*4+k];o[c*4+r]=s;}return o;},
+ ident:()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),
+ scale:s=>new Float32Array([s,0,0,0,0,s,0,0,0,0,s,0,0,0,0,1]),
+ persp(f,asp,n,fr){const t=1/Math.tan(f/2);return new Float32Array([t/asp,0,0,0,0,t,0,0,0,0,(fr+n)/(n-fr),-1,0,0,2*fr*n/(n-fr),0]);},
+ look(e,c,u){const f=nrm(sub(c,e)),s=nrm(crs(f,u)),v=crs(s,f);
+  return new Float32Array([s[0],v[0],-f[0],0,s[1],v[1],-f[1],0,s[2],v[2],-f[2],0,-dot(s,e),-dot(v,e),dot(f,e),1]);}};
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],crs=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],nrm=a=>{const l=Math.hypot(...a);return[a[0]/l,a[1]/l,a[2]/l];};
+
+/* 静态几何:背景星 + 共动网格 + 共动盒 + 星系点 */
+const starB=buf(),starN=1800;{
+ const rnd=RNG(42),a=new Float32Array(starN*8);
+ for(let i=0;i<starN;i++){const u=rnd()*2-1,ph=rnd()*2*Math.PI,r=60+rnd()*50,s=Math.sqrt(1-u*u);
+  a[i*8]=r*s*Math.cos(ph);a[i*8+1]=r*s*Math.sin(ph);a[i*8+2]=r*u;
+  const br=.10+.45*Math.pow(rnd(),3);a[i*8+3]=br;a[i*8+4]=br;a[i*8+5]=br*1.12;a[i*8+6]=1;a[i*8+7]=1+1.8*rnd();}
+ setVB(starB,a);}
+const gridB=buf();let gridN=0;{ // 共动:z=0 平面网格 每格 1 Gly(=10 亿光年)
+ const v=[],E=4,c=[.22,.88,.78];
+ for(let i=-E;i<=E;i++){
+  v.push(i,-E,0,...c,.27,i,E,0,...c,.27);
+  v.push(-E,i,0,...c,.27,E,i,0,...c,.27);}
+ // 盒棱(共动 ±4.4)
+ const B=4.4,cb=[.2,.6,.9];
+ for(const s1 of[-1,1])for(const s2 of[-1,1]){
+  v.push(-B,s1*B,s2*2.6,...cb,.13,B,s1*B,s2*2.6,...cb,.13);
+  v.push(s1*B,-B,s2*2.6,...cb,.13,s1*B,B,s2*2.6,...cb,.13);
+  v.push(s1*B,s2*B,-2.6,...cb,.13,s1*B,s2*B,2.6,...cb,.13);}
+ gridN=v.length/7;setVB(gridB,new Float32Array(v));}
+const galB=buf();{ // 共动星系点
+ const a=new Float32Array(gal.length*8);
+ gal.forEach((g,i)=>{a[i*8]=g.p[0];a[i*8+1]=g.p[1];a[i*8+2]=g.p[2];
+  a[i*8+3]=g.col[0];a[i*8+4]=g.col[1];a[i*8+5]=g.col[2];a[i*8+6]=.95;a[i*8+7]=g.sz;});
+ setVB(galB,a);}
+const dynB=buf(),dyn2B=buf(),phB=buf(),cmpB=buf(); // 动态:距离线/箭头/光子/邻居轨道
+
+/* 相机:跟随观察者物理位置 */
+const cam={az:.9,el:.5,dist:12.4,drag:0,lx:0,ly:0};
+cv.addEventListener('pointerdown',e=>{cam.drag=1;cam.lx=e.clientX;cam.ly=e.clientY;cam.moved=0;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{if(!cam.drag)return;const dx=e.clientX-cam.lx,dy=e.clientY-cam.ly;if(Math.abs(dx)+Math.abs(dy)>3)cam.moved=1;cam.az-=dx*.006;cam.el=clamp(cam.el+dy*.006,-1.45,1.45);cam.lx=e.clientX;cam.ly=e.clientY;});
+addEventListener('pointerup',()=>cam.drag=0);
+cv.addEventListener('wheel',e=>{e.preventDefault();cam.dist=clamp(cam.dist*(1+e.deltaY*.001),5,34);},{passive:false});
+cv.addEventListener('click',e=>{ // 点击星系换观察者
+ if(cam.moved)return;
+ const r=cv.getBoundingClientRect(),mx=(e.clientX-r.left)*cv.width/r.width,my=(e.clientY-r.top)*cv.height/r.height;
+ if(!lastVP)return;let best=-1,bd=26*26*(devicePixelRatio**2);
+ const a=aOf(S.t,S.mode);
+ gal.forEach((g,i)=>{const p=[g.p[0]*a,g.p[1]*a,g.p[2]*a];
+  const x=lastVP[0]*p[0]+lastVP[4]*p[1]+lastVP[8]*p[2]+lastVP[12],y=lastVP[1]*p[0]+lastVP[5]*p[1]+lastVP[9]*p[2]+lastVP[13],w=lastVP[3]*p[0]+lastVP[7]*p[1]+lastVP[11]*p[2]+lastVP[15];
+  if(w<0.1)return;const sx=(x/w*.5+.5)*cv.width,sy=(1-(y/w*.5+.5))*cv.height;
+  const d=(sx-mx)**2+(sy-my)**2;if(d<bd){bd=d;best=i;}});
+ if(best>=0&&best!==S.obs)switchObs(best);
+});
+let lastVP=null;
+
+const draw3D=()=>{
+ const w=cv.width,h=cv.height;gl.viewport(0,0,w,h);
+ gl.clearColor(.016,.023,.047,1);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.disable(gl.DEPTH_TEST);gl.enable(gl.BLEND);
+ const a=aOf(S.t,S.mode),Ht=HOf(S.t,S.mode);
+ const o=gal[S.obs].p,tgt=[o[0]*a,o[1]*a,o[2]*a];
+ const eye=[tgt[0]+cam.dist*Math.cos(cam.el)*Math.cos(cam.az),tgt[1]+cam.dist*Math.cos(cam.el)*Math.sin(cam.az),tgt[2]+cam.dist*Math.sin(cam.el)];
+ const view=M4.look(eye,tgt,[0,0,1]),proj=M4.persp(.9,w/h,.1,300),vp=M4.mul(proj,view);lastVP=vp;
+ const mA=M4.scale(a);
+ const R=[view[0],view[4],view[8]],U=[view[1],view[5],view[9]];
+ const useLine=(m,fade)=>{gl.useProgram(progLine);gl.uniformMatrix4fv(gl.getUniformLocation(progLine,'uVP'),false,vp);gl.uniformMatrix4fv(gl.getUniformLocation(progLine,'uM'),false,m);gl.uniform1f(gl.getUniformLocation(progLine,'uFade'),fade);};
+ const bindL=b=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,28,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,28,12);gl.disableVertexAttribArray(2);};
+ const drawPts=(b,n,m)=>{gl.useProgram(progPts);gl.uniformMatrix4fv(gl.getUniformLocation(progPts,'uVP'),false,vp);gl.uniformMatrix4fv(gl.getUniformLocation(progPts,'uM'),false,m);gl.uniform1f(gl.getUniformLocation(progPts,'uPx'),h/720);gl.uniform1f(gl.getUniformLocation(progPts,'uFade'),1);
+  gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,32,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,32,28);
+  gl.drawArrays(gl.POINTS,0,n);};
+ gl.blendFunc(gl.ONE,gl.ONE);
+ drawPts(starB,starN,M4.ident());
+ gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+ if($('#tGrid').checked){useLine(mA,1);bindL(gridB);gl.drawArrays(gl.LINES,0,gridN);} // 网格随 a 拉伸
+ /* 距离线(虚线)+速度箭头:物理坐标 */
+ const dyn=[],dyn2=[];
+ feat.forEach((gi,k)=>{
+  const g=gal[gi].p;
+  const dx=[g[0]-o[0],g[1]-o[1],g[2]-o[2]];
+  const X=Math.hypot(...dx),dir=[dx[0]/X,dx[1]/X,dx[2]/X];
+  const d=X*a,v=Ht*d; // v/c
+  if($('#tLine').checked){ // 虚线 26 段
+   const P0=tgt,seg=26;
+   for(let s=0;s<seg;s+=2){
+    const A=[P0[0]+dir[0]*d*s/seg,P0[1]+dir[1]*d*s/seg,P0[2]+dir[2]*d*s/seg];
+    const B=[P0[0]+dir[0]*d*(s+1)/seg,P0[1]+dir[1]*d*(s+1)/seg,P0[2]+dir[2]*d*(s+1)/seg];
+    dyn.push(...A,1,1,1,.3,...B,1,1,1,.3);}}
+  if($('#tArrow').checked&&v>1e-6){ // 箭头:长度严格∝v,颜色黄→红
+   const L=Math.min(v*9,4.4),tip=[g[0]*a+dir[0]*L,g[1]*a+dir[1]*L,g[2]*a+dir[2]*L];
+   const base=[g[0]*a,g[1]*a,g[2]*a];
+   const cg=lerp(.72,.32,Math.min(v,1.2)/1.2),cb2=.25;
+   dyn2.push(...base,1,cg,cb2,.95,...tip,1,cg,cb2,.95);
+   const up=Math.abs(dir[2])<.9?[0,0,1]:[1,0,0];const s1=nrm(crs(dir,up));
+   const wl=.2+.05*L;
+   for(const sgn of[1,-1]){
+    const wing=[tip[0]-dir[0]*wl+s1[0]*wl*.55*sgn,tip[1]-dir[1]*wl+s1[1]*wl*.55*sgn,tip[2]-dir[2]*wl+s1[2]*wl*.55*sgn];
+    dyn2.push(...tip,1,cg,cb2,.95,...wing,1,cg,cb2,.95);}}
+ });
+ if(dyn.length){useLine(M4.ident(),1);setVB(dynB,new Float32Array(dyn));bindL(dynB);gl.drawArrays(gl.LINES,0,dyn.length/7);}
+ if(dyn2.length){useLine(M4.ident(),1);setVB(dyn2B,new Float32Array(dyn2));bindL(dyn2B);gl.drawArrays(gl.LINES,0,dyn2.length/7);}
+ /* 邻居星系(引力束缚,物理距离恒定) */
+ {const cp=[tgt[0]+BOUND_R*Math.cos(boundAng),tgt[1]+BOUND_R*Math.sin(boundAng),tgt[2]+.1];
+  const ring=[];const NSEG=40;
+  for(let i=0;i<NSEG;i++){const a1=i/NSEG*2*Math.PI,a2=(i+1)/NSEG*2*Math.PI;
+   ring.push(tgt[0]+BOUND_R*Math.cos(a1),tgt[1]+BOUND_R*Math.sin(a1),tgt[2]+.1,.22,.88,.78,.25,
+             tgt[0]+BOUND_R*Math.cos(a2),tgt[1]+BOUND_R*Math.sin(a2),tgt[2]+.1,.22,.88,.78,.25);}
+  useLine(M4.ident(),1);setVB(cmpB,new Float32Array(ring));bindL(cmpB);gl.drawArrays(gl.LINES,0,ring.length/7);
+  gl.blendFunc(gl.ONE,gl.ONE);
+  bill(vp,view,proj,R,U,cp,.34,[.4,.95,.85],.9);
+  S._cmpPos=cp;}
+ /* 光子:紫→红 波形 */
+ gl.blendFunc(gl.ONE,gl.ONE);
+ const ph=[];
+ for(const p of photons){
+  if(p.done)continue;
+  const src=gal[p.src].p,ob=gal[p.obs].p;
+  const dx=[ob[0]-src[0],ob[1]-src[1],ob[2]-src[2]];const dir=[dx[0]/p.X,dx[1]/p.X,dx[2]/p.X];
+  const up=Math.abs(dir[2])<.9?[0,0,1]:[1,0,0];const s1=nrm(crs(dir,up));
+  const lam=.42*aOf(S.t,S.mode)/p.aEm; // 物理波长(可视化定标)
+  const z=aOf(S.t,S.mode)/p.aEm-1;
+  const hue=clamp(z/0.9,0,1); // 0紫蓝→1红
+  const col=[.55+.45*hue,.45-.25*hue,1-.85*hue];
+  const trailChi=Math.min(p.chi,1.3/a); // 尾迹共动长度
+  const NPT=46;let prev=null;
+  for(let i=0;i<=NPT;i++){
+   const chi=p.chi-trailChi*(1-i/NPT);if(chi<0)continue;
+   const com=[src[0]+dir[0]*chi,src[1]+dir[1]*chi,src[2]+dir[2]*chi];
+   const phys=[com[0]*a,com[1]*a,com[2]*a];
+   const off=Math.sin(chi*a*2*Math.PI/lam)*.11*(i/NPT);
+   const pt=[phys[0]+s1[0]*off,phys[1]+s1[1]*off,phys[2]+s1[2]*off];
+   const al=.7*(i/NPT);
+   if(prev)ph.push(...prev.pt,...col,prev.al,...pt,...col,al);
+   prev={pt,al};}
+  if(prev)bill(vp,view,proj,R,U,prev.pt,.3,col,1);
+  S._phHead=prev?prev.pt:null;S._phZ=z;
+ }
+ if(ph.length){useLine(M4.ident(),1);setVB(phB,new Float32Array(ph));bindL(phB);gl.drawArrays(gl.LINES,0,ph.length/7);}
+ /* 星系点(共动×a)+观察者光环 */
+ drawPts(galB,gal.length,mA);
+ const op=tgt;
+ bill(vp,view,proj,R,U,op,.62+.1*Math.sin(performance.now()/300),[.3,.75,1],1.3);
+ gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+ /* HTML 标签投影 */
+ updateLabels(vp,a,Ht,tgt);
+};
+function bill(vp,view,proj,R,U,c,sz,col,alpha){
+ gl.useProgram(progBill);
+ gl.disableVertexAttribArray(0);gl.disableVertexAttribArray(1);gl.disableVertexAttribArray(2);
+ gl.uniformMatrix4fv(gl.getUniformLocation(progBill,'uView'),false,view);gl.uniformMatrix4fv(gl.getUniformLocation(progBill,'uProj'),false,proj);
+ gl.uniform3fv(gl.getUniformLocation(progBill,'uC'),c);gl.uniform3fv(gl.getUniformLocation(progBill,'uR'),R);gl.uniform3fv(gl.getUniformLocation(progBill,'uU'),U);
+ gl.uniform1f(gl.getUniformLocation(progBill,'uSz'),sz);gl.uniform3fv(gl.getUniformLocation(progBill,'uCol'),col);gl.uniform1f(gl.getUniformLocation(progBill,'uA'),alpha);
+ gl.drawArrays(gl.TRIANGLE_STRIP,0,4);}
+
+/* HTML 标签 */
+const lblBox=$('#lbls');let lblEls={};
+const ensureLbl=(id,cls)=>{if(lblEls[id])return lblEls[id];const d=document.createElement('div');d.className=cls;lblBox.appendChild(d);lblEls[id]=d;return d;};
+const proj2=(vp,p)=>{const x=vp[0]*p[0]+vp[4]*p[1]+vp[8]*p[2]+vp[12],y=vp[1]*p[0]+vp[5]*p[1]+vp[9]*p[2]+vp[13],w=vp[3]*p[0]+vp[7]*p[1]+vp[11]*p[2]+vp[15];
+ return w<0.1?null:[(x/w*.5+.5)*100,(1-(y/w*.5+.5))*100];};
+const updateLabels=(vp,a,Ht,tgt)=>{
+ for(const k in lblEls)lblEls[k]._used=false;
+ const show=(id,cls,p,html,below)=>{const s=proj2(vp,p);const el=ensureLbl(id,cls);el._used=true;
+  if(!s||!$('#tLab').checked&&cls==='feat'){el.style.display='none';return;}
+  el.style.display='block';el.style.left=s[0]+'%';el.style.top=s[1]+'%';
+  el.style.transform=below?'translate(-50%,45%)':'translate(-50%,-140%)';el.innerHTML=html;};
+ show('obs','obs',tgt,'🔭 你在这里');
+ const o=gal[S.obs].p;
+ feat.forEach((gi,k)=>{
+  const g=gal[gi].p,X=Math.hypot(g[0]-o[0],g[1]-o[1],g[2]-o[2]);
+  const d=X*a,v=Ht*d;
+  show('f'+k,'feat',[g[0]*a,g[1]*a,g[2]*a],
+   `${FNAME[k]} · ${(d*10).toFixed(0)}亿光年${Ht>0?` · ${v>=1?(v.toFixed(2)+'c'):(v*CKMS/1e4).toFixed(1)+'万km/s'}`:''}`,k%2===1);});
+ if(S._cmpPos)show('cmp','bound',S._cmpPos,`邻居星系·引力束缚·距离恒定 ${(BOUND_R*10).toFixed(1)} 亿光年`,true);
+ if(S._phHead)show('ph','ph',S._phHead,`光 · z=${S._phZ.toFixed(2)}`);
+ else if(lblEls.ph)lblEls.ph.style.display='none';
+ for(const k in lblEls)if(!lblEls[k]._used)lblEls[k].style.display='none';
+};
+
+/* ════════ 图表 ════════ */
+const cA=$('#chA'),xA=cA.getContext('2d'),cH=$('#chH'),xH=cH.getContext('2d');
+const TMAX=45;
+const drawChartA=()=>{
+ const W=cA.width,H=cA.height,dp=devicePixelRatio;xA.clearRect(0,0,W,H);
+ const L=44*dp,R2=W-14,T=20*dp,B=H-26*dp;
+ const X=t=>L+(t/TMAX)*(R2-L),Y=v=>B-(clamp(v,0,4)/4)*(B-T);
+ xA.strokeStyle='rgba(120,150,200,.2)';xA.beginPath();xA.moveTo(L,T);xA.lineTo(L,B);xA.lineTo(R2,B);xA.stroke();
+ xA.fillStyle='#8fa3c0';xA.font=`${10.5*dp}px sans-serif`;
+ for(const t of[0,100,200,300,400])xA.fillText(t?t:'0',X(t/10)-8,B+15*dp);
+ xA.fillText('宇宙年龄(亿年)',W/2-40,H-4);
+ xA.save();xA.translate(12*dp,H/2+40);xA.rotate(-Math.PI/2);xA.fillText('尺度因子 a(t) — 宇宙的"放大倍数"',0,0);xA.restore();
+ for(const v of[1,2,3])xA.fillText(v,L-14*dp,Y(v)+4);
+ // 三条曲线
+ const draw=(m,col,bold)=>{xA.strokeStyle=col;xA.lineWidth=(bold?2.4:1.1)*dp;xA.globalAlpha=bold?1:.4;
+  xA.beginPath();let st=0;
+  for(let t=.3;t<=TMAX;t+=.15){const v=aOf(t,m);if(m===1&&v<=1e-6){st=0;continue;}
+   st?xA.lineTo(X(t),Y(v)):xA.moveTo(X(t),Y(v));st=1;}
+  xA.stroke();xA.globalAlpha=1;xA.lineWidth=1;};
+ draw(0,'#8fa3c0',S.mode===0);draw(1,'#6fd7ff',S.mode===1);draw(2,'#ffd27a',S.mode===2);
+ // 今天/转折
+ xA.strokeStyle='rgba(255,255,255,.25)';xA.setLineDash([4*dp,4*dp]);
+ xA.beginPath();xA.moveTo(X(T0),T);xA.lineTo(X(T0),B);xA.stroke();xA.setLineDash([]);
+ xA.fillStyle='#d7e3f4';xA.fillText('今天 138 亿年',X(T0)+4,T+12*dp);
+ xA.fillStyle='#ffb08a';xA.beginPath();xA.arc(X(TSTAR),Y(aOf(TSTAR,2)),3*dp,0,7);xA.fill();
+ xA.fillText('77 亿年:减速→加速',X(TSTAR)-40*dp,Y(aOf(TSTAR,2))-8*dp);
+ // 游标
+ const t=S.t;xA.fillStyle=S.mode===2?'#ffd27a':S.mode===1?'#6fd7ff':'#8fa3c0';
+ xA.beginPath();xA.arc(X(t),Y(aOf(t,S.mode)),4.5*dp,0,7);xA.fill();
+ xA.strokeStyle='rgba(255,255,255,.5)';xA.beginPath();xA.arc(X(t),Y(aOf(t,S.mode)),7*dp,0,7);xA.stroke();
+ xA.fillStyle='#fff';xA.fillText(`a=${aOf(t,S.mode).toFixed(2)}`,X(t)+8,Y(aOf(t,S.mode))-6);
+ // 图例
+ xA.fillStyle='#8fa3c0';xA.fillText('灰=不膨胀',R2-160*dp,T+2);xA.fillStyle='#6fd7ff';xA.fillText('蓝=匀速',R2-104*dp,T+2);xA.fillStyle='#ffd27a';xA.fillText('金=加速(真实)',R2-62*dp,T+2);
+};
+let scrub=0;
+cA.addEventListener('pointerdown',e=>{scrub=1;scrubTo(e);S.play=false;syncPlay();});
+cA.addEventListener('pointermove',e=>scrub&&scrubTo(e));
+addEventListener('pointerup',()=>scrub=0);
+const scrubTo=e=>{const r=cA.getBoundingClientRect();const fx=(e.clientX-r.left)/r.width;
+ const L=44/((cA.width/devicePixelRatio));const t=clamp((fx-L)/(1-L-14/(cA.width/devicePixelRatio))*TMAX,tMin(),TMAX);
+ S.t=t;photons=[];};
+const tMin=()=>S.mode===1?T0-12.5:0.4;
+const drawChartH=()=>{
+ const W=cH.width,H=cH.height,dp=devicePixelRatio;xH.clearRect(0,0,W,H);
+ const L=46*dp,R2=W-12,T=20*dp,B=H-26*dp;
+ const DMAX=7.5,VMAX=.75;
+ const X=d=>L+(d/DMAX)*(R2-L),Y=v=>B-(clamp(v,0,VMAX)/VMAX)*(B-T);
+ xH.strokeStyle='rgba(120,150,200,.2)';xH.beginPath();xH.moveTo(L,T);xH.lineTo(L,B);xH.lineTo(R2,B);xH.stroke();
+ xH.fillStyle='#8fa3c0';xH.font=`${10.5*dp}px sans-serif`;
+ xH.fillText('距离(亿光年)',W/2-30,H-4);
+ for(const d of[20,40,60])xH.fillText(d,X(d/10)-7,B+15*dp);
+ xH.save();xH.translate(12*dp,H/2+44);xH.rotate(-Math.PI/2);xH.fillText('退行速度(万km/s)',0,0);xH.restore();
+ for(const vk of[6,12,18])xH.fillText(vk,L-22*dp,Y(vk*1e4/CKMS)+4);
+ const Ht=HOf(S.t,S.mode);
+ // 哈勃直线
+ xH.strokeStyle='rgba(255,210,122,.8)';xH.lineWidth=1.6*dp;xH.beginPath();xH.moveTo(X(0),Y(0));xH.lineTo(X(DMAX),Y(Ht*DMAX));xH.stroke();xH.lineWidth=1;
+ // 特写点
+ const a=aOf(S.t,S.mode),o=gal[S.obs].p;
+ const cols=['#9ad7ff','#7ee0c0','#ffd27a','#ffab7a','#ff8a8a'];
+ feat.forEach((gi,k)=>{const g=gal[gi].p,Xc=Math.hypot(g[0]-o[0],g[1]-o[1],g[2]-o[2]);
+  const d=Xc*a,v=Ht*d;
+  xH.fillStyle=cols[k];xH.beginPath();xH.arc(X(d),Y(v),4*dp,0,7);xH.fill();
+  xH.fillText(FNAME[k],X(d)+6,Y(v)-4);});
+ xH.fillStyle='#6fd7ff';
+ xH.fillText(Ht>0?`v = H×d 成立:斜率 H=${(Ht*977.792).toFixed(1)} km/s/Mpc`:'不膨胀:所有 v=0',L+8,T+2);
+};
+
+/* ════════ 五句话(要求9) ════════ */
+const STMT=[
+ '星系并不是从某个"宇宙中心"向外爆炸——是星系之间的空间本身在拉伸。',
+ '宇宙没有必须位于空间内部的中心:膨胀处处发生、处处平等。',
+ '从任意星系观察,遥远星系总体上都在远离——换个观察者试试,规律一模一样。',
+ '"加速膨胀"指尺度因子 a(t) 的增长速度随时间增加——曲线越来越翘。',
+ '被引力抓牢的系统——星系、太阳系、你——不会随宇宙膨胀变大。膨胀只发生在星系之间。'];
+let stIdx=0,stTimer=0;
+const sayStmt=i=>{const b=$('#banner');b.style.opacity=0;
+ setTimeout(()=>{b.textContent=STMT[i];b.style.opacity=1;},420);stIdx=i;stTimer=0;};
+
+/* ════════ 控件 ════════ */
+const MODE_NOTE=[
+ 'a(t) 恒为 1:星系彼此静止,光也不红移——用它做对照。',
+ 'a(t) 匀速增长:今天与真实宇宙状态相同,但未来每 50 亿年多出的距离都一样多。',
+ '真实宇宙(ΛCDM):前 77 亿年物质引力踩刹车,之后暗能量占上风,a(t) 越长越快。暗能量不是从哪里推,它均匀充满空间,只改变曲线的节奏。'];
+document.querySelectorAll('#modes .chip').forEach(c=>c.onclick=()=>{
+ document.querySelectorAll('#modes .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');
+ S.mode=+c.dataset.m;photons=[];$('#zpop').style.display='none';
+ S.t=clamp(S.t,tMin(),TMAX);
+ $('#modeNote').textContent=MODE_NOTE[S.mode];
+ if(S.mode===2)sayStmt(3);
+});
+$('#modeNote').textContent=MODE_NOTE[2];
+const togglePlay=f=>{S.play=f===undefined?!S.play:f;syncPlay();};
+const syncPlay=()=>{$('#playBtn').textContent=S.play?'⏸ 暂停':'▶ 播放';};
+$('#playBtn').onclick=()=>togglePlay();
+$('#resetBtn').onclick=()=>{S.t=T0;S.play=false;photons=[];$('#zpop').style.display='none';syncPlay();toast('回到今天:宇宙年龄 138 亿年,a=1');};
+$('#sSpd').addEventListener('input',()=>{S.speed=10**+$('#sSpd').value;$('#oSpd').textContent=(S.speed*10).toFixed(S.speed<1?1:0)+' 亿年/秒';});
+$('#oSpd').textContent='10 亿年/秒';
+const switchObs=i=>{S.obs=i;pickFeat();photons=[];$('#zpop').style.display='none';sayStmt(2);};
+$('#obsBtn').onclick=()=>{ // 在特写星系与 0 号间轮换
+ const cand=[...feat,0].filter(k=>k!==S.obs);switchObs(cand[Math.floor((stIdx*7+S.obs+3)%cand.length)]);};
+$('#ph1Btn').onclick=()=>emitPhoton(2);
+$('#ph2Btn').onclick=()=>emitPhoton(4);
+
+/* ════════ 词典/声明/类比/结论 ════════ */
+const DICT=[
+['尺度因子 a(t):宇宙的放大倍数','把宇宙想成一张可以整体放大的照片,星系是照片上的点。<em>a(t)</em> 就是放大倍数:今天定为 1,a=2 表示任意两个遥远星系的间距都翻倍——但照片上的"点"本身(星系)不变大。<span class="fm">物理距离 d = a(t) × 共动距离(格子数)。格子数不变,格子在变大。</span>'],
+['哈勃定律 v = H × d','空间均匀拉伸的必然结果:离你两倍远,你们之间就有两倍多"正在拉伸的空间",所以退行两倍快。<span class="fm">H₀ ≈ 67.4 km/s/Mpc:每远 326 万光年,每秒多退 67 公里。</span>1929 年哈勃据此发现宇宙在膨胀。右下角的 v–d 图里,五颗特写星系永远排在一条过原点的直线上——这就是定律本身。'],
+['宇宙学红移:光被拉长','光在飞行途中,空间拉伸把它的波长一起拉长。到达时 z=0.35,意思是波长变长了 35%——也等于说,光出发之后宇宙又"长大"了 35%。<span class="fm">1+z = a(到达) / a(出发)。</span>这与警笛的多普勒效应不完全相同:不是谁在空间里跑,是空间本身在变多。'],
+['退行可以超光速?','哈勃半径 c/H₀≈145 亿光年之外,退行速度超过光速——这不违反相对论:没有任何东西"在空间里"跑赢了光,是两点之间的空间在变多。<span class="fm">相对论限制的是"在空间里的运动",不限制空间自己的生长。</span>'],
+['宇宙没有中心','面包发酵时,每颗葡萄干都看到别的葡萄干在远离自己——没有哪颗是中心。爆炸有中心,膨胀没有。<span class="fm">按「切换观察者」或点击任意星系:v=H×d 在谁看来都成立,数据完全平等。</span>宇宙也不需要"向外面"膨胀:它不在任何烤箱里。'],
+['暗能量:改变节奏的背景','它不是从某处伸出来的推力,本页也绝不把它画成箭头——它均匀充满空间,效果只是改变 a(t) 曲线的"生长节奏"。<span class="fm">前 77 亿年物质引力占上风(曲线上凸变缓),之后暗能量胜出(曲线上翘)。</span>1998 年两组天文学家用 Ia 型超新星发现了加速膨胀,2011 年获诺贝尔奖。'],
+['引力束缚:你不会被拉大','星系内部、太阳系、地球、你和椅子,都被引力(和电磁力)牢牢抓住,完全不参与膨胀。<span class="fm">观察者旁那颗"邻居星系"的距离读数永远不变——它和我们被引力绑在一起。</span>膨胀只发生在星系团之间引力管不住的广袤空间。'],
+['这些数字哪来的','本页参数取 Planck 卫星 2018 结果:Ωm=0.315、ΩΛ=0.685、H₀=67.4。宇宙年龄 138 亿年、减速→加速转折 77 亿年、事件视界 167 亿光年——全部是从弗里德曼方程<b>算出来</b>的,不是输进去的。<span class="fm">页面自带 16 项数值对拍闸门,全部通过才发布。</span>']];
+const DECL=`<b style="color:#ffd27a">真算(可对拍)</b><br>· a(t):ΛCDM 弗里德曼方程解析解(sinh^⅔),宇宙年龄 138 亿年、减速→加速转折 77 亿年均为涌现<br>· 哈勃定律:对全部星系逐一数值验证 v=H·d(任意观察者)<br>· 光子:dχ/dt=c/a 逐步积分;红移 1+z=a(收)/a(发);事件视界 167 亿光年由积分收敛给出<br>· 结论对比增量、v–d 图、图表曲线全部由内核实时计算<br><br><b style="color:#6fd7ff">示意(为可视化让步)</b><br>· 星系只是位置标记,大小不按真实比例,也刻意不随膨胀变大(这本身是正确物理)<br>· 光波长的绝对尺寸放大了 ~10²⁰ 倍(否则不可见),但拉伸比例 1+z 严格真实<br>· 星系分布在竖直方向略压扁便于观察;"邻居星系"距离(5.5 亿光年)远超真实束缚系统尺度(本星系群 ~0.03 亿光年),取其意<br>· 忽略辐射项与空间曲率(对晚期宇宙影响 <1%);"匀速膨胀"为教学对照,不是真实宇宙历史<br>· 时间被加速 ~10¹⁷ 倍;光速本身未压缩(1 光年/年),所以你能看见光在赶路`;
+let mmode='';
+const openModal=(kind,i)=>{
+ $('#modal').style.display='flex';$('#mcanvas').style.display='none';$('#mnav').innerHTML='';mmode=kind;
+ if(kind==='dict'){$('#mh').textContent=DICT[i][0];$('#mb').innerHTML=DICT[i][1];
+  DICT.forEach((d,k)=>{const c=document.createElement('div');c.className='chip'+(k===i?' on':'');c.textContent=k+1;c.title=d[0];c.onclick=()=>openModal('dict',k);$('#mnav').appendChild(c);});}
+ else if(kind==='decl'){$('#mh').textContent='声明:哪些真算,哪些示意';$('#mb').innerHTML=DECL;}
+ else if(kind==='analogy'){$('#mh').textContent='🍞 面包类比:每颗葡萄干都以为自己是中心';
+  $('#mb').innerHTML='面团均匀发酵,所有葡萄干之间的距离都在变大。<b style="color:#ffd27a">点击任意葡萄干</b>换个视角——它看到的也是"别人都在离我远去"。<br><span style="color:#8fa3c0;font-size:12px">注意:这只是二维类比。真实宇宙不是在向某个"外部空间"膨胀——面包有边缘、有烤箱,宇宙都没有;膨胀不需要"外面"。</span>';
+  $('#mcanvas').style.display='block';anaCenter=0;anaT=0;}
+ else if(kind==='concl'){$('#mh').textContent='📊 结论对比:同样的时间,多出的距离一样吗?';
+  $('#mb').innerHTML='取一颗今天在 29 亿光年外的星系,每过 50 亿年记录一次它离我们又多了多少:<br><span style="color:#8fa3c0;font-size:12px">(数据由内核实时计算,非贴图)</span>';
+  $('#mcanvas').style.display='block';conT=0;}
+};
+$('#dictBtn').onclick=()=>openModal('dict',0);
+$('#declBtn').onclick=()=>openModal('decl');
+$('#analogyBtn').onclick=()=>openModal('analogy');
+$('#conclBtn').onclick=()=>openModal('concl');
+$('#mx').onclick=()=>{$('#modal').style.display='none';mmode='';};
+$('#modal').onclick=e=>{if(e.target.id==='modal'){$('#modal').style.display='none';mmode='';}};
+/* 类比画布 */
+const mcv=$('#mcanvas'),mx2=mcv.getContext('2d');
+const anaPts=[];{const rnd=RNG(77);for(let i=0;i<13;i++)anaPts.push([rnd()*.76+.12,rnd()*.6+.2]);}
+let anaCenter=0,anaT=0,conT=0;
+mcv.addEventListener('click',e=>{
+ if(mmode!=='analogy')return;
+ const r=mcv.getBoundingClientRect(),mxp=(e.clientX-r.left)/r.width,myp=(e.clientY-r.top)/r.height;
+ let best=0,bd=1e9;
+ const f=1+.45*(1-Math.cos(anaT*.8))/2;
+ anaPts.forEach((p,i)=>{const q=anaXY(p,f);const d=(q[0]/mcv.width-mxp)**2+(q[1]/mcv.height-myp)**2;if(d<bd){bd=d;best=i;}});
+ anaCenter=best;
+});
+const anaXY=(p,f)=>{const W=mcv.width,H=mcv.height;
+ const cx=W/2,cy=H/2;return[cx+(p[0]-.5)*W*.86*f/1.45,cy+(p[1]-.5)*H*.8*f/1.45];};
+const drawAnalogy=dt=>{
+ anaT+=dt;const W=mcv.width=mcv.clientWidth*devicePixelRatio,H=mcv.height=Math.round(mcv.clientWidth*.62)*devicePixelRatio;
+ mcv.style.height=(H/devicePixelRatio)+'px';
+ const f=1+.45*(1-Math.cos(anaT*.8))/2;
+ mx2.clearRect(0,0,W,H);
+ // 面团
+ mx2.fillStyle='rgba(255,200,140,.07)';mx2.beginPath();
+ mx2.ellipse(W/2,H/2,W*.42*f/1.45,H*.38*f/1.45,0,0,7);mx2.fill();
+ mx2.strokeStyle='rgba(255,200,140,.25)';mx2.stroke();
+ const c0=anaXY(anaPts[anaCenter],f);
+ // 距离线
+ mx2.font=`${10*devicePixelRatio}px sans-serif`;
+ anaPts.forEach((p,i)=>{if(i===anaCenter)return;const q=anaXY(p,f);
+  mx2.strokeStyle='rgba(255,255,255,.18)';mx2.beginPath();mx2.moveTo(c0[0],c0[1]);mx2.lineTo(q[0],q[1]);mx2.stroke();
+  const d=Math.hypot(q[0]-c0[0],q[1]-c0[1])/W*100;
+  mx2.fillStyle='#8fa3c0';mx2.fillText(d.toFixed(0),(c0[0]+q[0])/2+3,(c0[1]+q[1])/2-3);});
+ anaPts.forEach((p,i)=>{const q=anaXY(p,f);
+  mx2.fillStyle=i===anaCenter?'#6fd7ff':'#ffd27a';
+  mx2.beginPath();mx2.arc(q[0],q[1],(i===anaCenter?7:5)*devicePixelRatio,0,7);mx2.fill();});
+ mx2.fillStyle='#6fd7ff';mx2.fillText('🔭 我(点别的葡萄干换视角)',c0[0]+9,c0[1]-9);
+ mx2.fillStyle='#8fa3c0';mx2.fillText(`发酵倍数 f=${f.toFixed(2)} — 所有两两距离同比放大`,12*devicePixelRatio,16*devicePixelRatio);
+};
+/* 结论画布(数据实时算) */
+const conclData=()=>{const X=2.9,U=[],A=[];
+ for(let k=1;k<=5;k++){U.push(X*(aOf(T0+5*k,1)-aOf(T0+5*(k-1),1))*10);A.push(X*(aOf(T0+5*k,2)-aOf(T0+5*(k-1),2))*10);}
+ return{U,A};};
+const drawConcl=dt=>{
+ conT=Math.min(conT+dt*.55,1);
+ const W=mcv.width=mcv.clientWidth*devicePixelRatio,H=mcv.height=Math.round(mcv.clientWidth*.56)*devicePixelRatio;
+ mcv.style.height=(H/devicePixelRatio)+'px';
+ mx2.clearRect(0,0,W,H);const dp=devicePixelRatio;
+ const{U,A}=conclData();
+ const rows=[['匀速膨胀',U,'#6fd7ff','每次多出的距离几乎一样'],['加速膨胀(真实宇宙)',A,'#ffd27a','每次多出的距离越来越大']];
+ const SC=(W-120*dp)/ (A.reduce((s,v)=>s+v,0));
+ rows.forEach((row,r)=>{
+  const y0=H*.2+r*H*.4;
+  mx2.fillStyle=row[2];mx2.font=`${12*dp}px sans-serif`;mx2.fillText(row[0],16*dp,y0-14*dp);
+  mx2.fillStyle='#8fa3c0';mx2.font=`${10.5*dp}px sans-serif`;mx2.fillText(row[3],W-230*dp,y0-14*dp);
+  let x=60*dp;
+  row[1].forEach((v,i)=>{
+   const wSeg=v*SC*Math.min(1,conT*5-i*.8>0?conT*5-i*.8:0);
+   if(wSeg<=0)return;
+   mx2.fillStyle=row[2]+(r?'':'');mx2.globalAlpha=.28;mx2.fillRect(x,y0,wSeg,22*dp);mx2.globalAlpha=1;
+   mx2.strokeStyle=row[2];mx2.strokeRect(x,y0,wSeg,22*dp);
+   mx2.fillStyle=row[2];mx2.font=`${10*dp}px sans-serif`;
+   if(wSeg>34*dp)mx2.fillText(`+${v.toFixed(1)}亿ly`,x+4*dp,y0+15*dp);
+   x+=v*SC;});
+  mx2.fillStyle='#66779a';mx2.fillText('50亿年 × 5 个窗口 →',60*dp,y0+38*dp);});
+ mx2.fillStyle='#d7e3f4';mx2.font=`${11.5*dp}px sans-serif`;
+ mx2.fillText('同样的 5 段时间:上排每段几乎等长;下排一段比一段长——这就是"加速"。',16*dp,H-14*dp);
+};
+
+/* ════════ 主循环 ════════ */
+let lastT=0,fpsE=0,lowCnt=0,hidden=false,toastT=0;
+const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>t.style.display='none',3600);};
+document.addEventListener('visibilitychange',()=>{hidden=document.hidden;if(!hidden){lastT=0;requestAnimationFrame(tick);}});
+const tick=t=>{
+ if(hidden)return;
+ requestAnimationFrame(tick);
+ if(t-lastT<21)return;
+ const dt=lastT?Math.min((t-lastT)/1000,.1):.016;lastT=t;
+ const fps=1/dt;fpsE=fpsE?fpsE*.95+fps*.05:fps;
+ if(fpsE<26){if(++lowCnt>140&&!S.qLow){S.qLow=true;resize();}}else lowCnt=0;
+ $('#fps').textContent=fpsE.toFixed(0)+' fps';
+ if(S.play&&!S.still){
+  S.t+=S.speed*dt;
+  if(S.t>=TMAX){S.t=TMAX;S.play=false;syncPlay();toast('到 450 亿年了——按「⟲ 回到今天」重来');}
+  S.t=clamp(S.t,tMin(),TMAX);
+  // 光子推进
+  for(const p of photons){
+   if(p.done)continue;
+   const sub2=8,ddt=S.speed*dt/sub2;
+   for(let k=0;k<sub2&&!p.done;k++){
+    p.chi+=ddt/aOf(S.t-S.speed*dt+(k+.5)*ddt,S.mode);
+    if(p.chi>=p.X){p.done=true;photonArrived(p);}}}
+ }
+ boundAng+=dt*.25;
+ stTimer+=dt;if(stTimer>13){sayStmt((stIdx+1)%STMT.length);}
+ draw3D();drawChartA();drawChartH();
+ if(mmode==='analogy')drawAnalogy(dt);
+ if(mmode==='concl')drawConcl(dt);
+};
+const photonArrived=p=>{
+ const z=aOf(S.t,S.mode)/p.aEm-1;
+ const pop=$('#zpop');pop.style.display='block';
+ pop.innerHTML=`<b>光到了!</b> 飞了 ${((S.t-p.tEm)*10).toFixed(0)} 亿年<br>红移 <b>z=${z.toFixed(2)}</b>:${z<0.005?'波长没变——空间没拉伸(对照成立)':`波长被拉长了 ${(z*100).toFixed(0)}%——因为飞行途中宇宙又"长大"了 ${(z*100).toFixed(0)}%`}<canvas id="zwave"></canvas>`;
+ setTimeout(()=>{const c=document.getElementById('zwave');if(!c)return;
+  const W=c.width=c.clientWidth*devicePixelRatio,H=c.height=56*devicePixelRatio,g=c.getContext('2d');
+  const wave=(y,lam,col,lab)=>{g.strokeStyle=col;g.beginPath();
+   for(let x=0;x<W;x++){const yy=y+Math.sin(x/lam*2*Math.PI)*8*devicePixelRatio;x?g.lineTo(x,yy):g.moveTo(x,yy);}
+   g.stroke();g.fillStyle=col;g.font=`${9*devicePixelRatio}px sans-serif`;g.fillText(lab,4,y-11*devicePixelRatio);};
+  wave(18*devicePixelRatio,26*devicePixelRatio,'#9ab8ff','出发时');
+  wave(44*devicePixelRatio,26*(1+z)*devicePixelRatio,'#ff8a7a',`到达时(×${(1+z).toFixed(2)})`);},60);
+ if(z>=0.005)toast('宇宙学红移:光的波长被膨胀的空间拉长了');
+ setTimeout(()=>{if(pop)pop.style.display='none';},12000);
+};
+
+/* ════════ resize/启动 ════════ */
+const resize=()=>{
+ const dp=Math.min(devicePixelRatio,S.qLow?1.2:1.6);
+ const r=$('#v3d').getBoundingClientRect();cv.width=r.width*dp;cv.height=r.height*dp;
+ for(const c of[cA,cH]){const rr=c.getBoundingClientRect();c.width=rr.width*dp;c.height=rr.height*dp;}
+};
+addEventListener('resize',resize);
+
+/* ════════ 校验钩子 ════════ */
+window.__EX__={
+ kernel:{aOf,HOf,tOfA,T0,H0,OM,OL,TSTAR,CKMS},
+ set(o){if(o.mode!==undefined){document.querySelectorAll('#modes .chip')[o.mode].click();}
+  if(o.t!==undefined)S.t=o.t;if(o.play!==undefined){S.play=o.play;syncPlay();}
+  if(o.speed!==undefined)S.speed=o.speed;if(o.obs!==undefined)switchObs(o.obs);
+  if(o.still!==undefined)S.still=o.still;if(o.emit!==undefined)emitPhoton(o.emit);},
+ state:()=>({mode:S.mode,t:S.t,a:aOf(S.t,S.mode),H:HOf(S.t,S.mode),obs:S.obs,play:S.play,fps:fpsE,nPhotons:photons.length,boundSep:BOUND_R}),
+ featured(){const a=aOf(S.t,S.mode),Ht=HOf(S.t,S.mode),o=gal[S.obs].p;
+  return feat.map((gi,k)=>{const g=gal[gi].p,X=Math.hypot(g[0]-o[0],g[1]-o[1],g[2]-o[2]);
+   return{name:FNAME[k],idx:gi,X,d:X*a,v:Ht*X*a};});},
+ photons:()=>photons.map(p=>({X:p.X,chi:p.chi,tEm:p.tEm,aEm:p.aEm,done:p.done,z:aOf(S.t,S.mode)/p.aEm-1})),
+ stepTime(dt){ // 与主循环同式推进(确定性,供闸门)
+  const sub2=40,ddt=dt/sub2;
+  for(let k=0;k<sub2;k++){const tk=S.t+(k+.5)*ddt;
+   for(const p of photons)if(!p.done){p.chi+=ddt/aOf(tk,S.mode);if(p.chi>=p.X)p.done=true;}}
+  S.t+=dt;return this.state();},
+ gridNode(i,j){const a=aOf(S.t,S.mode);return[i*a,j*a,0];},
+ conclData,
+ anaPairs(f){const out=[];for(let i=0;i<anaPts.length;i++)for(let j=i+1;j<anaPts.length;j++){
+  const d0=Math.hypot(anaPts[i][0]-anaPts[j][0],anaPts[i][1]-anaPts[j][1]);
+  out.push(Math.hypot(f*(anaPts[i][0]-anaPts[j][0]),f*(anaPts[i][1]-anaPts[j][1]))/d0);}return out;},
+ galaxies:()=>gal.map(g=>g.p),
+ W:()=>cv.width,H:()=>cv.height,
+ sample(){const W=cv.width,H=cv.height,px=new Uint8Array(W*H*4);gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let nb=0,mx=0,sum=0;for(let i=0;i<W*H;i++){const v=(px[i*4]+px[i*4+1]+px[i*4+2])/3;sum+=v;if(v>10)nb++;if(v>mx)mx=v;}
+  return{nonblack:nb/(W*H),max:mx,mean:sum/(W*H)};},
+ chartPix(which){const c=which==='H'?cH:cA;const d=(which==='H'?xH:xA).getImageData(0,0,c.width,c.height).data;
+  let gold=0,cyan=0,nb=0;for(let i=0;i<d.length;i+=4){if(d[i+3]<10)continue;nb++;
+   if(d[i]>190&&d[i+1]>150&&d[i+2]<160)gold++;if(d[i]<160&&d[i+1]>150&&d[i+2]>190)cyan++;}
+  return{nonblank:nb,gold,cyan};},
+ openDict(i){openModal('dict',i);return $('#mh').textContent;},
+ openModal,
+ bannerText:()=>$('#banner').textContent,
+ drawNow(){draw3D();drawChartA();drawChartH();},
+ emitAt:emitPhoton,
+};
+
+pickFeat();
+sayStmt(0);
+resize();
+requestAnimationFrame(tick);
+setTimeout(resize,60);
+</script>

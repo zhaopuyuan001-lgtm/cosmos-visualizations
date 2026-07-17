@@ -1,0 +1,866 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>脉冲星灯塔 · Pulsar Lighthouse</title>
+<style>
+:root{--bg:#05070d;--panel:rgba(13,18,30,.94);--line:rgba(120,150,200,.16);--gold:#ffd27a;--cyan:#6fd7ff;--teal:#37e0c8;--red:#ff6a5e;--tx:#d7e3f4;--dim:#8fa3c0}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font:14px/1.55 -apple-system,"PingFang SC","Noto Sans SC",sans-serif;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh}
+header{display:flex;align-items:center;gap:14px;padding:7px 14px;border-bottom:1px solid var(--line);background:var(--panel);z-index:5;flex-wrap:wrap}
+header h1{font-size:16px;letter-spacing:.5px;color:var(--gold);font-weight:700;white-space:nowrap}
+header h1 small{color:var(--dim);font-weight:400;font-size:11px;margin-left:8px}
+.tabs{display:flex;gap:6px;margin-left:auto}
+.tab{padding:4px 12px;border:1px solid var(--line);border-radius:14px;cursor:pointer;color:var(--dim);font-size:13px;user-select:none;white-space:nowrap}
+.tab.on{color:#0a0e18;background:var(--gold);border-color:var(--gold);font-weight:600}
+.hbtn{padding:4px 10px;border:1px solid var(--line);border-radius:14px;cursor:pointer;color:var(--cyan);font-size:13px;user-select:none;white-space:nowrap}
+.hbtn:hover{background:rgba(111,215,255,.1)}
+main{flex:1;position:relative;min-height:0}
+.act{position:absolute;inset:0;display:none}
+.act.on{display:flex}
+/* ── Act1 ── */
+#act1{flex-direction:column}
+#a1top{flex:1;display:flex;min-height:0}
+#v3d{flex:1;position:relative;min-width:0}
+#gl{width:100%;height:100%;display:block}
+#lbls div{position:absolute;font-size:11px;color:var(--dim);pointer-events:none;text-shadow:0 0 4px #000;white-space:nowrap}
+#read{position:absolute;top:8px;left:10px;font-size:11.5px;color:var(--dim);background:rgba(5,8,14,.55);padding:6px 9px;border-radius:8px;line-height:1.7;pointer-events:none}
+#read b{color:var(--gold);font-weight:600}
+#read i{color:var(--cyan);font-style:normal}
+#slowchip{position:absolute;top:8px;right:10px;font-size:11px;color:var(--teal);background:rgba(5,8,14,.55);padding:3px 9px;border-radius:10px;pointer-events:none}
+#deadbn{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:20px;color:var(--red);background:rgba(10,5,5,.8);border:1px solid var(--red);padding:10px 22px;border-radius:12px;display:none;text-align:center}
+#deadbn small{display:block;font-size:12px;color:var(--dim);margin-top:4px}
+aside{width:292px;border-left:1px solid var(--line);background:var(--panel);padding:10px 12px;overflow-y:auto;font-size:12.5px}
+aside h3{font-size:12px;color:var(--gold);margin:10px 0 6px;letter-spacing:1px}
+aside h3:first-child{margin-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:3px 9px;border:1px solid var(--line);border-radius:11px;cursor:pointer;color:var(--tx);font-size:12px;user-select:none}
+.chip:hover{border-color:var(--cyan)}
+.chip.on{background:rgba(255,210,122,.16);border-color:var(--gold);color:var(--gold)}
+.srow{display:flex;align-items:center;gap:8px;margin:7px 0}
+.srow label{width:118px;color:var(--dim);font-size:12px;flex-shrink:0}
+.srow input[type=range]{flex:1;accent-color:var(--gold);min-width:0}
+.srow output{width:60px;text-align:right;color:var(--cyan);font-size:12px;flex-shrink:0}
+.trow{display:flex;align-items:center;gap:6px;margin:4px 0;color:var(--dim);cursor:pointer;user-select:none}
+.trow input{accent-color:var(--gold)}
+.abtn{display:block;width:100%;margin:8px 0;padding:7px;border:1px solid var(--gold);border-radius:9px;background:rgba(255,210,122,.1);color:var(--gold);font-size:13.5px;cursor:pointer;text-align:center;user-select:none}
+.abtn:hover{background:rgba(255,210,122,.2)}
+.abtn.playing{background:var(--gold);color:#0a0e18;font-weight:600}
+.note{color:var(--dim);font-size:11px;line-height:1.6;margin:6px 0}
+#profWrap{height:158px;border-top:1px solid var(--line);background:#070a12;position:relative;flex-shrink:0}
+#prof{width:100%;height:100%;display:block}
+/* ── Act2 ── */
+#act2{flex-direction:row}
+#ppWrap{flex:1;position:relative;min-width:0;background:#070a12}
+#ppdot{width:100%;height:100%;display:block;cursor:crosshair}
+#residWrap{position:absolute;right:12px;bottom:12px;width:300px;height:150px;background:rgba(7,10,18,.92);border:1px solid var(--line);border-radius:10px;display:none}
+#resid{width:100%;height:100%;display:block}
+/* ── Act3 ── */
+#act3{flex-direction:row}
+#wfWrap{flex:1;display:flex;flex-direction:column;min-width:0;background:#070a12}
+#wf{flex:1;width:100%;min-height:0}
+#fold{height:150px;width:100%;border-top:1px solid var(--line);flex-shrink:0}
+canvas{display:block}
+/* modal */
+#modal{position:fixed;inset:0;background:rgba(3,5,9,.78);display:none;z-index:40;align-items:center;justify-content:center}
+#mcard{width:min(620px,92vw);max-height:82vh;overflow-y:auto;background:#0b101c;border:1px solid rgba(255,210,122,.35);border-radius:14px;padding:20px 24px}
+#mcard h2{color:var(--gold);font-size:17px;margin-bottom:10px}
+#mcard .bd{font-size:13.5px;line-height:1.85;color:var(--tx)}
+#mcard .bd em{color:var(--cyan);font-style:normal}
+#mcard .bd .fm{display:block;margin:8px 0;padding:7px 12px;background:rgba(111,215,255,.07);border-left:2px solid var(--cyan);color:var(--cyan);font-size:13px;border-radius:0 8px 8px 0}
+#mnav{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+#mnav .chip.on{color:var(--gold)}
+#mx{float:right;cursor:pointer;color:var(--dim);font-size:18px;padding:0 4px}
+#tip{position:fixed;background:#0d1220;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:11.5px;line-height:1.6;pointer-events:none;display:none;z-index:30;max-width:250px}
+#tip b{color:var(--gold)}
+footer{display:flex;gap:14px;align-items:center;padding:4px 14px;border-top:1px solid var(--line);background:var(--panel);font-size:11px;color:var(--dim)}
+#fps{margin-left:auto}
+#toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:#0d1424;border:1px solid var(--gold);color:var(--gold);padding:8px 18px;border-radius:20px;font-size:13px;display:none;z-index:50}
+.lock{color:var(--teal);font-weight:700}
+@media (max-width:900px){aside{width:230px}}
+</style>
+<div id="app">
+<header>
+  <h1>📡 脉冲星灯塔<small>PULSAR LIGHTHOUSE · 宇宙可视化系列 · 第十三作</small></h1>
+  <div class="tabs">
+    <div class="tab on" data-act="1">① 灯塔机房</div>
+    <div class="tab" data-act="2">② 千年演化</div>
+    <div class="tab" data-act="3">③ 捕手</div>
+  </div>
+  <div class="hbtn" id="dictBtn">词典</div>
+  <div class="hbtn" id="declBtn">声明</div>
+</header>
+<main>
+  <!-- ═══ Act 1 灯塔机房 ═══ -->
+  <section class="act on" id="act1">
+    <div id="a1top">
+      <div id="v3d">
+        <canvas id="gl"></canvas>
+        <div id="lbls"><div id="lb0">Ω 自转轴</div><div id="lb1">μ 磁轴</div><div id="lb2">光柱面 R_lc</div><div id="lb3">🌍 地球方向</div></div>
+        <div id="read"></div>
+        <div id="slowchip"></div>
+        <div id="deadbn">☠ 已越过死亡线<small>极冠电压不足,相干发射停止——灯塔熄灭</small></div>
+      </div>
+      <aside>
+        <h3>选一颗真的脉冲星</h3>
+        <div class="chips" id="presets"></div>
+        <h3>灯塔几何</h3>
+        <div class="srow"><label>磁倾角 α</label><input type="range" id="sAl" min="0" max="90" step="0.5" value="86"><output id="oAl"></output></div>
+        <div class="srow"><label>视线角 ζ</label><input type="range" id="sZe" min="0" max="90" step="0.5" value="84"><output id="oZe"></output></div>
+        <div class="srow"><label>周期 P(log)</label><input type="range" id="sP" min="-2.85" max="1.88" step="0.01" value="-1.476"><output id="oP"></output></div>
+        <div class="srow"><label>束半角 ρ</label><input type="range" id="sRho" min="2" max="30" step="0.5" value="8"><output id="oRho"></output></div>
+        <h3>图层</h3>
+        <div class="trow"><input type="checkbox" id="tLines" checked>磁力线（偶极真形状）</div>
+        <div class="trow"><input type="checkbox" id="tLc" checked>光柱面</div>
+        <div class="trow"><input type="checkbox" id="tBeam" checked>辐射束</div>
+        <div class="trow"><input type="checkbox" id="tBand" checked>天球扫掠带 + 轨迹</div>
+        <div class="trow"><input type="checkbox" id="tWind" checked>光柱面外风螺旋(节距真实)</div>
+        <div class="abtn" id="audioBtn">🔊 听它（由计算轮廓合成）</div>
+        <div class="note" id="a1note">下方轮廓不是画的：每一帧由 cosθ(φ)=cosα·cosζ+sinα·sinζ·cosφ 把波束-视线夹角代入束函数得出。白色细线=单转(带子脉冲抖动)，金色=累积平均，青色虚线=解析。</div>
+      </aside>
+    </div>
+    <div id="profWrap"><canvas id="prof"></canvas></div>
+  </section>
+  <!-- ═══ Act 2 千年演化 ═══ -->
+  <section class="act" id="act2">
+    <div id="ppWrap"><canvas id="ppdot"></canvas><div id="residWrap"><canvas id="resid"></canvas></div></div>
+    <aside>
+      <h3>P–Ṗ 图：脉冲星的人生地图</h3>
+      <div class="note">每个点=一颗真实脉冲星(文献值)。左上出生,向右下滑向"坟场"。悬停看名片,<b style="color:var(--gold)">点击装进灯塔</b>。灰点为人口分布示意。</div>
+      <div class="abtn" id="playBtn">▶ 让时间流动</div>
+      <div class="srow"><label>时间加速</label><input type="range" id="sSpd" min="4" max="11" step="0.1" value="8.6"><output id="oSpd"></output></div>
+      <div class="trow"><input type="radio" name="brk" id="n3" checked>制动指数 n=3（纯磁偶极）</div>
+      <div class="trow"><input type="radio" name="brk" id="n251">n=2.51（蟹实测）</div>
+      <div class="chips">
+        <div class="chip" id="toBirth">⏮ 回到 1054 年出生</div>
+        <div class="chip" id="toNow">回到 2026</div>
+        <div class="chip" id="glitchBtn">⚡ 来一次 glitch</div>
+      </div>
+      <h3>当前状态</h3>
+      <div class="note" id="evoRead" style="line-height:1.9"></div>
+      <div class="note">特征年龄 τ_c=P/2Ṗ 会"骗人"：蟹算出 1257 年,真实 972 年——因为出生时已有 P₀≈19ms。倒回 1054 看它自己算出来。</div>
+    </aside>
+  </section>
+  <!-- ═══ Act 3 捕手 ═══ -->
+  <section class="act" id="act3">
+    <div id="wfWrap"><canvas id="wf"></canvas><canvas id="fold"></canvas></div>
+    <aside>
+      <h3>你就是射电天文学家</h3>
+      <div class="note">星际等离子体让低频晚到：Δt = 4.149ms·DM/f²(GHz)。上图=望远镜 96 个频道的折叠数据,脉冲被色散拖成斜线。<b style="color:var(--gold)">转动 DM 旋钮把它扶直</b>,折叠信噪比就会锁定峰值——这正是 PRESTO 等搜寻管线每天做的事。</div>
+      <h3>关卡</h3>
+      <div class="chips" id="levels"></div>
+      <div class="srow" style="margin-top:12px"><label>色散量 DM</label><input type="range" id="sDM" min="0" max="30" step="0.05" value="0"><output id="oDM"></output></div>
+      <div class="srow"><label>折叠 S/N</label><output id="oSN" style="width:auto;font-size:15px"></output></div>
+      <div class="note" id="dmMsg"></div>
+      <div class="note" id="lvStory"></div>
+    </aside>
+  </section>
+</main>
+<footer>
+  <span>系列硬标准：物理真算 · 诚实近似（见「声明」）</span>
+  <span id="qchip" style="display:none;color:var(--teal)">省电档</span>
+  <span id="fps"></span>
+</footer>
+</div>
+<div id="modal"><div id="mcard"><span id="mx">✕</span><h2 id="mh"></h2><div class="bd" id="mb"></div><div id="mnav"></div></div></div>
+<div id="tip"></div>
+<div id="toast"></div>
+<script>
+'use strict';
+/* ════════ 工具 ════════ */
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
+const D2R=Math.PI/180, YR=3.15576e7, C_KM=299792.458, KDM=4.148808;
+const RNG=s=>{let a=s>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};};
+const fmtP=P=>P<0.1?(P*1000).toFixed(P<0.005?3:1)+' ms':P.toFixed(P<10?3:1)+' s';
+const SUP='⁰¹²³⁴⁵⁶⁷⁸⁹';
+const sup=n=>String(n).split('').map(c=>c==='-'?'⁻':c==='.'?'·':SUP[+c]).join('');
+const fmtE=v=>{const e=Math.floor(Math.log10(v));return (v/10**e).toFixed(1)+'×10'+sup(e);};
+
+/* ════════ 物理内核（与 proto.mjs 同式,28 项 Node 对拍通过） ════════ */
+const derived=(P,Pd)=>({B:3.2e19*Math.sqrt(P*Pd),tau:P/(2*Pd)/YR,Edot:4*Math.PI**2*1e45*Pd/P**3,Rlc:C_KM*P/(2*Math.PI),thpc:Math.asin(Math.sqrt(10/(C_KM*P/(2*Math.PI))))});
+const deathPd=P=>2.8e-17*P**3;
+const cosBeam=(al,ze,phi,pole)=>{const a=pole?Math.PI-al:al,ph=pole?phi+Math.PI:phi;return Math.cos(a)*Math.cos(ze)+Math.sin(a)*Math.sin(ze)*Math.cos(ph);};
+const beamI=(th,rho,w,coreA,wc)=>{const d=(th-rho)/w;return Math.exp(-d*d/2)+coreA*Math.exp(-th*th/(2*wc*wc));};
+const makeProfile=(al,ze,rho,coreA,N)=>{const w=.28*rho,wc=.5*rho,out=new Float64Array(N);for(let i=0;i<N;i++){const phi=i/N*2*Math.PI;let v=0;for(let p=0;p<2;p++){const c=Math.min(1,Math.max(-1,cosBeam(al,ze,phi,p)));const th=Math.acos(c);if(th<rho+8*w)v+=beamI(th,rho,w,coreA,wc);}out[i]=v;}return out;};
+const measureW50=prof=>{const N=prof.length,mx=Math.max(...prof),half=mx/2;let ip=0;for(let i=0;i<N;i++)if(prof[i]>prof[ip])ip=i;let i=ip;while(prof[((i-1)%N+N)%N]>=half&&ip-i<N)i--;const iLo=i,fLo=(prof[((i-1)%N+N)%N]-half)/(prof[((i-1)%N+N)%N]-prof[((i)%N+N)%N]+1e-30);i=ip;while(prof[(i+1)%N]>=half&&i-ip<N)i++;const iHi=i,fHi=(prof[(i+1)%N]-half)/(prof[(i+1)%N]-prof[(i)%N]+1e-30);return((iHi+(1-fHi))-(iLo-(1-fLo)))/N;};
+const widthGeom=(al,ze,thH)=>{const c=(Math.cos(thH)-Math.cos(al)*Math.cos(ze))/(Math.sin(al)*Math.sin(ze));if(c>=1)return 0;if(c<=-1)return 1;return 2*Math.acos(c)/(2*Math.PI);};
+const beamHalfRadius=(rho,coreA)=>{const w=.28*rho,wc=.5*rho;let pkV=0;for(let t=0;t<=rho+8*w;t+=rho/2000)pkV=Math.max(pkV,beamI(t,rho,w,coreA,wc));for(let t=rho+8*w;t>=0;t-=rho/2000)if(beamI(t,rho,w,coreA,wc)>=pkV/2)return t;return 0;};
+const interpulseSep=prof=>{const N=prof.length;let p1=0;for(let i=0;i<N;i++)if(prof[i]>prof[p1])p1=i;let p2=-1;for(let i=0;i<N;i++){const d=Math.min(Math.abs(i-p1),N-Math.abs(i-p1))/N;if(d>0.15&&(p2<0||prof[i]>prof[p2]))p2=i;}if(p2<0||prof[p2]<0.2*prof[p1])return null;const cen=p=>{let sw=0,sx=0;for(let k=-Math.floor(N*.1);k<=Math.floor(N*.1);k++){const v=prof[((p+k)%N+N)%N];sw+=v;sx+=v*k;}return((p+sx/sw)%N+N)%N;};const s=Math.abs(cen(p1)-cen(p2))/N;return Math.min(s,1-s);};
+const sdAnalytic=(P0,K,n,t)=>{const b=Math.pow(P0,n-1)+(n-1)*K*t;return b<=1e-9?null:Math.pow(b,1/(n-1));};
+const dmDelayMs=(dm,f)=>KDM*dm/(f*f);
+const beamFrac=(al,rho)=>{const iv=[[al-rho,al+rho],[Math.PI-al-rho,Math.PI-al+rho]].map(([a,b])=>[Math.max(0,a),Math.min(Math.PI,b)]).sort((p,q)=>p[0]-q[0]);const m=[];for(const v of iv){if(m.length&&v[0]<=m[m.length-1][1])m[m.length-1][1]=Math.max(m[m.length-1][1],v[1]);else m.push([...v]);}let s=0;for(const[a,b]of m)s+=Math.cos(a)-Math.cos(b);return s/2;};
+const smoothNoise=(rnd,n)=>{const c=Array.from({length:n},()=>rnd()*2-1);return t=>{const x=t*n,i=Math.floor(x),f=x-i,s=(1-Math.cos(f*Math.PI))/2;return c[i%n]*(1-s)+c[(i+1)%n]*s;};};
+const genAudio=(P,sr,seconds,seed,prof)=>{const nPer=Math.max(1,Math.round(seconds/P)),N=Math.round(nPer*P*sr);const out=new Float32Array(N),rnd=RNG(seed),NP=prof.length;const mx=Math.max(...prof);const gains=Array.from({length:nPer},()=>.55+.45*rnd());for(let i=0;i<N;i++){const t=i/sr,per=Math.floor(t/P),ph=(t/P)%1;const env=prof[Math.floor(ph*NP)]/mx*gains[per%nPer];out[i]=env*(rnd()*2-1)*.6;}return out;};
+const autocorrPeak=(x,sr,lagLo,lagHi,stride)=>{const n=x.length,y=new Float64Array(n);let m=0;for(let i=0;i<n;i++){y[i]=x[i]*x[i];m+=y[i];}m/=n;for(let i=0;i<n;i++)y[i]-=m;let best=lagLo,bv=-1e30;for(let L=lagLo;L<=lagHi;L++){let s=0;for(let i=0;i+L<n;i+=stride)s+=y[i]*y[i+L];if(s>bv){bv=s;best=L;}}return best/sr;};
+const makeFoldData=(P,DM,prof,fLo,fHi,nch,nph,sigma,seed)=>{const data=[];const rnd=RNG(seed);for(let i=0;i<nch;i++){const f=fLo+(i+.5)/nch*(fHi-fLo);const dphi=dmDelayMs(DM,f)/1000/P;const row=new Float64Array(nph);for(let j=0;j<nph;j++){let ph=(j/nph-dphi)%1;if(ph<0)ph+=1;const k=Math.floor(ph*prof.length);const u1=Math.max(1e-12,rnd()),u2=rnd();row[j]=prof[k]+sigma*Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);}data.push({f,row});}return data;};
+const foldSum=(data,P,DMtrial,nph)=>{const sum=new Float64Array(nph);for(const{f,row}of data){const shift=dmDelayMs(DMtrial,f)/1000/P;for(let j=0;j<nph;j++){let ph=(j/nph-shift)%1;if(ph<0)ph+=1;sum[Math.floor(ph*nph)]+=row[j];}}const arr=[...sum].sort((a,b)=>a-b),med=arr[nph>>1];const mad=[...sum].map(v=>Math.abs(v-med)).sort((a,b)=>a-b)[nph>>1]*1.4826;return{sum,sn:(Math.max(...sum)-med)/(mad+1e-30)};};
+const glitchPhase=(dnu,Q,tr,T)=>T<=0?0:dnu*((1-Q)*T+Q*tr*(1-Math.exp(-T/tr)));
+
+/* ════════ 名星目录（文献值） ════════ */
+const CAT=[
+ {n:'蟹 Crab B0531+21',P:.0334,Pd:4.21e-13,DM:56.77,c:'N',note:'1054年超新星遗骸·本系列第五作主角',al:86,ze:84,rho:8,ca:2.2,lab:1},
+ {n:'船帆 Vela B0833-45',P:.0893,Pd:1.25e-13,DM:67.99,c:'N',note:'南天最亮射电·最爱打嗝(glitch)',al:53,ze:59,rho:6,ca:1.6,lab:1},
+ {n:'B1919+21',P:1.3373,Pd:1.348e-15,DM:12.44,c:'N',note:'人类发现的第一颗·LGM-1',al:45,ze:48.6,rho:5,ca:.25,lab:1},
+ {n:'B0329+54',P:.7145,Pd:2.05e-15,DM:26.78,c:'N',note:'北天最亮'},
+ {n:'B1937+21',P:.0015578,Pd:1.05e-19,DM:71.02,c:'R',note:'第一颗毫秒脉冲星·642Hz 音符',al:88,ze:86,rho:15,ca:1.2,lab:1},
+ {n:'J0437-4715',P:.005757,Pd:5.73e-20,DM:2.64,c:'R',note:'最近的毫秒星·计时精度~100ns',lab:1},
+ {n:'B1913+16',P:.05903,Pd:8.63e-18,DM:168.77,c:'B',note:'Hulse-Taylor·引力波间接证据·1993诺奖',lab:1},
+ {n:'J0737-3039A',P:.0227,Pd:1.76e-18,DM:48.92,c:'B',note:'唯一双脉冲星系统·A星',al:90,ze:88,rho:12,ca:2.5,lab:1},
+ {n:'J0737-3039B',P:2.7735,Pd:8.92e-16,DM:48.92,c:'B',note:'双脉冲星系统·B星'},
+ {n:'Geminga',P:.2371,Pd:1.097e-14,DM:NaN,c:'N',note:'纯γ射线脉冲星,射电几乎静默'},
+ {n:'B0540-69',P:.0505,Pd:4.79e-13,DM:146.5,c:'N',note:'大麦哲伦云的"蟹双胞胎"'},
+ {n:'B1509-58',P:.1513,Pd:1.53e-12,DM:252.5,c:'N',note:'"上帝之手"星云中心'},
+ {n:'J1748-2446ad',P:.0013959,Pd:1e-20,DM:242.15,c:'R',note:'716Hz·已知最快(Ṗ受星团加速度污染,纵向位置示意)',approx:1,lab:1},
+ {n:'J0250+5854',P:23.54,Pd:2.72e-14,DM:45.3,c:'N',note:'23.5秒慢转射电'},
+ {n:'J0901-4046',P:75.88,Pd:2.25e-13,DM:52,c:'N',note:'75.9秒·死亡线下仍发光',lab:1},
+ {n:'SGR 1806-20',P:7.55,Pd:4.95e-10,DM:NaN,c:'M',note:'2004巨耀斑·5万光年外扰动地球电离层',al:30,ze:35,rho:25,ca:2,lab:1},
+ {n:'1E 1841-045',P:11.79,Pd:4.09e-11,DM:NaN,c:'M',note:'磁陀星'},
+ {n:'SGR 1900+14',P:5.2,Pd:9.2e-11,DM:NaN,c:'M',note:'1998巨耀斑'},
+ {n:'1E 2259+586',P:6.98,Pd:4.84e-13,DM:NaN,c:'M',note:'磁陀星'},
+ {n:'J2144-3933',P:8.51,Pd:4.96e-16,DM:3.35,c:'N',note:'死亡线下仍发光的著名反例',lab:1},
+ {n:'J0030+0451',P:.004865,Pd:1.02e-20,DM:4.33,c:'R',note:'NICER 由它测中子星半径'},
+ {n:'J1614-2230',P:.003151,Pd:9.62e-21,DM:34.5,c:'R',note:'首颗确认 2 倍太阳质量'},
+ {n:'J0740+6620',P:.002886,Pd:1.22e-20,DM:15,c:'R',note:'~2.08 M☉·最重之一'},
+ {n:'B1257+12',P:.006219,Pd:1.14e-19,DM:10.17,c:'R',note:'1992·人类发现的第一批系外行星绕它转'},
+ {n:'B1821-24',P:.003054,Pd:1.62e-18,DM:120.5,c:'R',note:'球状星团 M28'},
+ {n:'B0950+08',P:.2531,Pd:2.3e-16,DM:2.97,c:'N',note:'仅 262 pc'},
+ {n:'B0656+14',P:.3849,Pd:5.5e-14,DM:13.98,c:'N',note:'"三剑客"之一'},
+ {n:'B1055-52',P:.1971,Pd:5.83e-15,DM:30.1,c:'N',note:'"三剑客"之一'},
+ {n:'J1846-0258',P:.3266,Pd:7.11e-12,DM:NaN,c:'N',note:'高磁场·脉冲星↔磁陀星过渡态'},
+ {n:'J1119-6127',P:.408,Pd:4.02e-12,DM:707,c:'N',note:'高磁场年轻星'},
+];
+const PRESETS=[CAT[0],CAT[1],CAT[2],CAT[7],CAT[4],CAT[15],
+ {n:'正交转子(演示)',P:.8,Pd:2e-15,DM:15,al:90,ze:88,rho:6,ca:3,demo:1,note:'α=90°:两个磁极轮流扫过你→间脉冲'},
+ {n:'对准转子(演示)',P:.8,Pd:2e-15,DM:15,al:0,ze:8,rho:20,ca:1.5,demo:1,note:'α=0:波束恒指一方,常亮不闪——灯塔失效'}];
+
+/* ════════ 状态 ════════ */
+const S={P:.0334,Pd:4.21e-13,DM:56.77,al:86*D2R,ze:84*D2R,rho:8*D2R,ca:2.2,name:'蟹 Crab B0531+21',
+ act:1,phase:0,rot:0,dead:false,still:0,orbit:1,
+ // act2
+ playing:false,speed:10**8.6,simT:0,n:3,anchor:{P0:.0334,Pd0:4.21e-13},track:[],glitches:[],
+ // act3
+ level:0,dmTrial:0,locked:false,
+ audio:null,audioOn:false,qLow:false};
+let prof512=null,profMax=1,avgProf=new Float64Array(256),avgN=0,jitFn=null,W50m=0,W50g=0,ipSep=null;
+const rebuildProfile=()=>{
+ prof512=makeProfile(S.al,Math.max(S.ze,1e-9),S.rho,S.ca,512);profMax=Math.max(...prof512);
+ avgProf.fill(0);avgN=0;S.rot=0;jitFn=smoothNoise(RNG(1000),8);
+ const thH=beamHalfRadius(S.rho,S.ca);
+ W50m=measureW50(prof512);W50g=(S.al>1e-6&&S.ze>1e-6)?widthGeom(S.al,S.ze,thH):1;ipSep=interpulseSep(prof512);
+};
+
+/* ════════ WebGL ════════ */
+const cv=$('#gl'),gl=cv.getContext('webgl2',{antialias:true,preserveDrawingBuffer:true});
+const compile=(vs,fs)=>{const P=gl.createProgram();for(const[t,s]of[[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){const h=gl.createShader(t);gl.shaderSource(h,s);gl.compileShader(h);if(!gl.getShaderParameter(h,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(h));gl.attachShader(P,h);}gl.linkProgram(P);if(!gl.getProgramParameter(P,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(P));return P;};
+const progLine=compile(`#version 300 es
+layout(location=0) in vec3 aPos;layout(location=1) in vec4 aCol;
+uniform mat4 uVP,uM;out vec4 vC;
+void main(){vC=aCol;gl_Position=uVP*uM*vec4(aPos,1.);}`,`#version 300 es
+precision highp float;in vec4 vC;uniform float uFade;out vec4 O;
+void main(){float a=vC.a*uFade;O=vec4(vC.rgb*a,a);}`);  // 预乘:加色(ONE,ONE)与普通(ONE,1-SA)通用
+const progPts=compile(`#version 300 es
+layout(location=0) in vec3 aPos;layout(location=1) in vec4 aCol;layout(location=2) in float aSz;
+uniform mat4 uVP,uM;uniform float uPx;out vec4 vC;
+void main(){vC=aCol;gl_Position=uVP*uM*vec4(aPos,1.);gl_PointSize=aSz*uPx;}`,`#version 300 es
+precision highp float;in vec4 vC;uniform float uFade;out vec4 O;
+void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,.1,d);O=vec4(vC.rgb*a*vC.a*uFade,1.);}`);
+const progBill=compile(`#version 300 es
+uniform mat4 uView,uProj;uniform vec3 uC,uR,uU;uniform float uSz;out vec2 q;
+void main(){q=vec2(float(gl_VertexID&1),float(gl_VertexID>>1))*2.-1.;
+vec3 wp=uC+(uR*q.x+uU*q.y)*uSz;vec4 vp=uView*vec4(wp,1.);
+if(vp.z>-.06){gl_Position=vec4(0.,0.,-3.,1.);return;}
+gl_Position=uProj*vp;}`,`#version 300 es
+precision highp float;in vec2 q;uniform vec3 uCol;uniform float uMode,uA;out vec4 O;
+void main(){float r2=dot(q,q);
+if(uMode<.5){float g=exp(-r2*3.2);O=vec4(uCol*g*uA,1.);}
+else{if(r2>1.)discard;vec3 n=vec3(q,sqrt(1.-r2));vec3 l=normalize(vec3(.5,.35,.8));
+float d=.32+.68*max(0.,dot(n,l));float rim=pow(1.-n.z,2.5)*.5;
+O=vec4(uCol*d+vec3(.4,.6,1.)*rim,1.);}}`);
+const buf=()=>gl.createBuffer();
+const setVB=(b,arr)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.DYNAMIC_DRAW);};
+/* mat4 */
+const M4={mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+r]*b[c*4+k];o[c*4+r]=s;}return o;},
+ ident:()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),
+ rotZ:a=>new Float32Array([Math.cos(a),Math.sin(a),0,0,-Math.sin(a),Math.cos(a),0,0,0,0,1,0,0,0,0,1]),
+ rotY:a=>new Float32Array([Math.cos(a),0,-Math.sin(a),0,0,1,0,0,Math.sin(a),0,Math.cos(a),0,0,0,0,1]),
+ persp(f,asp,n,fr){const t=1/Math.tan(f/2);return new Float32Array([t/asp,0,0,0,0,t,0,0,0,0,(fr+n)/(n-fr),-1,0,0,2*fr*n/(n-fr),0]);},
+ look(e,c,u){const f=norm3(sub3(c,e)),s=norm3(cross3(f,u)),v=cross3(s,f);
+  return new Float32Array([s[0],v[0],-f[0],0,s[1],v[1],-f[1],0,s[2],v[2],-f[2],0,-dot3(s,e),-dot3(v,e),dot3(f,e),1]);}};
+const sub3=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],cross3=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],dot3=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],norm3=a=>{const l=Math.hypot(...a);return[a[0]/l,a[1]/l,a[2]/l];};
+
+/* ── 几何常数（视觉单位;半径层级压缩,线形状真实——见声明） ── */
+const RV=0.16, RLCV=2.6, RSKY=5.6; // 天球必须在默认相机(9.2)之内侧观察=从外看环带
+/* 星空 */
+const starB=buf(),starN=2600;{
+ const rnd=RNG(20260716),a=new Float32Array(starN*8);
+ for(let i=0;i<starN;i++){const u=rnd()*2-1,ph=rnd()*2*Math.PI,r=26+rnd()*30;const s=Math.sqrt(1-u*u);
+  a[i*8]=r*s*Math.cos(ph);a[i*8+1]=r*s*Math.sin(ph);a[i*8+2]=r*u;
+  const t=rnd(),cR=.7+.3*t,cB=.75+.25*(1-t);const br=.25+.75*rnd()**2.6;
+  a[i*8+3]=cR*br;a[i*8+4]=(.72+.2*t)*br;a[i*8+5]=cB*br;a[i*8+6]=1;a[i*8+7]=1.3+2.4*rnd()**3;}
+ setVB(starB,a);}
+/* 光柱面 */
+const lcB=buf();let lcN=0;{
+ const v=[];const C=(z)=>{for(let i=0;i<=48;i++){const a1=i/48*2*Math.PI;v.push(RLCV*Math.cos(a1),RLCV*Math.sin(a1),z,.22,.88,.78,i?.22:0);if(i&&i<48)v.push(RLCV*Math.cos(a1),RLCV*Math.sin(a1),z,.22,.88,.78,.22);}};
+ for(const z of[-2.3,-1.15,0,1.15,2.3])C(z);
+ for(let i=0;i<14;i++){const a1=i/14*2*Math.PI;v.push(RLCV*Math.cos(a1),RLCV*Math.sin(a1),-2.3,.22,.88,.78,.13,RLCV*Math.cos(a1),RLCV*Math.sin(a1),2.3,.22,.88,.78,.13);}
+ lcN=v.length/7;setVB(lcB,new Float32Array(v));}
+/* 自转轴 */
+const axB=buf();let axN=0;{const v=[0,0,-3.1,1,1,1,.4,0,0,3.1,1,1,1,.4];axN=2;setVB(axB,new Float32Array(v));}
+/* 磁轴(磁框架) */
+const muB=buf();let muN=0;{const v=[0,0,-2.05,1,.45,.95,.7,0,0,2.05,1,.45,.95,.7];muN=2;setVB(muB,new Float32Array(v));}
+/* 风螺旋(星体框架:绕自转轴,节距=2πR_lc 真实) */
+const spB=buf();let spN=0;{
+ const v=[];for(const ph0 of[0,Math.PI]){let prev=null;
+  for(let t=0;t<=1.001;t+=1/140){const dph=t*2.05;const r=RLCV*(1+dph);if(r>RSKY*.98)break;
+   const p=[r*Math.cos(ph0-dph),r*Math.sin(ph0-dph),0],al=.3*(1-t)**1.3;
+   if(prev)v.push(...prev.p,1,.6,.35,prev.a,...p,1,.6,.35,al);prev={p,a:al};}}
+ spN=v.length/7;setVB(spB,new Float32Array(v));}
+/* 磁力线(磁框架;α、P 变化时重建开放线) */
+const flB=buf();let flN=0;
+const buildLines=()=>{
+ const v=[];const thpcV=Math.asin(Math.sqrt(RV/RLCV));
+ const line=(L,az,col,aMul,open)=>{
+  const th0=Math.asin(Math.sqrt(Math.min(1,RV/L)));
+  const th1=open?0:Math.PI-th0;let prev=null;const NSEG=open?46:88;
+  for(let i=0;i<=NSEG;i++){
+   let th;
+   if(open){th=th0*(1-i/NSEG*0.72);}else{th=th0+(Math.PI-2*th0)*i/NSEG;}
+   const r=L*Math.sin(th)*Math.sin(th);if(open&&r>RLCV*1.02)break;
+   if(r<RV*0.98&&i>0)break;
+   const rr=Math.max(r,RV);
+   const p=[rr*Math.sin(th)*Math.cos(az),rr*Math.sin(th)*Math.sin(az),rr*Math.cos(th)];
+   const a=aMul*(open?.75:.5+.5*Math.sin(i/NSEG*Math.PI));
+   if(prev)v.push(...prev.p,...col,prev.a,...p,...col,a);prev={p,a};}
+ };
+ for(const[fr,aM]of[[.28,.5],[.42,.6],[.58,.7],[.76,.8],[.9,.9],[1,1.15]]){
+  const L=RLCV*fr,col=fr>=1?[.55,.95,1]:[.25,.68+.2*fr,1];
+  for(let k=0;k<10;k++)line(L,k/10*2*Math.PI,col,.34*aM,false);}
+ // 开放线：r=L·sin²θ 从极冠脚点向外画到光柱面
+ for(const fq of[.45,.75,.97]){
+  for(let k=0;k<8;k++){const az=k/8*2*Math.PI;const th0=thpcV*fq;const L=RV/Math.pow(Math.sin(th0),2);
+   for(const mir of[1,-1]){let prev=null;
+    for(let i=0;i<=70;i++){const th=th0+(Math.PI/2-th0)*i/70;const r=L*Math.sin(th)*Math.sin(th);if(r>RLCV*1.03)break;
+     const p=[r*Math.sin(th)*Math.cos(az),r*Math.sin(th)*Math.sin(az),mir*r*Math.cos(th)];
+     const t=i/70,a=.5*(1-t*.4);
+     if(prev)v.push(...prev.p,1,.5,.85,prev.a,...p,1,.5,.85,a);prev={p,a};}}}}
+ flN=v.length/7;setVB(flB,new Float32Array(v));};
+/* 波束锥(磁框架;ρ 变化重建) */
+const coneB=buf();let coneN=0;
+const buildCones=()=>{
+ const v=[],LEN=5.45,AZ=44;
+ const push=(ang,alpha)=>{for(const mir of[1,-1])for(let k=0;k<AZ;k++){
+  const a1=k/AZ*2*Math.PI,a2=(k+1)/AZ*2*Math.PI;
+  const d1=[Math.sin(ang)*Math.cos(a1),Math.sin(ang)*Math.sin(a1),mir*Math.cos(ang)];
+  const d2=[Math.sin(ang)*Math.cos(a2),Math.sin(ang)*Math.sin(a2),mir*Math.cos(ang)];
+  for(const s of[[0,.18],[.18,.45],[.45,.72],[.72,1]]){
+   const q=(s0,d)=>[d[0]*LEN*s0,d[1]*LEN*s0,d[2]*LEN*s0];
+   const A=q(s[0],d1),B=q(s[1],d1),C2=q(s[0],d2),D=q(s[1],d2);
+   const aa=alpha*(1-s[0]*.82)**1.1,ab=alpha*(1-s[1]*.82)**1.1;
+   v.push(...A,1,.82,.45,aa,...B,1,.82,.45,ab,...C2,1,.82,.45,aa);
+   v.push(...C2,1,.82,.45,aa,...B,1,.82,.45,ab,...D,1,.82,.45,ab);}}};
+ push(Math.max(S.rho,.06),.30);push(Math.max(S.rho,.06)*.45,.13);
+ coneN=v.length/7;setVB(coneB,new Float32Array(v));};
+/* 天球扫掠带(世界框架;α、ρ 变化重建):淡填充+边界环 */
+const bandB=buf(),bandLB=buf();let bandN=0,bandLN=0;
+const buildBand=()=>{
+ const v=[],lv=[];
+ const P=(th,az)=>[RSKY*Math.sin(th)*Math.cos(az),RSKY*Math.sin(th)*Math.sin(az),RSKY*Math.cos(th)];
+ const add=(t0,t1)=>{for(let k=0;k<64;k++){
+  const a1=k/64*2*Math.PI,a2=(k+1)/64*2*Math.PI;
+  const A=P(t0,a1),B=P(t1,a1),C2=P(t0,a2),D=P(t1,a2),al=.012;
+  v.push(...A,1,.8,.4,al,...B,1,.8,.4,al,...C2,1,.8,.4,al);
+  v.push(...C2,1,.8,.4,al,...B,1,.8,.4,al,...D,1,.8,.4,al);}};
+ const ring=th=>{for(let k=0;k<72;k++){const a1=k/72*2*Math.PI,a2=(k+1)/72*2*Math.PI;
+  lv.push(...P(th,a1),1,.78,.42,.26,...P(th,a2),1,.78,.42,.26);}};
+ for(const c of[S.al,Math.PI-S.al]){const t0=clamp(c-S.rho,0.02,Math.PI-.02),t1=clamp(c+S.rho,.02,Math.PI-.02);
+  if(t1>t0){add(t0,t1);ring(t0);ring(t1);}}
+ bandN=v.length/7;setVB(bandB,new Float32Array(v));
+ bandLN=lv.length/7;setVB(bandLB,new Float32Array(lv));};
+/* 轨迹点(动态) */
+const trailB=buf();let trail=[];
+/* 视线 */
+const sightB=buf();
+
+/* ── 相机 ── */
+const cam={az:.72,el:.34,dist:9.2,drag:0,lx:0,ly:0};
+cv.addEventListener('pointerdown',e=>{cam.drag=1;cam.lx=e.clientX;cam.ly=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{if(!cam.drag)return;cam.az-=(e.clientX-cam.lx)*.006;cam.el=clamp(cam.el+(e.clientY-cam.ly)*.006,-1.45,1.45);cam.lx=e.clientX;cam.ly=e.clientY;S.orbit=0;});
+addEventListener('pointerup',()=>cam.drag=0);
+cv.addEventListener('wheel',e=>{e.preventDefault();cam.dist=clamp(cam.dist*(1+e.deltaY*.001),4.6,17);},{passive:false});
+
+const draw3D=()=>{
+ const w=cv.width,h=cv.height;gl.viewport(0,0,w,h);
+ gl.clearColor(.019,.027,.05,1);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.disable(gl.DEPTH_TEST);gl.enable(gl.BLEND);
+ const eye=[cam.dist*Math.cos(cam.el)*Math.cos(cam.az),cam.dist*Math.cos(cam.el)*Math.sin(cam.az),cam.dist*Math.sin(cam.el)];
+ const view=M4.look(eye,[0,0,0],[0,0,1]),proj=M4.persp(.9,w/h,.1,120),vp=M4.mul(proj,view);
+ const mSpin=M4.rotZ(S.phase),mMag=M4.mul(mSpin,M4.rotY(S.al));
+ const beamA=S.dead?.12:1;
+ const R=[view[0],view[4],view[8]],U=[view[1],view[5],view[9]];
+ const useLine=(m,fade)=>{gl.useProgram(progLine);gl.uniformMatrix4fv(gl.getUniformLocation(progLine,'uVP'),false,vp);gl.uniformMatrix4fv(gl.getUniformLocation(progLine,'uM'),false,m);gl.uniform1f(gl.getUniformLocation(progLine,'uFade'),fade);};
+ const bindLA=(b,stride)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,stride*4,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,stride*4,12);gl.disableVertexAttribArray(2);};
+ // 星空
+ gl.blendFunc(gl.ONE,gl.ONE);
+ gl.useProgram(progPts);gl.uniformMatrix4fv(gl.getUniformLocation(progPts,'uVP'),false,vp);gl.uniformMatrix4fv(gl.getUniformLocation(progPts,'uM'),false,M4.ident());gl.uniform1f(gl.getUniformLocation(progPts,'uPx'),h/760);gl.uniform1f(gl.getUniformLocation(progPts,'uFade'),1);
+ gl.bindBuffer(gl.ARRAY_BUFFER,starB);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,32,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,32,28);
+ gl.drawArrays(gl.POINTS,0,starN);
+ // 天球带+锥+轨迹(加色)
+ const bindT=b=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,28,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,28,12);gl.disableVertexAttribArray(2);};
+ if($('#tBand').checked&&bandN){useLine(M4.ident(),beamA);bindT(bandB);gl.drawArrays(gl.TRIANGLES,0,bandN);}
+ // 普通混合的线
+ gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+ if($('#tBand').checked&&bandLN){useLine(M4.ident(),beamA);bindLA(bandLB,7);gl.drawArrays(gl.LINES,0,bandLN);}
+ if($('#tLc').checked){useLine(M4.ident(),1);bindLA(lcB,7);gl.drawArrays(gl.LINES,0,lcN);}
+ useLine(M4.ident(),1);bindLA(axB,7);gl.drawArrays(gl.LINES,0,axN);
+ if($('#tWind').checked){useLine(mSpin,1);bindLA(spB,7);gl.drawArrays(gl.LINES,0,spN);}
+ if($('#tLines').checked){useLine(mMag,1);bindLA(flB,7);gl.drawArrays(gl.LINES,0,flN);}
+ useLine(mMag,1);bindLA(muB,7);gl.drawArrays(gl.LINES,0,muN);
+ // 视线(强度随脉冲)
+ {const I=prof512?prof512[Math.floor(S.phase/(2*Math.PI)*512)%512]/profMax:0;
+  const o=[Math.sin(S.ze)*RSKY,0,Math.cos(S.ze)*RSKY];
+  setVB(sightB,new Float32Array([0,0,0,1,1,1,.06+.6*I*beamA,o[0],o[1],o[2],1,1,1,.06+.6*I*beamA]));
+  useLine(M4.ident(),1);bindLA(sightB,7);gl.drawArrays(gl.LINES,0,2);}
+ // 加色组:锥
+ gl.blendFunc(gl.ONE,gl.ONE);
+ if($('#tBeam').checked){useLine(mMag,beamA);bindT(coneB);gl.drawArrays(gl.TRIANGLES,0,coneN);}
+ // 轨迹
+ if($('#tBand').checked&&trail.length){
+  const a=new Float32Array(trail.length*8);
+  trail.forEach((t,i)=>{a[i*8]=t.p[0];a[i*8+1]=t.p[1];a[i*8+2]=t.p[2];const f=Math.max(0,1-t.age/2.4)*beamA;a[i*8+3]=1;a[i*8+4]=.8;a[i*8+5]=.4;a[i*8+6]=f*.8;a[i*8+7]=5*f+1;});
+  setVB(trailB,a);
+  gl.useProgram(progPts);gl.uniformMatrix4fv(gl.getUniformLocation(progPts,'uVP'),false,vp);gl.uniformMatrix4fv(gl.getUniformLocation(progPts,'uM'),false,M4.ident());gl.uniform1f(gl.getUniformLocation(progPts,'uPx'),h/760);gl.uniform1f(gl.getUniformLocation(progPts,'uFade'),1);
+  gl.bindBuffer(gl.ARRAY_BUFFER,trailB);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,32,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,32,28);
+  gl.drawArrays(gl.POINTS,0,trail.length);}
+ // 星体
+ const bill=(c,sz,col,mode,a)=>{gl.useProgram(progBill);
+  gl.disableVertexAttribArray(0);gl.disableVertexAttribArray(1);gl.disableVertexAttribArray(2);
+  gl.uniformMatrix4fv(gl.getUniformLocation(progBill,'uView'),false,view);gl.uniformMatrix4fv(gl.getUniformLocation(progBill,'uProj'),false,proj);
+  gl.uniform3fv(gl.getUniformLocation(progBill,'uC'),c);gl.uniform3fv(gl.getUniformLocation(progBill,'uR'),R);gl.uniform3fv(gl.getUniformLocation(progBill,'uU'),U);
+  gl.uniform1f(gl.getUniformLocation(progBill,'uSz'),sz);gl.uniform3fv(gl.getUniformLocation(progBill,'uCol'),col);gl.uniform1f(gl.getUniformLocation(progBill,'uMode'),mode);gl.uniform1f(gl.getUniformLocation(progBill,'uA'),a);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);};
+ bill([0,0,0],RV*4.2,[.28,.42,.75],0,.55);          // 冕光
+ // 波束天球亮斑
+ const bd=[mMag[8],mMag[9],mMag[10]];
+ if($('#tBeam').checked){bill([bd[0]*RSKY,bd[1]*RSKY,bd[2]*RSKY],.5,[1,.75,.35],0,.45*beamA);
+  bill([-bd[0]*RSKY,-bd[1]*RSKY,-bd[2]*RSKY],.5,[1,.75,.35],0,.45*beamA);}
+ // 地球标记
+ {const I=prof512?prof512[Math.floor(S.phase/(2*Math.PI)*512)%512]/profMax:0;
+  bill([Math.sin(S.ze)*RSKY,0,Math.cos(S.ze)*RSKY],.5+.5*I*beamA,[.5,.75,1],0,.7+1.6*I*beamA);}
+ gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+ bill([0,0,0],RV,[.82,.9,1],1,1);                    // 星面
+ // 标签投影
+ const lab=(id,p)=>{const x=vp[0]*p[0]+vp[4]*p[1]+vp[8]*p[2]+vp[12],y=vp[1]*p[0]+vp[5]*p[1]+vp[9]*p[2]+vp[13],w2=vp[3]*p[0]+vp[7]*p[1]+vp[11]*p[2]+vp[15];
+  const el=$(id);if(w2<0.1){el.style.display='none';return;}el.style.display='block';
+  el.style.left=((x/w2*.5+.5)*100)+'%';el.style.top=((1-(y/w2*.5+.5))*100)+'%';};
+ lab('#lb0',[0,0,3.25]);lab('#lb1',[mMag[8]*2.1,mMag[9]*2.1,mMag[10]*2.1]);
+ lab('#lb2',[RLCV*.77,RLCV*.64,2.32]);lab('#lb3',[Math.sin(S.ze)*RSKY*.97,0,Math.cos(S.ze)*RSKY*.97+.35]);
+};
+
+/* ════════ 轮廓图 ════════ */
+const pcv=$('#prof'),pctx=pcv.getContext('2d');
+let curJit=new Float64Array(256);
+const drawProf=()=>{
+ const W=pcv.width,H=pcv.height,ctx=pctx;ctx.clearRect(0,0,W,H);
+ const L=52*devicePixelRatio,Rr=W-14,T=12,B=H-24;
+ ctx.strokeStyle='rgba(120,150,200,.2)';ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,B);ctx.lineTo(Rr,B);ctx.stroke();
+ ctx.fillStyle='#8fa3c0';ctx.font=`${11*devicePixelRatio}px sans-serif`;
+ ctx.fillText('相位 0',L,B+15*devicePixelRatio);ctx.fillText('0.5',(L+Rr)/2,B+15*devicePixelRatio);ctx.fillText('1',Rr-10,B+15*devicePixelRatio);
+ ctx.save();ctx.translate(14*devicePixelRatio,(T+B)/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText('射电强度',0,0);ctx.restore();
+ if(!prof512)return;
+ const X=i=>L+(i/512)*(Rr-L),Y=v=>B-(v/profMax)*(B-T)*.92;
+ // 单转(抖动)
+ ctx.strokeStyle='rgba(255,255,255,.16)';ctx.beginPath();
+ for(let i=0;i<512;i++){const v=prof512[i]*Math.max(.15,1+.45*jitFn(i/512));i?ctx.lineTo(X(i),Y(v)):ctx.moveTo(X(i),Y(v));}ctx.stroke();
+ // 平均
+ if(avgN>0){ctx.strokeStyle='#ffd27a';ctx.lineWidth=2.2*devicePixelRatio;ctx.beginPath();
+  for(let i=0;i<256;i++){const v=avgProf[i]/avgN;i?ctx.lineTo(L+(i/256)*(Rr-L),Y(v)):ctx.moveTo(L,Y(v));}ctx.stroke();ctx.lineWidth=1;}
+ // 解析
+ ctx.strokeStyle='rgba(111,215,255,.85)';ctx.setLineDash([5*devicePixelRatio,4*devicePixelRatio]);ctx.beginPath();
+ for(let i=0;i<512;i++){i?ctx.lineTo(X(i),Y(prof512[i])):ctx.moveTo(X(i),Y(prof512[i]));}ctx.stroke();ctx.setLineDash([]);
+ // 游标
+ const cx=L+(S.phase/(2*Math.PI)%1)*(Rr-L);
+ ctx.strokeStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.moveTo(cx,T);ctx.lineTo(cx,B);ctx.stroke();
+ // W50 标注（无调制时给守卫文案）
+ ctx.fillStyle='#6fd7ff';
+ const mod=(profMax-Math.min(...prof512))/profMax;
+ ctx.fillText(mod<0.02?'调制≈0——波束恒指一方,常亮无脉冲。灯塔没"歪"就没有脉冲星。':
+  `W50 实测 ${(W50m*360).toFixed(1)}° · 几何式 ${(W50g*360).toFixed(1)}°${ipSep!==null?` · 间脉冲间隔 ${(ipSep).toFixed(3)} 周期`:''} · 平均 ${avgN} 转`,L+8,T+14*devicePixelRatio);
+};
+
+/* ════════ P–Ṗ 图 ════════ */
+const dcv=$('#ppdot'),dctx=dcv.getContext('2d');let ppOff=null,ppMap=null;
+const PPX={x0:-3.2,x1:2.2,y0:-21.5,y1:-9};
+const ppXY=(P,Pd,W,H)=>[(Math.log10(P)-PPX.x0)/(PPX.x1-PPX.x0)*(W-70)+58,(1-(Math.log10(Pd)-PPX.y0)/(PPX.y1-PPX.y0))*(H-46)+10];
+const buildPP=()=>{
+ const W=dcv.width,H=dcv.height;
+ ppOff=document.createElement('canvas');ppOff.width=W;ppOff.height=H;
+ const c=ppOff.getContext('2d');c.fillStyle='#070a12';c.fillRect(0,0,W,H);
+ const dp=devicePixelRatio;
+ c.font=`${10.5*dp}px sans-serif`;
+ // 网格
+ c.strokeStyle='rgba(120,150,200,.08)';c.fillStyle='#66779a';
+ for(let e=-3;e<=2;e++){const[x]=ppXY(10**e,1e-15,W,H);c.beginPath();c.moveTo(x,10);c.lineTo(x,H-46);c.stroke();c.fillText(e?`10${sup(e)} s`:'1 s',x-12,H-30);}
+ for(let e=-21;e<=-9;e+=2){const[,y]=ppXY(1,10**e,W,H);c.beginPath();c.moveTo(58,y);c.lineTo(W-12,y);c.stroke();c.fillText(`10${sup(e)}`,6,y+4);}
+ c.fillText('P 周期 →',W/2-30,H-12);
+ c.save();c.translate(16,H/2+50);c.rotate(-Math.PI/2);c.fillText('Ṗ 自转变慢率(s/s) →',0,0);c.restore();
+ // 等值线
+ const lineLog=(fn,col,label,lx)=>{c.strokeStyle=col;c.beginPath();let started=0;
+  for(let lx2=PPX.x0;lx2<=PPX.x1;lx2+=.05){const ly=fn(lx2);if(ly<PPX.y0||ly>PPX.y1){started=0;continue;}
+   const[x,y]=ppXY(10**lx2,10**ly,W,H);started?c.lineTo(x,y):c.moveTo(x,y);started=1;}
+  c.stroke();if(label){const ly=fn(lx);if(ly>PPX.y0&&ly<PPX.y1){const[x,y]=ppXY(10**lx,10**ly,W,H);c.fillStyle=col.replace(/[\d.]+\)/,'.9)');c.fillText(label,x,y-4);}}};
+ for(let lb=8;lb<=15;lb++)lineLog(lx=>2*(lb-Math.log10(3.2e19))-lx,'rgba(111,150,255,.13)',lb%2==0?`10${['⁸','⁹','¹⁰','¹¹','¹²','¹³','¹⁴','¹⁵'][lb-8]} G`:'',PPX.x1-1.1);
+ for(const[lt,lab2]of[[3,'1 kyr'],[5,'100 kyr'],[7,'10 Myr'],[9,'1 Gyr']])lineLog(lx=>lx-Math.log10(2)-lt-Math.log10(YR),'rgba(255,210,122,.13)',lab2,PPX.x0+.4+(lt-3)*.12);
+ for(const le of[31,34,38])lineLog(lx=>le-Math.log10(4*Math.PI**2*1e45)+3*lx,'rgba(55,224,200,.10)',`Ė=10${le==31?'³¹':le==34?'³⁴':'³⁸'}`,-2.4+(le-31)*.2);
+ // 死亡线
+ c.strokeStyle='rgba(255,106,94,.75)';c.setLineDash([7*dp,5*dp]);c.lineWidth=1.6*dp;
+ c.beginPath();let st=0;const pts=[];
+ for(let lx2=PPX.x0;lx2<=PPX.x1;lx2+=.05){const ly=Math.log10(2.8e-17)+3*lx2;if(ly<PPX.y0-3)continue;const[x,y]=ppXY(10**lx2,10**Math.max(ly,PPX.y0),W,H);pts.push([x,y]);st?c.lineTo(x,y):c.moveTo(x,y);st=1;}
+ c.stroke();c.setLineDash([]);c.lineWidth=1;
+ c.fillStyle='rgba(255,106,94,.05)';c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(const[x,y]of pts)c.lineTo(x,y);c.lineTo(pts[pts.length-1][0],H-46);c.lineTo(pts[0][0],H-46);c.closePath();c.fill();
+ c.fillStyle='rgba(255,106,94,.65)';c.font=`${12*dp}px sans-serif`;c.fillText('死亡线 ↘ 下方=坟场',W*.56,H-70);
+ c.font=`${10.5*dp}px sans-serif`;
+ // 人口示意
+ const rnd=RNG(777);c.fillStyle='rgba(150,170,205,.13)';
+ for(let i=0;i<600;i++){const msp=rnd()<.18;
+  const lp=msp?-2.45+(rnd()+rnd()-1)*.3:-.25+(rnd()+rnd()-1)*.55;
+  const lpd=msp?-19.6+(rnd()+rnd()-1)*.8:-14.9+(rnd()+rnd()-1)*1.3;
+  if(lpd<Math.log10(2.8e-17)+3*lp-.2)continue; // 坟场里没有活人口
+  const[x,y]=ppXY(10**lp,10**lpd,W,H);c.fillRect(x,y,2.2,2.2);}
+ // 命名星
+ ppMap=[];
+ for(const s of CAT){const[x,y]=ppXY(s.P,s.Pd,W,H);ppMap.push({x,y,s});
+  c.beginPath();c.arc(x,y,3.4*dp,0,7);
+  c.fillStyle=s.c==='M'?'#ff6a5e':s.c==='R'?'#64d8ff':'#ffd27a';c.fill();
+  if(s.c==='B'){c.strokeStyle='#fff';c.stroke();}
+  if(s.approx){c.fillStyle='#070a12';c.beginPath();c.arc(x,y,1.6*dp,0,7);c.fill();}
+  if(s.lab){c.fillStyle='rgba(215,227,244,.75)';c.fillText(s.n.split(' ')[0],x+6*dp,y-5);}}
+ c.fillStyle='#8fa3c0';
+ c.fillText('● 普通',W-150*dp,24);c.fillStyle='#64d8ff';c.fillText('● 毫秒(回收)',W-150*dp,24+16*dp);
+ c.fillStyle='#ff6a5e';c.fillText('● 磁陀星',W-150*dp,24+32*dp);c.fillStyle='#fff';c.fillText('○ 双星系统',W-150*dp,24+48*dp);
+};
+const drawPP=()=>{
+ if(!ppOff)buildPP();
+ const W=dcv.width,H=dcv.height;dctx.clearRect(0,0,W,H);dctx.drawImage(ppOff,0,0);
+ const dp=devicePixelRatio;
+ // 轨迹
+ if(S.track.length>1){dctx.strokeStyle='rgba(255,210,122,.55)';dctx.lineWidth=1.5*dp;dctx.beginPath();
+  S.track.forEach((t,i)=>{const[x,y]=ppXY(t[0],t[1],W,H);i?dctx.lineTo(x,y):dctx.moveTo(x,y);});dctx.stroke();dctx.lineWidth=1;}
+ // 出生标记(蟹)
+ if(S.name.includes('Crab')){const K=S.anchor.Pd0*Math.pow(S.anchor.P0,S.n-2);
+  const Pb=sdAnalytic(S.anchor.P0,K,S.n,-972*YR);
+  if(Pb){const[x,y]=ppXY(Pb,K*Math.pow(Pb,2-S.n),W,H);dctx.strokeStyle='#37e0c8';dctx.beginPath();dctx.arc(x,y,6*dp,0,7);dctx.stroke();dctx.fillStyle='#37e0c8';dctx.fillText('★1054年出生',x+9*dp,y+3);}}
+ // 当前
+ const[x,y]=ppXY(S.P,S.Pd,W,H);
+ const pul=1+.25*Math.sin(performance.now()/300);
+ dctx.strokeStyle='#fff';dctx.lineWidth=1.5*dp;dctx.beginPath();dctx.arc(x,y,7*dp*pul,0,7);dctx.stroke();dctx.lineWidth=1;
+ dctx.fillStyle='#ffd27a';dctx.beginPath();dctx.arc(x,y,3*dp,0,7);dctx.fill();
+ dctx.fillStyle='#fff';dctx.fillText('◀ 现在的它',x+11*dp,y+4);
+};
+/* hover/click */
+dcv.addEventListener('pointermove',e=>{
+ if(!ppMap)return;const r=dcv.getBoundingClientRect(),mx=(e.clientX-r.left)*dcv.width/r.width,my=(e.clientY-r.top)*dcv.height/r.height;
+ let best=null,bd=196*devicePixelRatio**2;
+ for(const m of ppMap){const d=(m.x-mx)**2+(m.y-my)**2;if(d<bd){bd=d;best=m;}}
+ const tip=$('#tip');
+ if(best){const s=best.s,d=derived(s.P,s.Pd);
+  tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+10)+'px';
+  tip.innerHTML=`<b>${s.n}</b><br>P=${fmtP(s.P)} · Ṗ=${fmtE(s.Pd)}<br>B=${fmtE(d.B)} G · τ_c=${d.tau>1e6?(d.tau/1e6).toFixed(0)+' Myr':(d.tau/1e3).toFixed(0)+' kyr'}<br>Ė=${fmtE(d.Edot)} erg/s${isNaN(s.DM)?'':` · DM=${s.DM}`}<br><span style="color:#8fa3c0">${s.note||''}</span><br><span style="color:#ffd27a">点击装进灯塔 →</span>`;
+  dcv.style.cursor='pointer';dcv._hover=s;}
+ else{tip.style.display='none';dcv.style.cursor='crosshair';dcv._hover=null;}});
+dcv.addEventListener('pointerleave',()=>{$('#tip').style.display='none';});
+dcv.addEventListener('click',()=>{if(dcv._hover){loadPulsar(dcv._hover);toast(`已装入「${dcv._hover.n}」——切到 ① 看它的灯塔几何`);}});
+
+/* ════════ 残差图 ════════ */
+const rcv=$('#resid'),rctx=rcv.getContext('2d');
+const drawResid=()=>{
+ const g=S.glitches[S.glitches.length-1];const W=rcv.width,H=rcv.height,dp=devicePixelRatio;
+ rctx.clearRect(0,0,W,H);if(!g)return;
+ rctx.fillStyle='#8fa3c0';rctx.font=`${10*dp}px sans-serif`;rctx.fillText('glitch 到达时间残差 (ms)',10*dp,14*dp);
+ const T=Math.max(1,S.simT-g.t0),Tmax=Math.max(T,90*86400);
+ const rAt=t=>-glitchPhase(g.dnu,g.Q,g.tr,t)*S.P*1000;
+ let rmin=Math.min(rAt(Tmax),-1e-9);
+ rctx.strokeStyle='rgba(120,150,200,.25)';rctx.beginPath();rctx.moveTo(10,24*dp);rctx.lineTo(10,H-20);rctx.lineTo(W-8,H-20);rctx.stroke();
+ rctx.strokeStyle='#37e0c8';rctx.beginPath();
+ for(let i=0;i<=140;i++){const t=i/140*Tmax,v=rAt(Math.min(t,T));
+  const x=10+(t/Tmax)*(W-22),y=24*dp+(v/rmin)*(H-48*dp);i?rctx.lineTo(x,y):rctx.moveTo(x,y);}
+ rctx.stroke();
+ rctx.fillStyle='#66779a';rctx.fillText(`Δν/ν=1e-6 · Q=0.85 · τ_r=40d · ${ (T/86400).toFixed(0)}d`,10*dp,H-6*dp);
+};
+
+/* ════════ 捕手(Act3) ════════ */
+const LV=[
+ {name:'新手 · B1919+21',P:1.3373,DM:12.44,band:[.4,.8],al:45,ze:48.6,rho:5,ca:.25,sg:.55,
+  story:'1967 年 Jocelyn Bell 就是在这颗星的纸带上认出了 1.337 秒的规律。CHIME 波段(400–800MHz)。'},
+ {name:'进阶 · 蟹',P:.0334,DM:56.77,band:[1.1,1.5],al:86,ze:84,rho:8,ca:2.2,sg:.6,
+  story:'周期只有 33ms——色散延迟跨过许多个周期,斜线会"折返"。L 波段(1.1–1.5GHz)。'},
+ {name:'高手 · J0437-4715',P:.005757,DM:2.64,band:[.4,.8],al:60,ze:63,rho:18,ca:1.4,sg:.7,
+  story:'5.7ms 毫秒星:哪怕 DM 只有 2.64,延迟也跨越 9 个周期。真实搜寻要在百万组 (DM,P) 里试。'}];
+let wfData=null,wfProf=null,snBest=1e-9,dDMlv=1;
+const wcv=$('#wf'),wctx=wcv.getContext('2d'),fcv=$('#fold'),fctx=fcv.getContext('2d');
+const VIR=[[.267,.005,.329],[.283,.141,.458],[.254,.265,.53],[.207,.372,.553],[.164,.471,.558],[.128,.567,.551],[.135,.659,.518],[.267,.749,.441],[.478,.821,.318],[.741,.873,.15],[.993,.906,.144]];
+const vir=t=>{t=clamp(t,0,1)*10;const i=Math.min(9,Math.floor(t)),f=t-i;return VIR[i].map((v,k)=>lerp(v,VIR[i+1][k],f));};
+const loadLevel=k=>{
+ S.level=k;S.locked=false;const L=LV[k];
+ wfProf=makeProfile(L.al*D2R,L.ze*D2R,L.rho*D2R,L.ca,512);
+ wfData=makeFoldData(L.P,L.DM,wfProf,L.band[0],L.band[1],96,256,L.sg,7919+k*31);
+ const Wms=measureW50(wfProf)*L.P*1000;
+ dDMlv=Wms/(KDM*(1/L.band[0]**2-1/L.band[1]**2));
+ snBest=foldSum(wfData,L.P,L.DM,256).sn;
+ const mx=Math.ceil(L.DM*2.2);
+ $('#sDM').max=mx;$('#sDM').step=Math.max(.01,mx/600).toFixed(2);$('#sDM').value=0;S.dmTrial=0;
+ $('#lvStory').textContent=L.story;
+ document.querySelectorAll('#levels .chip').forEach((c,i)=>c.classList.toggle('on',i===k));
+ drawWF();
+};
+const drawWF=()=>{
+ if(!wfData)return;const L=LV[S.level];
+ const W=wcv.width,H=wcv.height,dp=devicePixelRatio;
+ // 去色散视图:img col j = row[(j+shift)*nph]
+ const nch=96,nph=256;
+ const img=wctx.createImageData(nph,nch);
+ let lo=1e9,hi=-1e9;
+ for(const{row}of wfData)for(const v of row){if(v<lo)lo=v;if(v>hi)hi=v;}
+ for(let i=0;i<nch;i++){const{f,row}=wfData[i];
+  const shift=dmDelayMs(S.dmTrial,f)/1000/L.P;
+  for(let j=0;j<nph;j++){
+   let ph=(j/nph+shift)%1;ph<0&&(ph+=1);
+   const v=(row[Math.floor(ph*nph)]-lo)/(hi-lo);
+   const c=vir(Math.pow(v,1.35));const o=((nch-1-i)*nph+j)*4;
+   img.data[o]=c[0]*255;img.data[o+1]=c[1]*255;img.data[o+2]=c[2]*255;img.data[o+3]=255;}}
+ // blit
+ const oc=document.createElement('canvas');oc.width=nph;oc.height=nch;oc.getContext('2d').putImageData(img,0,0);
+ wctx.imageSmoothingEnabled=false;wctx.fillStyle='#070a12';wctx.fillRect(0,0,W,H);
+ const Lx=56*dp,Rx=W-14,Ty=30*dp,By=H-30*dp;
+ wctx.drawImage(oc,Lx,Ty,Rx-Lx,By-Ty);
+ wctx.fillStyle='#8fa3c0';wctx.font=`${11*dp}px sans-serif`;
+ wctx.fillText(`${L.name} — 96 频道折叠数据 · 试用 DM=${(+S.dmTrial).toFixed(2)}(真值保密)`,Lx,18*dp);
+ wctx.fillText(`${L.band[1]} GHz`,6,Ty+12);wctx.fillText(`${L.band[0]} GHz`,6,By);
+ wctx.fillText('相位 0',Lx,By+18*dp);wctx.fillText('1',Rx-10,By+18*dp);
+ // fold
+ $('#oDM').textContent=(+S.dmTrial).toFixed(2);
+ const{sum,sn}=foldSum(wfData,L.P,S.dmTrial,256);
+ const FW=fcv.width,FH=fcv.height;fctx.fillStyle='#070a12';fctx.fillRect(0,0,FW,FH);
+ const smin=Math.min(...sum),smax=Math.max(...sum);
+ fctx.strokeStyle='#ffd27a';fctx.beginPath();
+ for(let j=0;j<256;j++){const x=Lx+(j/256)*(Rx-Lx),y=FH-14*dp-((sum[j]-smin)/(smax-smin+1e-9))*(FH-34*dp);
+  j?fctx.lineTo(x,y):fctx.moveTo(x,y);}
+ fctx.stroke();
+ fctx.fillStyle='#8fa3c0';fctx.font=`${11*dp}px sans-serif`;fctx.fillText('折叠平均轮廓(96 频道叠加)',Lx,14*dp);
+ $('#oSN').textContent=sn.toFixed(1);
+ $('#oSN').style.color=sn>.92*snBest?'#37e0c8':'#6fd7ff';
+ const hit=Math.abs(S.dmTrial-L.DM)<.5*dDMlv;
+ if(hit&&!S.locked){S.locked=true;
+  $('#dmMsg').innerHTML=`<span class="lock">✔ 锁定! DM=${L.DM}±${(0.5*dDMlv).toFixed(2)}</span> → 视线自由电子柱密度 ${L.DM} pc·cm⁻³,按平均 n_e≈0.03 cm⁻³ 距离≈${(L.DM/.03/1000).toFixed(1)} kpc。S/N=${sn.toFixed(1)}`;
+  toast('✔ 锁定! 你完成了一次真正的消色散搜寻');}
+ else if(!hit&&S.locked){S.locked=false;}
+ if(!S.locked)$('#dmMsg').innerHTML=`把斜线扶直 → S/N 最大即锁定。DM 分辨率本身受脉宽限制:δDM≈${dDMlv.toFixed(2)}`;
+};
+
+/* ════════ 音频 ════════ */
+let AC=null,srcNode=null,lastAudioP=0;
+const audioStart=()=>{
+ if(S.dead){toast('☠ 它已越过死亡线,无声');return;}
+ if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();
+ audioStop();
+ const dur=S.P<.02?Math.max(.6,120*S.P):Math.max(1.5,Math.min(4*S.P,6));
+ const arr=genAudio(S.P,24000,dur,42,prof512);
+ const b=AC.createBuffer(1,arr.length,24000);b.copyToChannel(arr,0);
+ srcNode=AC.createBufferSource();srcNode.buffer=b;srcNode.loop=true;
+ const g=AC.createGain();g.gain.value=.25;srcNode.connect(g);g.connect(AC.destination);
+ srcNode.start();S.audioOn=true;lastAudioP=S.P;
+ $('#audioBtn').classList.add('playing');
+ $('#audioBtn').textContent=`⏸ ${S.P<.004?`${(1/S.P).toFixed(0)}Hz——快到成了音符`:S.P<.12?`${(1/S.P).toFixed(0)}Hz 嗡鸣`:'每 '+fmtP(S.P)+' 一声'}(真实周期)`;
+};
+const audioStop=()=>{if(srcNode){try{srcNode.stop()}catch(e){}srcNode=null;}S.audioOn=false;$('#audioBtn').classList.remove('playing');$('#audioBtn').textContent='🔊 听它（由计算轮廓合成）';};
+$('#audioBtn').onclick=()=>S.audioOn?audioStop():audioStart();
+
+/* ════════ 预设/加载 ════════ */
+const loadPulsar=(s)=>{
+ S.P=s.P;S.Pd=s.Pd;S.DM=isNaN(s.DM)?0:s.DM;S.name=s.n;
+ if(s.al!==undefined){S.al=s.al*D2R;S.ze=s.ze*D2R;S.rho=s.rho*D2R;S.ca=s.ca;}
+ S.dead=S.Pd<deathPd(S.P);S.simT=0;S.track=[];S.glitches=[];S.playing=false;$('#playBtn').textContent='▶ 让时间流动';
+ S.anchor={P0:S.P,Pd0:S.Pd};
+ $('#sAl').value=S.al/D2R;$('#sZe').value=S.ze/D2R;$('#sP').value=Math.log10(S.P);$('#sRho').value=S.rho/D2R;
+ rebuildProfile();buildCones();buildBand();buildLines();trail=[];
+ if(S.audioOn)audioStart();
+ syncUI();
+ document.querySelectorAll('#presets .chip').forEach(c=>c.classList.toggle('on',c.dataset.n===s.n));
+};
+{const box=$('#presets');
+ for(const p of PRESETS){const d=document.createElement('div');d.className='chip';d.dataset.n=p.n;
+  d.textContent=p.demo?p.n:p.n.split(' ')[0];d.title=p.note||'';d.onclick=()=>loadPulsar(p);box.appendChild(d);}}
+/* 滑杆 */
+const sliderChange=()=>{
+ S.al=+$('#sAl').value*D2R;S.ze=+$('#sZe').value*D2R;S.rho=+$('#sRho').value*D2R;
+ const newP=10**+$('#sP').value;
+ if(Math.abs(newP/S.P-1)>1e-6){S.P=newP;S.Pd=S.anchor.Pd0*Math.pow(S.anchor.P0,S.n-2)*Math.pow(S.P,2-S.n);S.name+=S.name.endsWith('(改)')?'':'(改)';S.dead=S.Pd<deathPd(S.P);}
+ rebuildProfile();buildCones();buildBand();trail=[];
+ if(S.audioOn&&Math.abs(S.P/lastAudioP-1)>.03)audioStart();
+ syncUI();};
+for(const id of['#sAl','#sZe','#sP','#sRho'])$(id).addEventListener('input',sliderChange);
+const syncUI=()=>{
+ $('#oAl').textContent=(S.al/D2R).toFixed(1)+'°';$('#oZe').textContent=(S.ze/D2R).toFixed(1)+'°';
+ $('#oP').textContent=fmtP(S.P);$('#oRho').textContent=(S.rho/D2R).toFixed(1)+'°';
+ const d=derived(S.P,S.Pd),thH=beamHalfRadius(S.rho,S.ca),fb=beamFrac(S.al,thH);
+ $('#read').innerHTML=`<b>${S.name}</b><br>P=<i>${fmtP(S.P)}</i> · 变慢率 Ṗ=<i>${fmtE(S.Pd)}</i><br>B≈<i>${fmtE(d.B)} G</i> · τ_c=<i>${d.tau>2e6?(d.tau/1e6).toFixed(0)+' Myr':d.tau>2e3?(d.tau/1e3).toFixed(0)+' kyr':d.tau.toFixed(0)+' yr'}</i><br>Ė=<i>${fmtE(d.Edot)} erg/s</i> · R_lc=<i>${d.Rlc<1e4?d.Rlc.toFixed(0):fmtE(d.Rlc)} km</i><br>极冠 θ_pc=<i>${(d.thpc/D2R).toFixed(2)}°</i> · 能照到我们这种方向的概率 f_beam=<i>${(fb*100).toFixed(0)}%</i>${S.DM?`<br>DM=<i>${S.DM}</i> → 距离~<i>${(S.DM/.03/1000).toFixed(1)} kpc</i>`:''}`;
+ const slow=S.P<.5?.9/S.P:1;
+ $('#slowchip').textContent=slow>1.01?`视图慢放 ×${slow>100?slow.toFixed(0):slow.toFixed(1)}(声音为真实周期)`:'✓ 真实转速';
+ $('#deadbn').style.display=S.dead?'block':'none';
+ const yr=2026.5+S.simT/YR;
+ $('#evoRead').innerHTML=`<b style="color:#ffd27a">${S.name}</b><br>纪年 ${yr<0?'公元前 '+Math.round(-yr):Math.floor(yr)} 年 · P=${fmtP(S.P)}<br>变慢率 Ṗ=${fmtE(S.Pd)} · τ_c=${d.tau>2e6?(d.tau/1e6).toFixed(1)+' Myr':d.tau>2e3?(d.tau/1e3).toFixed(1)+' kyr':d.tau.toFixed(0)+' yr'}<br>${S.dead?'<span style="color:#ff6a5e">☠ 已在坟场</span>':`距死亡线还有 ${(()=>{const K=S.Pd*Math.pow(S.P,S.n-2);const Pdth=Math.pow(K/2.8e-17,1/(S.n+1));const t=(Math.pow(Pdth,S.n-1)-Math.pow(S.P,S.n-1))/((S.n-1)*K);return t>2e6*YR?(t/YR/1e6).toFixed(0)+' Myr':(t/YR/1e3).toFixed(0)+' kyr';})()}`}`;
+};
+
+/* ════════ Act2 控制 ════════ */
+$('#playBtn').onclick=()=>{S.playing=!S.playing;$('#playBtn').textContent=S.playing?'⏸ 暂停时间':'▶ 让时间流动';};
+$('#sSpd').addEventListener('input',()=>{S.speed=10**+$('#sSpd').value;$('#oSpd').textContent='×10'+sup(Math.round(+$('#sSpd').value*10)/10);});
+$('#n3').onchange=$('#n251').onchange=()=>{S.n=$('#n3').checked?3:2.51;S.anchor={P0:S.P,Pd0:S.Pd};S.simT=0;S.track=[];syncUI();};
+$('#toBirth').onclick=()=>{if(!S.name.includes('Crab')){toast('先在 ① 里选「蟹」');return;}jumpSim(-972*YR-S.simT);};
+$('#toNow').onclick=()=>{jumpSim(-S.simT);};
+$('#glitchBtn').onclick=()=>{S.glitches.push({t0:S.simT,dnu:1e-6/S.P,Q:.85,tr:40*86400});$('#residWrap').style.display='block';toast('⚡ glitch! 内部超流突然把角动量交给壳层——自转瞬间加快 Δν/ν≈10⁻⁶');};
+const jumpSim=dt=>{S.simT+=dt;applySim();};
+const applySim=()=>{
+ const K=S.anchor.Pd0*Math.pow(S.anchor.P0,S.n-2);
+ const P=sdAnalytic(S.anchor.P0,K,S.n,S.simT);
+ if(P===null){S.simT=(1e-9-Math.pow(S.anchor.P0,S.n-1))/((S.n-1)*K);return;}
+ S.P=P;S.Pd=K*Math.pow(P,2-S.n);
+ const wasDead=S.dead;S.dead=S.Pd<deathPd(S.P);
+ if(S.dead&&!wasDead){audioStop();toast('☠ 越过死亡线——灯塔熄灭了');}
+ if(S.track.length===0||Math.abs(Math.log10(S.P/S.track[S.track.length-1][0]))>.01)S.track.push([S.P,S.Pd]);
+ rebuildProfile();syncUI();
+};
+
+/* ════════ Act3 控制 ════════ */
+{const box=$('#levels');LV.forEach((L,i)=>{const d=document.createElement('div');d.className='chip'+(i===0?' on':'');d.textContent=L.name;d.onclick=()=>loadLevel(i);box.appendChild(d);});}
+$('#sDM').addEventListener('input',()=>{S.dmTrial=+$('#sDM').value;$('#oDM').textContent=S.dmTrial.toFixed(2);drawWF();});
+
+/* ════════ 词典/声明 ════════ */
+const DICT=[
+['中子星名片','把 1.4 个太阳质量压进直径 24km——上海内环装下一颗恒星尸体。密度=原子核:一茶匙约 10 亿吨,表面重力 2×10¹¹ g。<span class="fm">来自 ≥8 M☉ 恒星的核坍缩超新星——本系列第五作 SN 1054 的那颗,遗骸正是本页默认的蟹脉冲星。</span>'],
+['为什么转这么快·磁这么强','角动量守恒:太阳大小的核(自转~28天)半径缩 10⁵ 倍,P∝R² → 毫秒到秒级。磁通冻结:B·R² 守恒 → B∝R⁻² 放大到 10¹²G。<span class="fm">没有新东西被"加进去"——只是把原有的转动和磁场压缩了。</span>'],
+['灯塔机制','磁轴通常不对齐自转轴(地磁北极也偏地理北极约 11°)。相干射电束沿磁极上方的开放磁力线射出,星转束扫,每扫过地球一次=一个脉冲。<span class="fm">cosθ(φ)=cosα·cosζ+sinα·sinζ·cosφ——本页轮廓图每一帧都由它算出。</span>没对准的那些,我们永远看不见(①里的 f_beam 读数,典型只有 10–20%)。'],
+['光柱面','与星共转的磁层在 R_lc=cP/2π 处转速到达光速——那是共转的绝对边界。里面磁力线闭合;够不到回来的成为"开放线",波束正是从开放线的极冠根部出发。<span class="fm">蟹:R_lc=1594 km;最快的 J1748-2446ad:66.6 km,只有约 5.5 个星半径。</span>'],
+['死亡线与坟场','极冠加速电压 ∝ B/P²。转得太慢、磁场太弱 → 电压不足以维持正负电子对级联 → 射电停止。P–Ṗ 图右下就是"坟场"。<span class="fm">但 J2144-3933、J0901-4046 明明在经典死亡线下面,却还在发光——死亡线的物理仍未完全解决,这是诚实的前沿。</span>'],
+['毫秒脉冲星=还魂尸','转慢死掉的老星,如果有伴星,吸积盘会把角动量还给它——"回收"到毫秒级,磁场同时被埋到 10⁸G(所以在 P–Ṗ 图左下角)。<span class="fm">Ter5ad:716 转/秒,赤道线速度~0.1c,离解体极限(约 0.6ms)已不太远。听听 ① 里 B1937 的 642Hz——转速本身成了音符。</span>'],
+['磁陀星','B~10¹⁴⁻¹⁵ G,能源是磁能而非转动能(所以在图右上,Ė 等值线帮不了它们)。<span class="fm">2004-12-27,SGR 1806-20 一次巨耀斑在 0.1 秒内放出太阳约 10 万年的能量,从 5 万光年外压扁了地球电离层的夜侧。</span>'],
+['宇宙原子钟','毫秒星的到达时间能测到 ~100ns(J0437-4715),十年尺度稳定度堪比原子钟。<span class="fm">B1913+16 轨道收缩=引力波存在的间接证明(1993 诺奖);2023 年各 PTA 联合宣布纳赫兹引力波背景的证据——用的正是一整批毫秒脉冲星组成的"银河系尺度探测器"。</span>'],
+['LGM-1 往事','1967 年剑桥,研究生 Jocelyn Bell 在几公里长的纸带里认出一段 1.3373 秒的规律信号,半开玩笑编号 LGM-1(小绿人一号)。<span class="fm">1974 年诺贝尔奖颁给了她的导师 Hewish,没有她——天文学史上最著名的争议之一。③ 的新手关就是这颗 B1919+21。</span>'],
+['本页真算/示意声明','见「声明」按钮——每一作的诚实边界都单独列明。']];
+const DECL=`<b style="color:#ffd27a">真算(可对拍)</b><br>· 磁力线=偶极精确解 r=L·sin²θ(Node 内核 RK4 积分对拍,含"最后闭合线顶点=光柱面")<br>· 波束扫掠=球面三角逐相位;脉冲轮廓、W50、双峰、间脉冲全部由几何涌现(几何公式与轮廓实测互验)<br>· 自转减速 ν̇=−Kνⁿ:n=3 与蟹实测 n=2.51;由今天 (P,Ṗ) 反推 1054 年出生周期≈19ms 与文献一致<br>· P–Ṗ 图等值线(B、τ_c、Ė)、死亡线、特征年龄全由公式绘制;30 颗命名脉冲星为文献值<br>· 色散=冷等离子体精确公式 Δt=4.149ms·DM/f²;S/N(DM) 真算,锁定容差=物理分辨率 δDM<br>· 声音由计算轮廓合成:噪声载波×轮廓包络,周期真实(B1937 的 642Hz 音高是涌现的,非采样音源)<br><br><b style="color:#6fd7ff">示意(为可视化让步)</b><br>· 星半径 vs 光柱面 vs 天球的比例被压缩(真实相差 10²–10⁶ 倍;读数为真)——磁力线形状不受影响(偶极自相似)<br>· 几何角 α、ζ 为文献拟合或教学示意(蟹的 α 学界仍有争议)<br>· 束形=经验空心锥+核模型(Rankin);脉冲星相干射电的微观机制至今未完全解决<br>· 光柱面外的"风螺旋"只有节距(2πR_lc)真实,振幅厚度示意;严格解需数值磁层(力自由/PIC)<br>· 极冠开放线画到光柱面即止,未画 Deutsch 后掠;P–Ṗ 灰色人口点为分布示意<br>· glitch 参数取 Vela 典型值;磁陀星的 X 射线机制不在本页范围`;
+let dictIdx=0;
+const openModal=(i)=>{
+ $('#modal').style.display='flex';
+ if(i==='decl'){$('#mh').textContent='声明:哪些是真算,哪些是示意';$('#mb').innerHTML=DECL;$('#mnav').innerHTML='';return;}
+ dictIdx=i;$('#mh').textContent=DICT[i][0];$('#mb').innerHTML=DICT[i][1];
+ const nav=$('#mnav');nav.innerHTML='';
+ DICT.forEach((d,k)=>{const c=document.createElement('div');c.className='chip'+(k===i?' on':'');c.textContent=k+1;c.title=d[0];c.onclick=()=>openModal(k);nav.appendChild(c);});};
+$('#dictBtn').onclick=()=>openModal(0);
+$('#declBtn').onclick=()=>openModal('decl');
+$('#mx').onclick=()=>$('#modal').style.display='none';
+$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').style.display='none';};
+DICT[9][1]='点右上「声明」查看逐条清单。系列硬标准:能算的一定真算,不能算的明说。';
+
+/* ════════ tabs/toast/resize ════════ */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+ S.act=+t.dataset.act;
+ document.querySelectorAll('.act').forEach((a,i)=>a.classList.toggle('on',i+1===S.act));
+ resize();if(S.act===3&&!wfData)loadLevel(0);if(S.act===2){buildPP();drawPP();}
+});
+let toastT=0;const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>t.style.display='none',3400);};
+const resize=()=>{
+ const dp=Math.min(devicePixelRatio,S.qLow?1.2:1.6);
+ for(const[c,el]of[[cv,$('#v3d')],[pcv,$('#profWrap')],[dcv,$('#ppWrap')],[wcv,null],[fcv,null],[rcv,$('#residWrap')]]){
+  const host=el||c.parentElement;if(!host)continue;
+  const r=host===c.parentElement?c.getBoundingClientRect():host.getBoundingClientRect();
+  const w=Math.max(50,r.width),h=Math.max(40,r.height);
+  if(c===wcv){const rr=wcv.getBoundingClientRect();c.width=Math.max(50,rr.width)*dp;c.height=Math.max(40,rr.height)*dp;continue;}
+  if(c===fcv){const rr=fcv.getBoundingClientRect();c.width=Math.max(50,rr.width)*dp;c.height=Math.max(40,rr.height)*dp;continue;}
+  c.width=w*dp;c.height=h*dp;}
+ ppOff=null;
+ if(S.act===2){buildPP();drawPP();}if(S.act===3&&wfData)drawWF();if(S.act===1)drawProf();
+};
+addEventListener('resize',resize);
+
+/* ════════ 主循环 ════════ */
+let lastT=0,fpsE=0,lowCnt=0,hidden=false;
+document.addEventListener('visibilitychange',()=>{hidden=document.hidden;if(!hidden){lastT=0;requestAnimationFrame(tick);}});
+const tick=(t)=>{
+ if(hidden)return;
+ requestAnimationFrame(tick);
+ if(t-lastT<21)return; // 45fps 帽
+ const dt=lastT?Math.min((t-lastT)/1000,.1):.016;lastT=t;
+ const fps=1/dt;fpsE=fpsE?fpsE*.95+fps*.05:fps;
+ if(fpsE<26){if(++lowCnt>140&&!S.qLow){S.qLow=true;$('#qchip').style.display='inline';resize();}}else lowCnt=0;
+ $('#fps').textContent=fpsE.toFixed(0)+' fps';
+ // 自转
+ if(!S.still){
+  const slow=S.P<.5?.9/S.P:1;
+  const dphi=2*Math.PI/S.P*(1/slow)*dt;
+  const old=S.phase;S.phase=(S.phase+dphi)%(2*Math.PI);
+  if(S.phase<old){ // 完成一转:累积平均
+   S.rot++;jitFn=smoothNoise(RNG(1000+S.rot),8);
+   for(let i=0;i<256;i++)avgProf[i]+=prof512[i*2]*Math.max(.15,1+.45*jitFn(i/256));
+   avgN++;if(avgN>500){for(let i=0;i<256;i++)avgProf[i]*=.6;avgN*=.6;}
+  }}
+ if(S.orbit&&!cam.drag)cam.az+=dt*.05;
+ // act2 时间流
+ if(S.playing){S.simT+=S.speed*dt;applySim();}
+ // 轨迹点
+ if(S.act===1&&$('#tBand').checked&&!S.dead){
+  const mMag=M4.mul(M4.rotZ(S.phase),M4.rotY(S.al));
+  const bd=[mMag[8],mMag[9],mMag[10]];
+  trail.push({p:[bd[0]*RSKY,bd[1]*RSKY,bd[2]*RSKY],age:0},{p:[-bd[0]*RSKY,-bd[1]*RSKY,-bd[2]*RSKY],age:0});
+  const cap=S.qLow?70:150;while(trail.length>cap)trail.shift();
+  for(const tr of trail)tr.age+=dt;}
+ if(S.act===1){draw3D();drawProf();}
+ else if(S.act===2){drawPP();if(S.glitches.length)drawResid();}
+};
+
+/* ════════ 校验钩子 ════════ */
+window.__PL__={
+ set(o){if(o.al!==undefined){S.al=o.al*D2R;$('#sAl').value=o.al;}if(o.ze!==undefined){S.ze=o.ze*D2R;$('#sZe').value=o.ze;}
+  if(o.rho!==undefined){S.rho=o.rho*D2R;$('#sRho').value=o.rho;}if(o.ca!==undefined)S.ca=o.ca;
+  if(o.P!==undefined){S.P=o.P;$('#sP').value=Math.log10(o.P);}if(o.Pd!==undefined){S.Pd=o.Pd;S.anchor={P0:S.P,Pd0:S.Pd};}
+  if(o.preset!==undefined)loadPulsar(PRESETS[o.preset]);
+  if(o.act!==undefined){document.querySelectorAll('.tab')[o.act-1].click();}
+  if(o.still!==undefined)S.still=o.still;if(o.orbit!==undefined)S.orbit=o.orbit;
+  if(o.phase!==undefined)S.phase=o.phase;
+  if(o.level!==undefined)loadLevel(o.level);if(o.dm!==undefined){S.dmTrial=o.dm;$('#sDM').value=o.dm;drawWF();}
+  if(o.al!==undefined||o.ze!==undefined||o.rho!==undefined||o.ca!==undefined||o.P!==undefined){rebuildProfile();buildCones();buildBand();buildLines();syncUI();}
+ },
+ state:()=>({P:S.P,Pd:S.Pd,al:S.al,ze:S.ze,rho:S.rho,dead:S.dead,fps:fpsE,act:S.act,simT:S.simT,name:S.name,avgN,locked:S.locked}),
+ profileInfo(){const pk=interpulseSep(prof512);return{W50m,W50g,ipSep:pk,mod:(Math.max(...prof512)-Math.min(...prof512))/Math.max(...prof512),nPeaks:(()=>{const N=512,mx=Math.max(...prof512);let n=0;for(let i=0;i<N;i++){const a=prof512[(i-1+N)%N],b=prof512[i],c2=prof512[(i+1)%N];if(b>a&&b>=c2&&b>.3*mx)n++;}return n;})()};},
+ kernel:{derived,sdAnalytic,widthGeom,measureW50,beamFrac,deathPd,makeProfile,genAudio,autocorrPeak,foldSum,makeFoldData,dmDelayMs,glitchPhase,beamHalfRadius},
+ mcBeam(al,rho,N){const rnd=RNG(777);let hit=0;for(let i=0;i<N;i++){const ze=Math.acos(1-2*rnd());if(Math.abs(ze-al)<=rho||Math.abs(ze-(Math.PI-al))<=rho)hit++;}return hit/N;},
+ snCurve(dms){const L=LV[S.level];return dms.map(dm=>foldSum(wfData,L.P,dm,256).sn);},
+ stepSim(dt){S.simT+=dt;applySim();return{P:S.P,Pd:S.Pd,dead:S.dead};},
+ glitch(){$('#glitchBtn').click();},
+ W:()=>cv.width,H:()=>cv.height,
+ sample(){const W=cv.width,H=cv.height,px=new Uint8Array(W*H*4);gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let nb=0,mx=0,sum=0;for(let i=0;i<W*H;i++){const v=(px[i*4]+px[i*4+1]+px[i*4+2])/3;sum+=v;if(v>10)nb++;if(v>mx)mx=v;}
+  return{nonblack:nb/(W*H),max:mx,mean:sum/(W*H)};},
+ readRow(yf,n){const W=cv.width,H=cv.height,y=Math.round(H*yf),px=new Uint8Array(W*4);gl.readPixels(0,y,W,1,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const out=[];for(let k=0;k<n;k++){const x=Math.round((k+.5)/n*(W-1));out.push([px[x*4],px[x*4+1],px[x*4+2]]);}return out;},
+ readCol(xf,n){const W=cv.width,H=cv.height,x=Math.round(W*xf);const px=new Uint8Array(H*4*W);gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const out=[];for(let k=0;k<n;k++){const y=Math.round((k+.5)/n*(H-1));out.push([px[(y*W+x)*4],px[(y*W+x)*4+1],px[(y*W+x)*4+2]]);}return out;},
+ profPix(){const d=pctx.getImageData(0,0,pcv.width,pcv.height).data;let gold=0,cyan=0,nb=0;
+  for(let i=0;i<d.length;i+=4){if(d[i+3]<10)continue;nb++;if(d[i]>190&&d[i+1]>150&&d[i+2]<160)gold++;if(d[i]<160&&d[i+1]>150&&d[i+2]>190)cyan++;}
+  return{nonblank:nb,gold,cyan};},
+ ppdotHits(){if(!ppMap)return null;const d=dctx.getImageData(0,0,dcv.width,dcv.height).data;let lit=0;
+  for(const m of ppMap){const x=Math.round(m.x),y=Math.round(m.y);let ok=0;
+   for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const o=((y+dy)*dcv.width+(x+dx))*4;if(o>=0&&o<d.length&&(d[o]+d[o+1]+d[o+2])>140)ok=1;}
+   lit+=ok;}
+  return{total:ppMap.length,lit};},
+ wfInfo(){const L=LV[S.level];return{trueDM:L.DM,dDM:dDMlv,snBest,P:L.P};},
+ openDict(i){openModal(i);return $('#mh').textContent;},
+ drawNow(){draw3D();drawProf();},
+ catalog:CAT,LV,
+};
+
+/* ════════ 启动 ════════ */
+loadPulsar(PRESETS[0]);
+$('#oSpd').textContent='×10⁸·⁶';$('#oDM').textContent='0.00';
+resize();
+requestAnimationFrame(tick);
+setTimeout(resize,60);
+</script>

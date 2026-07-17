@@ -1,0 +1,811 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>土星环交响曲 · 引力雕刻的唱片</title>
+<style>
+:root{--fg:#d8dce6;--dim:#8a90a0;--acc:#ffd9a0;--acc2:#8fd4ff;--bg:#030407}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+#gl,#labcv{position:fixed;inset:0;width:100%;height:100%;display:block}
+#labcv{display:none;pointer-events:none}
+.panel{position:fixed;background:rgba(7,9,15,.8);border:1px solid rgba(255,217,160,.16);border-radius:10px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:10px 14px}
+#top{top:12px;left:12px;max-width:min(440px,92vw)}
+#top h1{margin:0 0 2px;font-size:17px;color:#fff;font-weight:700;letter-spacing:.5px}
+#top .sub{color:var(--dim);font-size:12px}
+#modes{top:12px;right:12px;display:flex;gap:6px;padding:6px}
+.mbtn{background:rgba(255,217,160,.07);border:1px solid rgba(255,217,160,.26);color:var(--fg);border-radius:7px;padding:6px 12px;cursor:pointer;font-size:13px}
+.mbtn.on{background:rgba(255,217,160,.28);color:#fff;border-color:var(--acc)}
+.mbtn:hover{border-color:var(--acc)}
+#views{top:64px;right:12px;display:flex;flex-direction:column;gap:5px;padding:8px}
+#views .mbtn{font-size:12px;padding:4px 10px}
+#story{left:12px;bottom:96px;max-width:min(430px,90vw)}
+#story .st{color:var(--acc);font-weight:700;font-size:15px;margin-bottom:3px}
+#story .sb{font-size:13px}
+#story .sc{font-size:11.5px;color:var(--dim);margin-top:5px;border-top:1px dashed rgba(138,144,160,.35);padding-top:4px}
+#bar{left:12px;right:12px;bottom:12px;display:flex;align-items:center;gap:10px}
+#bar input[type=range]{flex:1;accent-color:var(--acc);height:4px}
+#tspeed{font:600 12px ui-monospace,Menlo,monospace;color:var(--acc);min-width:150px;text-align:right}
+#mark{white-space:nowrap}
+#chart{right:12px;bottom:12px;width:min(440px,92vw);padding:8px}
+#chart canvas{display:block;width:100%}
+#dict{right:12px;top:64px;width:min(330px,88vw);display:none;max-height:66vh;overflow:auto;z-index:5}
+#dict h3{margin:0 0 4px;color:var(--acc);font-size:15px}
+#dict .row{display:flex;justify-content:space-between;font-size:12.5px;padding:1.5px 0;border-bottom:1px dotted rgba(138,144,160,.2)}
+#dict .row b{color:var(--acc2);font-weight:600;font-family:ui-monospace,monospace;text-align:right}
+#dict .blurb{font-size:12.5px;margin-top:6px}
+#dict .x{float:right;cursor:pointer;color:var(--dim);font-size:16px;padding:0 4px}
+#lab{left:12px;top:102px;max-width:min(410px,92vw);display:none}
+#lab .tabs{display:flex;gap:5px;margin-bottom:8px}
+#lab button{background:rgba(143,212,255,.1);border:1px solid rgba(143,212,255,.3);color:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;margin:2px 4px 2px 0;font-size:12.5px}
+#lab .ctl{font-size:13px;margin-top:6px}
+#lab .stat{font:12px ui-monospace,monospace;color:var(--acc2);margin-top:6px;min-height:32px}
+.moonlab{position:fixed;color:#ffe9c8;font:11px ui-monospace,monospace;pointer-events:none;text-shadow:0 0 6px #000;transform:translate(-50%,-140%)}
+#note{position:fixed;left:12px;bottom:96px;max-width:min(440px,90vw);display:none;max-height:60vh;overflow:auto}
+#note h4{margin:0 0 4px;color:var(--acc2);font-size:13px}
+#note div{font-size:11.5px;color:var(--dim)}
+#foot{position:fixed;right:14px;top:38px;font-size:11px;color:var(--dim);cursor:pointer;text-decoration:underline dotted;z-index:6}
+@media(max-width:700px){#chart{display:none}#story{bottom:80px}}
+</style>
+<canvas id="gl"></canvas>
+<canvas id="labcv"></canvas>
+<div class="panel" id="top"><h1>土星环交响曲 · 引力雕刻的唱片</h1><div class="sub">六十万粒子逐个真解开普勒方程 —— 缝隙与波纹全是共振刻出来的</div></div>
+<div class="panel" id="modes">
+  <button class="mbtn on" data-m="ring">环系巡航</button><button class="mbtn" data-m="lab">共振实验室</button>
+</div>
+<div class="panel" id="views">
+  <button class="mbtn on" data-v="over">俯瞰全环</button><button class="mbtn" data-v="graze">贴环飞掠</button><button class="mbtn" data-v="edge">侧视·薄如纸</button><button class="mbtn" data-v="encke">A 环与缝</button><button class="mbtn" data-v="fring">F 环牧羊</button>
+</div>
+<div class="panel" id="story"><div class="st"></div><div class="sb"></div><div class="sc"></div></div>
+<div class="panel" id="bar">
+  <button class="mbtn" id="mark">✎ 标记一条径向线</button>
+  <input type="range" id="sSp" min="0" max="4.7" step="0.01" value="3.3">
+  <div id="tspeed"></div>
+</div>
+<div class="panel" id="chart"><canvas id="cv" width="880" height="350"></canvas></div>
+<div class="panel" id="dict"><span class="x" onclick="dict.style.display='none'">✕</span><h3></h3><div class="rows"></div><div class="blurb"></div></div>
+<div class="panel" id="lab">
+  <div class="tabs"><button class="mbtn on" data-l="cassini">卡西尼缝的诞生</button><button class="mbtn" data-l="daphnis">Daphnis 的水波</button></div>
+  <div id="lbody"></div>
+</div>
+<div class="panel" id="note"><h4>诚实声明：哪些是真算、哪些是示意</h4><div id="notetxt"></div></div>
+<div id="foot">近似声明</div>
+<script>
+'use strict';
+/* ══════════ 土星环交响曲 —— 物理内核与渲染（与 proto.mjs 对拍） ══════════ */
+const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x)), lerp=(a,b,t)=>a+(b-a)*t;
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ───── 常数（真实值；世界单位 1 = R♄ = 60268 km） ───── */
+const GM=3.7931187e7, RS=60268, J2=0.016298;           // km³/s², km
+const U=km=>km/RS;                                      // km→世界
+const aMimas=185539, mMimas=3.75e19/5.6834e26;
+const Torb=a=>2*Math.PI*Math.sqrt(a*a*a/GM);            // s (a in km)
+function solveE(M,e){let E=M+e*Math.sin(M);for(let k=0;k<3;k++)E-=(E-e*Math.sin(E)-M)/(1-e*Math.cos(E));return E}
+/* 共振位置（J2 修正 ILR，涌现） */
+const nOf=a=>Math.sqrt(GM/a**3*(1+1.5*J2*(RS/a)**2)), kOf=a=>Math.sqrt(GM/a**3*(1-1.5*J2*(RS/a)**2));
+const ILR21=(()=>{const nM=nOf(aMimas);const f=a=>kOf(a)-2*(nOf(a)-nM);
+ let lo=110000,hi=125000;for(let i=0;i<80;i++){const m=(lo+hi)/2;(f(m)<0?lo=m:hi=m)}return (lo+hi)/2})();
+const ROCHE=2.456*RS*Math.cbrt(687/900);                // 流体洛希极限 km
+/* 环区表（Cassini 实测结构；权重=粒子分配） */
+const REG=[
+ {n:'D 环',r0:66900,r1:74510,w:.012,op:.05,br:.13,col:[.72,.6,.5]},
+ {n:'C 环',r0:74658,r1:92000,w:.11,op:.12,br:.3,col:[.78,.66,.54]},
+ {n:'B 环',r0:92000,r1:117580,w:.60,op:1.0,br:1.0,col:[1,.93,.8]},
+ {n:'卡西尼缝',r0:117580,r1:122170,w:.007,op:.04,br:.07,col:[.7,.62,.55]},
+ {n:'A 环',r0:122170,r1:136780,w:.25,op:.5,br:.7,col:[.95,.87,.74]},
+ {n:'F 环',r0:140180,r1:140260,w:.021,op:.5,br:1.0,col:[1,.97,.9]}];
+const ENCKE=[133427,133752], KEELER=[136463,136547];
+const MOONS=[
+ {n:'Mimas 土卫一',a:185539,R:198,ph:0.5,c:[.85,.87,.95],big:1},
+ {n:'Janus 土卫十',a:151460,R:89,ph:2.1,c:[.8,.78,.72],big:0},
+ {n:'Pandora 土卫十七',a:141720,R:40,ph:4.0,c:[.8,.76,.7],big:0},
+ {n:'Prometheus 土卫十六',a:139380,R:43,ph:1.2,c:[.82,.78,.7],big:0},
+ {n:'Pan 土卫十八',a:133584,R:14,ph:3.3,c:[.85,.8,.72],big:0},
+ {n:'Daphnis 土卫三十五',a:136505,R:4,ph:5.5,c:[.9,.88,.85],big:0}];
+
+/* ───── 词典 ───── */
+const DICT={
+ 'B 环':[[['半径','92000–117580 km'],['光学深度','~1–5（最稠密）'],['厚度','5–15 m'],['成分','~95% 水冰']],'环系的主体，亮得能在小望远镜里晃眼。它的外缘恰好被 Mimas 的 2:1 共振"守住"——去共振实验室看这条缝是怎么刻出来的。'],
+ '卡西尼缝':[[['半径','117580–122170 km'],['宽度','4590 km'],['发现','1675 · G.D. Cassini'],['成因','Mimas 2:1 共振']],'不是真空：缝里还有稀薄尘埃。缝内缘粒子每绕两圈，Mimas 恰好绕一圈——同一位置反复被拉，偏心率被泵大，轨道交叉相撞，物质被清走。'],
+ 'A 环':[[['半径','122170–136780 km'],['光学深度','~0.5'],['特色','Encke 缝+Keeler 缝'],['外缘','Janus 7:6 共振截断']],'密度波的画廊：几十道卫星共振激起的螺旋波刻在环面上。外缘几乎贴着洛希极限。'],
+ 'C 环':[[['半径','74658–92000 km'],['光学深度','~0.1'],['别名','"绉纱环"']],'半透明的内环，能透过它看见土星本体。'],
+ 'D 环':[[['半径','66900–74510 km'],['光学深度','~0.01']],'最靠内、最暗弱，一直延伸到土星云顶附近。'],
+ 'F 环':[[['半径','~140220 km'],['宽度','30–500 km'],['牧羊犬','Prometheus + Pandora'],['结构','多股缠绕、扭结']],'被两颗牧羊卫星夹住的一根"发辫"：内侧的 Prometheus 时不时扎进环里偷走一缕物质，拖出扇形尾流。'],
+ 'Encke 缝':[[['中心','133589 km'],['宽度','325 km'],['清道夫','Pan（直径 28 km）']],'A 环里的一道细缝，由住在缝正中的小卫星 Pan 清扫维持。'],
+ 'Keeler 缝':[[['中心','136505 km'],['宽度','42 km'],['清道夫','Daphnis（直径 8 km）']],'Daphnis 掠过时在缝缘激起 0.5–1.5 km 高的波浪——卡西尼号拍到过它们在土星光影里投下的影子。去实验室看这个波如何真算涌现。'],
+ '洛希极限':[[['流体近似','2.456 R♄·(ρ♄/ρ)^⅓'],['本页算得','即图中虚线'],['意义','潮汐撕碎 vs 自引力聚合']],'离行星太近，潮汐力就会把想聚成卫星的碎块重新扯散——所以环在这里面，卫星在这外面。主环几乎全部位于洛希极限以内：环就是一颗"永远造不出来的卫星"。'],
+ 'Mimas 土卫一':[[['轨道','185539 km'],['直径','396 km'],['周期','22.6 h'],['名场面','赫歇尔坑=死星']],'环的隐形雕刻师：它的 2:1 共振在 117 万 8 千米外刻出了卡西尼缝。'],
+ 'Pan 土卫十八':[[['轨道','133584 km（Encke 缝内）'],['直径','28 km'],['形状','饺子/核桃']],'吃环屑长出了"赤道裙边"，活成了一只饺子。'],
+ 'Daphnis 土卫三十五':[[['轨道','136505 km（Keeler 缝内）'],['直径','8 km']],'全太阳系最会冲浪的小石头：身后跟着一串它自己激起的波。'],
+ 'Prometheus 土卫十六':[[['轨道','139380 km'],['直径','86 km'],['角色','F 环内侧牧羊犬']],'周期性扎进 F 环偷料，拖出一道道 streamer。'],
+ 'Pandora 土卫十七':[[['轨道','141720 km'],['直径','81 km'],['角色','F 环外侧牧羊犬']],'与 Prometheus 一内一外，把 F 环夹成一根细辫。'],
+ 'Janus 土卫十':[[['轨道','151460 km'],['直径','179 km'],['绝技','每 4 年与 Epimetheus 交换轨道']],'它的 7:6 共振是 A 环外缘的"墙"。'],
+ '环的身世':[[['总质量','~1.5×10¹⁹ kg ≈ 0.4 个 Mimas'],['厚度','5 m–1 km'],['年龄','争议中：1–40 亿年']],'Cassini 终章测得环出乎意料地轻、出乎意料地干净——很多学者据此认为环只有几亿岁（恐龙时代还没有环！），但这仍在激烈争论中。']};
+
+/* ══════════ WebGL2 底座（系列管线） ══════════ */
+const cv=$('#gl'), gl=cv.getContext('webgl2',{alpha:false,antialias:false,preserveDrawingBuffer:true});
+if(!gl){document.body.innerHTML='<p style="padding:40px">需要 WebGL2</p>';throw 0}
+gl.getExtension('EXT_color_buffer_float');
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+ if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o)+'\n'+s.split('\n').map((l,i)=>i+1+' '+l).join('\n'));return o}
+function prog(vs,fs){const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);
+ if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p}
+const UL=(p,n)=>gl.getUniformLocation(p,n);
+const FSVS=`#version 300 es
+void main(){vec2 v=vec2(float(gl_VertexID<<1&2),float(gl_VertexID&2))*2.0-1.0;gl_Position=vec4(v,0.,1.);}`;
+let yaw=0.85,pitch=1.02,dist=6.4,autoRot=true;
+function camBasis(){const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const f=[cp*cy,cp*sy,sp],r=[-sy,cy,0],u=[-sp*cy,-sp*sy,cp];
+ return {pos:[-f[0]*dist,-f[1]*dist,-f[2]*dist],f,r,u}}
+const SUN=[0.9463,0.1051,-0.3055]; // 太阳方向（环面下方 ~18°：环影投在朝向镜头的北半球）
+/* ── 环粒子 VS：gl_VertexID→(环区 CDF→a, M0, e, i)→开普勒真解 ── */
+const ringVS=`#version 300 es
+uniform float uT,uN,uMarkT0,uMarkOn,uPix;uniform vec3 uCam,uF,uR3,uU3,uSun;uniform vec2 uRes;
+out vec3 vc;out float va;
+uint pcg(uint v){v=v*747796405u+2891336453u;uint w=((v>>((v>>28u)+4u))^v)*277803737u;return (w>>22u)^w;}
+float hu(uint v){return float(pcg(v))/4294967296.;}
+/* 环区 CDF（Cassini 实测结构；w 累积：D.012 C.122 B.722 缝.729 A.979 F 1.0） */
+vec4 pickA(float u,float u2){ /* 返回 (a_km, brightness, colR混合, isF) */
+ float a,br,cm;
+ if(u<.012){a=mix(66900.,74510.,u2);br=.13;cm=1.;}
+ else if(u<.122){a=mix(74658.,92000.,u2);br=.3;cm=1.;}
+ else if(u<.722){a=mix(92000.,117580.,u2);br=1.;cm=0.;}
+ else if(u<.729){a=mix(117580.,122170.,u2);br=.07;cm=1.;}
+ else if(u<.979){ /* A 环：避开 Encke/Keeler 两缝分三子段（总宽 14201） */
+  float t=u2*14201.;
+  if(t<11257.){a=122170.+t;}
+  else if(t<13968.){a=133752.+(t-11257.);}
+  else {a=136547.+(t-13968.);}
+  br=.7;cm=.35;}
+ else {a=mix(140180.,140260.,u2);br=1.;cm=0.;}
+ return vec4(a,br,cm,step(.979,u));}
+vec3 kepler(float aU,float e,float M0,float n,float t,float i0,float Om){
+ float M=M0+n*t;
+ float E=M+e*sin(M);
+ for(int k=0;k<3;k++)E-=(E-e*sin(E)-M)/(1.-e*cos(E));
+ float cx=aU*(cos(E)-e), cy=aU*sqrt(1.-e*e)*sin(E);
+ float th=atan(cy,cx);
+ float r=length(vec2(cx,cy));
+ /* 小倾角一阶：z=r·i·sin(θ+Ω) */
+ return vec3(r*cos(th),r*sin(th),r*i0*sin(th+Om));}
+void main(){uint uid=uint(gl_VertexID)*7u;
+ vec4 pk=pickA(hu(uid),hu(uid+1u));
+ float aKm=pk.x, aU=aKm/60268.;
+ float e=.00002*hu(uid+2u), i0=.000025*hu(uid+3u); /* 真实量级:e,i~1e-5 → 厚度~±3km 真比例 */
+ float M0=hu(uid+4u)*6.2831853, Om=hu(uid+5u)*6.2831853;
+ float n=sqrt(3.7931187e7/(aKm*aKm*aKm));        /* rad/s 真值 */
+ vec3 p=kepler(aU,e,M0,n,uT,i0,Om);
+ /* 颜色：区表+粒径抖动+径向细纹(示意) */
+ vec3 cB=mix(vec3(1.,.93,.8),vec3(.78,.66,.54),pk.z);
+ float fine=.75+.25*sin(aKm*.0021)+.18*sin(aKm*.00047);
+ float amp=pk.y*fine*(0.55+0.9*hu(uid+6u));
+ /* 土星影：反日圆柱 */
+ float dS=dot(p,-uSun);
+ if(dS>0.){vec3 q=p+uSun*dS;float rho=length(q);
+  amp*=mix(.05,1.,smoothstep(.96,1.04,rho));}
+ vc=cB*amp;
+ va=1.;
+ /* 标记剪切：t=uMarkT0 时刻位于窄扇区的粒子染青 */
+ if(uMarkOn>0.5){
+  vec3 p0=kepler(aU,e,M0,n,uMarkT0,i0,Om);
+  float th0=atan(p0.y,p0.x);
+  if(abs(th0)<.045&&aKm>74658.&&aKm<136780.){vc=vec3(.3,1.,1.1)*max(amp,.5)*1.6;}}
+ vec3 rel=p-uCam;float z=dot(rel,uF);
+ if(z<.02){gl_Position=vec4(0.,0.,-3.,1.);gl_PointSize=0.;return;}
+ /* 行星遮挡：相机→粒子线段最近点入球即隐 */
+ float tt=clamp(dot(-uCam,rel)/dot(rel,rel),0.,1.);
+ vec3 cp=uCam+rel*tt;
+ if(tt>0.001&&tt<0.999&&dot(cp,cp)<0.96){gl_Position=vec4(0.,0.,-3.,1.);gl_PointSize=0.;return;}
+ vec3 rr=rel-uF*z;
+ gl_Position=vec4(dot(rr,uR3)/(.62*z)*(uRes.y/uRes.x),dot(rr,uU3)/(.62*z),0.,1.);
+ gl_PointSize=max(uPix/z,1.0);}`;
+const ringFS=`#version 300 es
+precision highp float;in vec3 vc;in float va;out vec4 O;
+void main(){vec2 d=gl_PointCoord*2.-1.;float q=dot(d,d);if(q>1.)discard;
+ O=vec4(vc*(1.-q*.6)*va,1.);}`;
+/* ── 土星（扁椭球 raycast+条纹+环影） ── */
+const satVS=`#version 300 es
+uniform vec3 uCam,uF,uR3,uU3;uniform float uRad;uniform vec2 uRes;
+out vec2 vq;
+void main(){vec2 c=vec2(float(gl_VertexID&1),float(gl_VertexID>>1))*2.-1.;vq=c*1.15;
+ vec3 w=(uR3*c.x+uU3*c.y)*uRad*1.15;
+ vec3 rel=w-uCam;float z=dot(rel,uF);
+ if(z<.02){gl_Position=vec4(0.,0.,-3.,1.);return;}
+ vec3 rr=rel-uF*z;
+ gl_Position=vec4(dot(rr,uR3)/(.62*z)*(uRes.y/uRes.x),dot(rr,uU3)/(.62*z),0.,1.);}`;
+const satFS=`#version 300 es
+precision highp float;in vec2 vq;out vec4 O;
+uniform vec3 uCam,uF,uR3,uU3,uSun;uniform float uRad,uT;
+float ringOp(float r){ /* r in km：环透明度简表 */
+ if(r<66900.)return 0.; if(r<74510.)return .05; if(r<74658.)return 0.;
+ if(r<92000.)return .12; if(r<117580.)return .85; if(r<122170.)return .04;
+ if(r<133427.)return .45; if(r<133752.)return .02; if(r<136463.)return .45;
+ if(r<136547.)return .02; if(r<136780.)return .45; if(r<140180.)return 0.;
+ if(r<140260.)return .4; return 0.;}
+void main(){
+ /* 射线：从相机过本像素（用世界四边形插值方向） */
+ vec3 w=(uR3*vq.x+uU3*vq.y)*uRad;
+ vec3 rd=normalize(w-uCam);
+ /* 椭球 raycast：scale 空间 z/0.902 */
+ vec3 S=vec3(1.,1.,1./0.902);
+ vec3 o=uCam*S, d=rd*S;
+ float b=dot(o,d), c=dot(o,o)-uRad*uRad, disc=b*b-dot(d,d)*c;
+ if(disc<0.)discard;
+ float t=(-b-sqrt(disc))/dot(d,d);
+ if(t<0.)discard;
+ vec3 ps=o+d*t;                    /* scale 空间交点 */
+ vec3 p=ps/S;                      /* 世界交点 */
+ vec3 nrm=normalize(ps*S);         /* 椭球法线 */
+ float lam=max(dot(nrm,uSun),0.);
+ /* 纬向条纹 */
+ float lat=asin(clamp(ps.z/uRad,-1.,1.));
+ float bands=sin(lat*24.)*.5+sin(lat*57.+1.7)*.3+sin(lat*13.-.6)*.2;
+ vec3 base=mix(vec3(.92,.82,.62),vec3(.98,.92,.78),.5+.5*bands);
+ base=mix(base,vec3(.72,.74,.8),smoothstep(.85,1.25,abs(lat)));    /* 极区偏蓝灰 */
+ /* 环影：从表面点向太阳走，穿过环面 z=0 处查环不透明度 */
+ float sh=1.;
+ if(abs(uSun.z)>1e-4){float ts=-p.z/uSun.z;      /* p+ts·uSun 落在 z=0 */
+  if(ts>0.){vec2 hp=p.xy+uSun.xy*ts;
+   float rk=length(hp)*60268.;
+   sh=1.-.8*ringOp(rk);}}
+ vec3 col=base*(lam*sh*.95+.075);
+ col+=vec3(.72,.78,.9)*.05*max(nrm.z,0.);          /* 夜面环照(ringshine)微光 */
+ O=vec4(col,1.);}`;
+/* ── 小球（卫星/实验体） ── */
+const mSphVS=`#version 300 es
+uniform vec3 uC,uCam,uF,uR3,uU3;uniform float uRad;uniform vec2 uRes;
+out vec2 vq;
+void main(){vec2 c=vec2(float(gl_VertexID&1),float(gl_VertexID>>1))*2.-1.;vq=c*1.9;
+ vec3 w=uC+(uR3*c.x+uU3*c.y)*uRad*1.9;
+ vec3 rel=w-uCam;float z=dot(rel,uF);
+ if(z<.02){gl_Position=vec4(0.,0.,-3.,1.);return;}
+ vec3 rr=rel-uF*z;
+ gl_Position=vec4(dot(rr,uR3)/(.62*z)*(uRes.y/uRes.x),dot(rr,uU3)/(.62*z),0.,1.);}`;
+const mSphFS=`#version 300 es
+precision highp float;in vec2 vq;out vec4 O;uniform vec3 uCol;uniform float uGlow;
+void main(){float q=length(vq);
+ float h=exp(-q*q*3.2)+.25*exp(-q*1.6);
+ h*=smoothstep(1.85,1.3,q);
+ O=vec4(uCol*uGlow*h,1.);}`;
+/* ── 背景星 ── */
+const starVS=`#version 300 es
+uniform vec3 uF,uR3,uU3;uniform vec2 uRes;out float vb;
+uint pcg(uint v){v=v*747796405u+2891336453u;uint w=((v>>((v>>28u)+4u))^v)*277803737u;return (w>>22u)^w;}
+float h1(float n){return float(pcg(uint(n*4.)))/4294967296.;}
+void main(){float id=float(gl_VertexID);
+ float ph=h1(id)*6.2832,ct=h1(id+.5)*2.-1.,st=sqrt(1.-ct*ct);
+ vec3 d=vec3(st*cos(ph),st*sin(ph),ct);
+ float z=dot(d,uF);
+ if(z<.15){gl_Position=vec4(0,0,-3,1);gl_PointSize=0.;vb=0.;return;}
+ vb=.15+.85*pow(h1(id+.23),6.);
+ gl_Position=vec4(dot(d,uR3)/(.62*z)*(uRes.y/uRes.x),dot(d,uU3)/(.62*z),0.,.999999);
+ gl_PointSize=(1.+2.2*pow(h1(id+.77),8.))* (uRes.y/900.);}`;
+const starFS=`#version 300 es
+precision highp float;in float vb;out vec4 O;
+void main(){vec2 d=gl_PointCoord*2.-1.;float q=dot(d,d);if(q>1.)discard;
+ O=vec4(vec3(.9,.93,1.)*vb*exp(-q*2.),1.);}`;
+/* ── 后处理 ── */
+const postFS=`#version 300 es
+precision highp float;out vec4 O;uniform sampler2D uTex;uniform vec2 uRes;uniform float uEx,uT;
+vec3 ash(vec3 x){return log(x+sqrt(x*x+1.));}
+vec3 aces(vec3 x){return clamp(x*(2.51*x+.03)/(x*(2.43*x+.59)+.14),0.,1.);}
+void main(){vec2 uv=gl_FragCoord.xy/uRes;vec3 c=texture(uTex,uv).rgb;
+ c=ash(c*uEx);c=aces(c*.62);
+ float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,1.1);
+ vec2 q=uv*2.-1.;c*=1.-.3*dot(q,q)*.55;
+ c+=(fract(sin(dot(gl_FragCoord.xy+uT,vec2(12.9898,78.233)))*43758.5453)-.5)*.012;
+ O=vec4(c,1.);}`;
+const pRing=prog(ringVS,ringFS),pSat=prog(satVS,satFS),pM=prog(mSphVS,mSphFS),pStar=prog(starVS,starFS),pPost=prog(FSVS,postFS);
+let W=0,H=0,fbo=null,tex=null,dpr=Math.min(devicePixelRatio||1,2),saveMode=false;
+function resize(){const d=saveMode?dpr*0.62:dpr;W=cv.width=innerWidth*d|0;H=cv.height=innerHeight*d|0;
+ cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';
+ const lc=$('#labcv');lc.width=innerWidth;lc.height=innerHeight;
+ if(tex)gl.deleteTexture(tex);if(fbo)gl.deleteFramebuffer(fbo);
+ tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+ gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA16F,W,H);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+ fbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+ gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null)}
+addEventListener('resize',resize);resize();
+
+/* ══════════ 场景状态 ══════════ */
+let mode='ring',labTab='cassini',tGlob=0,ringT=0,EX=1.0;
+let NPART=600000;
+let markOn=0,markT0=0;
+const spOf=v=>Math.pow(10,v);         // 滑杆 log 速度
+let speed=spOf(3.3);
+/* 卫星位置 */
+function moonPos(m,t){const n=Math.sqrt(GM/m.a**3),th=m.ph+n*t;
+ return [U(m.a)*Math.cos(th),U(m.a)*Math.sin(th),0]}
+
+/* ══════════ 实验室引擎（CPU，与 proto 同算法） ══════════ */
+function makeLabA(){ // 卡西尼缝的诞生：Mimas×300
+  const MUL=300,mu2=GM*mMimas*MUL,nM=Math.sqrt(GM/aMimas**3);
+  const N=2200,rnd=mulberry32(7);
+  const P=new Float64Array(N*4),A0=new Float64Array(N);
+  for(let i=0;i<N;i++){const a=115800+rnd()*2200,th=rnd()*6.2832,v=Math.sqrt(GM/a);
+   P[i*4]=a*Math.cos(th);P[i*4+1]=a*Math.sin(th);P[i*4+2]=-v*Math.sin(th);P[i*4+3]=v*Math.cos(th);A0[i]=a}
+  return {P,A0,N,mu2,nM,t:0,dt:Torb(116877)/160,orbits:0,on:1,
+   Tp:Torb(116877)};
+}
+function makeLabB(){ // Daphnis 水波
+  const mu2=6.6743e-20*7.7e13,aD=136505,nD=Math.sqrt(GM/aD**3);
+  const N=2600,rnd=mulberry32(11);
+  const P=new Float64Array(N*4),A0=new Float64Array(N),SD=new Float64Array(N);
+  for(let i=0;i<N;i++){const side=i%2?1:-1;
+   const a=aD+side*(40+(rnd()-0.5)*8);   /* 窄散布：λ=3πΔa 各粒子一致才叠得出干净波形 */
+   const th=0.003+rnd()*0.0195;const v=Math.sqrt(GM/a); /* 避开"出生即交会"粒子 */
+   P[i*4]=a*Math.cos(th);P[i*4+1]=a*Math.sin(th);P[i*4+2]=-v*Math.sin(th);P[i*4+3]=v*Math.cos(th);
+   A0[i]=a;SD[i]=side}
+  return {P,A0,SD,N,mu2,aD,nD,t:0,dt:2*Math.PI/nD/2600,TD:2*Math.PI/nD};
+}
+let labA=makeLabA(),labB=makeLabB();
+function stepBody(L,steps,aM,nM,mu2){ // 通用 RK4 推进（含间接项；全标量零分配）
+  const P=L.P,N=L.N,dt=L.dt,GMl=GM,ind=mu2>0?mu2/(aM*aM*aM):0;
+  let a1x=0,a1y=0,a2x=0,a2y=0,a3x=0,a3y=0,a4x=0,a4y=0;
+  for(let s=0;s<steps;s++){
+    const t=L.t;
+    const mx=aM*Math.cos(nM*t),my=aM*Math.sin(nM*t);
+    const mxh=aM*Math.cos(nM*(t+dt/2)),myh=aM*Math.sin(nM*(t+dt/2));
+    const mx1=aM*Math.cos(nM*(t+dt)),my1=aM*Math.sin(nM*(t+dt));
+    const ix=ind*mx,iy=ind*my,ixh=ind*mxh,iyh=ind*myh,ix1=ind*mx1,iy1=ind*my1;
+    for(let i=0;i<N;i++){
+      const o=i*4,x=P[o],y=P[o+1],vx=P[o+2],vy=P[o+3];
+      let r2=x*x+y*y,r=Math.sqrt(r2),g=-GMl/(r2*r);
+      a1x=g*x;a1y=g*y;
+      if(mu2>0){const dx=x-mx,dy=y-my,d2=dx*dx+dy*dy,dd=Math.sqrt(d2),gm=-mu2/(d2*dd);
+       a1x+=gm*dx-ix;a1y+=gm*dy-iy}
+      let px=x+vx*dt/2,py=y+vy*dt/2;
+      r2=px*px+py*py;r=Math.sqrt(r2);g=-GMl/(r2*r);
+      a2x=g*px;a2y=g*py;
+      if(mu2>0){const dx=px-mxh,dy=py-myh,d2=dx*dx+dy*dy,dd=Math.sqrt(d2),gm=-mu2/(d2*dd);
+       a2x+=gm*dx-ixh;a2y+=gm*dy-iyh}
+      const v2x=vx+a1x*dt/2,v2y=vy+a1y*dt/2;
+      px=x+v2x*dt/2;py=y+v2y*dt/2;
+      r2=px*px+py*py;r=Math.sqrt(r2);g=-GMl/(r2*r);
+      a3x=g*px;a3y=g*py;
+      if(mu2>0){const dx=px-mxh,dy=py-myh,d2=dx*dx+dy*dy,dd=Math.sqrt(d2),gm=-mu2/(d2*dd);
+       a3x+=gm*dx-ixh;a3y+=gm*dy-iyh}
+      const v3x=vx+a2x*dt/2,v3y=vy+a2y*dt/2;
+      px=x+v3x*dt;py=y+v3y*dt;
+      r2=px*px+py*py;r=Math.sqrt(r2);g=-GMl/(r2*r);
+      a4x=g*px;a4y=g*py;
+      if(mu2>0){const dx=px-mx1,dy=py-my1,d2=dx*dx+dy*dy,dd=Math.sqrt(d2),gm=-mu2/(d2*dd);
+       a4x+=gm*dx-ix1;a4y+=gm*dy-iy1}
+      P[o]=x+dt/6*(vx+2*v2x+2*v3x+(vx+a3x*dt));
+      P[o+1]=y+dt/6*(vy+2*v2y+2*v3y+(vy+a3y*dt));
+      P[o+2]=vx+dt/6*(a1x+2*a2x+2*a3x+a4x);
+      P[o+3]=vy+dt/6*(a1y+2*a2y+2*a3y+a4y);
+    }
+    L.t+=dt;
+  }
+}
+function eccA(P,o){const x=P[o],y=P[o+1],vx=P[o+2],vy=P[o+3];
+ const r=Math.hypot(x,y),v2=vx*vx+vy*vy;
+ const rv=x*vx+y*vy;
+ const ex=(v2*x-rv*vx)/GM-x/r,ey=(v2*y-rv*vy)/GM-y/r;
+ return {e:Math.hypot(ex,ey),a:1/(2/r-v2/GM)}}
+function labAProfile(nb=22){ // e(a0) 中位数剖面
+  const bins=Array.from({length:nb},()=>[]);
+  for(let i=0;i<labA.N;i++){const b=Math.min(nb-1,Math.floor((labA.A0[i]-115800)/2200*nb));
+   bins[b].push(eccA(labA.P,i*4).e)}
+  const med=a=>{if(!a.length)return 0;const s=a.sort((x,y)=>x-y);return s[s.length>>1]};
+  return bins.map(med)}
+function labBWave(nb=90){ // δr(Δθ) 波形（trailing 侧,外带）
+  const thD=(labB.nD*labB.t)%(2*Math.PI),pts=[];
+  for(let i=0;i<labB.N;i++){if(labB.SD[i]<0)continue;
+   const o=i*4,r=Math.hypot(labB.P[o],labB.P[o+1]),th=Math.atan2(labB.P[o+1],labB.P[o]);
+   let d=th-thD;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+   if(d<-0.0005&&d>-0.016)pts.push([d,r-labB.A0[i]])}
+  const w0=-0.016,w1=-0.0005,bs=new Array(nb).fill(0),bc=new Array(nb).fill(0);
+  for(const[d,dr]of pts){const b=Math.min(nb-1,Math.floor((d-w0)/(w1-w0)*nb));bs[b]+=dr;bc[b]++}
+  return {prof:bs.map((v,i)=>bc[i]?v/bc[i]:0),cnt:bc,w0,w1}}
+function labBLambda(){ // 涌现波长 km：扫频 DFT 主峰（对早期噪声段稳健）
+  const {prof,cnt,w0,w1}=labBWave(90);
+  const sig=prof.map((v,i)=>cnt[i]>2?v:0);
+  const mean=sig.reduce((a,b)=>a+b,0)/90;
+  let bestK=0,bp=0;
+  for(let k=2;k<=20;k+=0.25){
+   let re=0,im=0;
+   for(let i=0;i<90;i++){const ph=2*Math.PI*k*i/90;
+    re+=(sig[i]-mean)*Math.cos(ph);im+=(sig[i]-mean)*Math.sin(ph)}
+   const p=re*re+im*im;if(p>bp){bp=p;bestK=k}}
+  if(!bestK)return 0;
+  return Math.abs(w1-w0)*136505/bestK}
+
+/* ══════════ 渲染 ══════════ */
+function setCommon(p,c){gl.uniform3fv(UL(p,'uCam'),c.pos);gl.uniform3fv(UL(p,'uF'),c.f);
+ gl.uniform3fv(UL(p,'uR3'),c.r);gl.uniform3fv(UL(p,'uU3'),c.u);gl.uniform2f(UL(p,'uRes'),W,H)}
+function render(dt){
+ gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.viewport(0,0,W,H);
+ gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);
+ const c=camBasis();
+ gl.useProgram(pStar);setCommon(pStar,c);
+ gl.drawArrays(gl.POINTS,0,1400);
+ if(mode==='ring'){
+  // 土星（覆写混合：遮住身后星空）
+  gl.blendFunc(gl.ONE,gl.ZERO);
+  gl.useProgram(pSat);setCommon(pSat,c);
+  gl.uniform1f(UL(pSat,'uRad'),1.0);gl.uniform3fv(UL(pSat,'uSun'),SUN);gl.uniform1f(UL(pSat,'uT'),tGlob);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  gl.blendFunc(gl.ONE,gl.ONE);
+  // 环粒子
+  gl.useProgram(pRing);setCommon(pRing,c);
+  gl.uniform1f(UL(pRing,'uT'),ringT);gl.uniform1f(UL(pRing,'uN'),NPART);
+  gl.uniform1f(UL(pRing,'uMarkT0'),markT0);gl.uniform1f(UL(pRing,'uMarkOn'),markOn);
+  gl.uniform3fv(UL(pRing,'uSun'),SUN);
+  gl.uniform1f(UL(pRing,'uPix'),(saveMode?3.8:4.3)*(H/900));
+  gl.drawArrays(gl.POINTS,0,NPART);
+  // 卫星
+  for(const m of MOONS){const p=moonPos(m,ringT);
+   gl.useProgram(pM);setCommon(pM,c);
+   gl.uniform3fv(UL(pM,'uC'),p);
+   gl.uniform1f(UL(pM,'uRad'),Math.max(U(m.R)*8,0.012));
+   gl.uniform3fv(UL(pM,'uCol'),m.c);gl.uniform1f(UL(pM,'uGlow'),m.big?3.2:2.2);
+   gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
+ }
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,H);
+ gl.disable(gl.BLEND);gl.useProgram(pPost);
+ gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);
+ gl.uniform1i(UL(pPost,'uTex'),0);gl.uniform2f(UL(pPost,'uRes'),W,H);
+ gl.uniform1f(UL(pPost,'uEx'),EX);gl.uniform1f(UL(pPost,'uT'),tGlob%97);
+ gl.drawArrays(gl.TRIANGLES,0,3)}
+
+/* ══════════ 实验室 2D 视图 ══════════ */
+const lc=$('#labcv'),lctx=lc.getContext('2d');
+function drawLab(){
+ const w=lc.width,h=lc.height;lctx.clearRect(0,0,w,h);
+ if(labTab==='cassini'){
+  // 展开条带：x=角度, y=a（115800..118000）
+  const y0=h*0.18,y1=h*0.62;
+  lctx.fillStyle='rgba(143,212,255,.55)';lctx.font='13px ui-monospace';
+  lctx.fillText('展开视图：横=方位角 0–360° · 纵=轨道半径 115800–118000 km · 颜色=偏心率(蓝→红)',w*0.34,y0-14);
+  const thD=0;
+  for(let i=0;i<labA.N;i++){const o=i*4;
+   const x=labA.P[o],y=labA.P[o+1];
+   const th=(Math.atan2(y,x)+2*Math.PI)%(2*Math.PI);
+   const {e,a}=eccA(labA.P,o);
+   if(a<115700||a>118100)continue;
+   const px=w*0.06+th/(2*Math.PI)*w*0.88;
+   const py=y1-(a-115800)/2200*(y1-y0);
+   const t=clamp(e/0.004,0,1);
+   lctx.fillStyle=`rgb(${60+195*t|0},${90+40*(1-t)|0},${230*(1-t)+40|0})`;
+   lctx.fillRect(px,py,2,2)}
+  // 共振线
+  const yr=y1-(116877-115800)/2200*(y1-y0);
+  lctx.strokeStyle='rgba(255,217,160,.6)';lctx.setLineDash([6,5]);
+  lctx.beginPath();lctx.moveTo(w*0.06,yr);lctx.lineTo(w*0.94,yr);lctx.stroke();lctx.setLineDash([]);
+  lctx.fillStyle='#ffd9a0';lctx.fillText('2:1 共振 116877 km（理论,J2 修正后=实测缝内缘 117580）',w*0.06,yr-8);
+ } else {
+  // Daphnis 展开条带：x=Δθ·a（km,放大）,y=δr×80
+  const cx=w*0.5,cy=h*0.42;
+  lctx.fillStyle='rgba(143,212,255,.55)';lctx.font='13px ui-monospace';
+  lctx.fillText('随 Daphnis 展开的缝缘条带 · 纵向 δr 放大 ×80（真实波幅 ~0.5 km）',w*0.34,h*0.16);
+  const thD=(labB.nD*labB.t)%(2*Math.PI);
+  const sc=w*0.9/(0.036*136505);   // ±0.018 rad 窗
+  for(let i=0;i<labB.N;i++){const o=i*4;
+   const r=Math.hypot(labB.P[o],labB.P[o+1]),th=Math.atan2(labB.P[o+1],labB.P[o]);
+   let d=th-thD;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+   if(Math.abs(d)>0.019)continue;
+   const px=cx+d*136505*sc;
+   const py=cy-(labB.SD[i]>0?-1:1)*h*0.09-(r-labB.A0[i])*80*sc*0.0122;
+   lctx.fillStyle=labB.SD[i]>0?'rgba(255,235,200,.9)':'rgba(180,215,255,.9)';
+   lctx.fillRect(px,py,1.6,1.6)}
+  // Daphnis
+  lctx.fillStyle='#ffd9a0';lctx.beginPath();lctx.arc(cx,cy,6,0,7);lctx.fill();
+  lctx.font='12px ui-monospace';lctx.fillText('Daphnis →',cx+10,cy+4);
+ }}
+
+/* ══════════ 图表 ══════════ */
+const ctx=$('#cv').getContext('2d');
+function chartProfile(){ // 主视图：径向剖面
+ const w=880,h=350;ctx.clearRect(0,0,w,h);
+ ctx.font='21px ui-monospace';ctx.fillStyle='#a8b2c4';
+ ctx.fillText('环系径向剖面（结构=Cassini 实测；标注=本页真算）',26,32);
+ const x0=60,x1=850,y0=64,y1=210;
+ const X=r=>x0+(r-64000)/(146000-64000)*(x1-x0);
+ // 光学深度剖面
+ ctx.strokeStyle='rgba(168,178,196,.4)';ctx.beginPath();ctx.moveTo(x0,y1);ctx.lineTo(x1,y1);ctx.stroke();
+ for(const R of REG){
+  ctx.fillStyle=`rgba(${R.col[0]*255|0},${R.col[1]*255|0},${R.col[2]*255|0},.75)`;
+  const hh=Math.min(R.op,1)*(y1-y0);
+  ctx.fillRect(X(R.r0),y1-hh,X(R.r1)-X(R.r0),hh)}
+ // 两道 A 环内缝挖白
+ ctx.fillStyle='rgba(3,4,7,.95)';
+ ctx.fillRect(X(ENCKE[0]),y0,X(ENCKE[1])-X(ENCKE[0])+1,y1-y0);
+ ctx.fillRect(X(KEELER[0])-1,y0,2.5,y1-y0);
+ // 标注
+ const an=(r,txt,col,dy)=>{ctx.strokeStyle=col;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(X(r),y0-6);ctx.lineTo(X(r),y1+4);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=col;ctx.font='15px ui-monospace';ctx.fillText(txt,X(r)-10,y0-10-dy)};
+ an(ILR21,`Mimas 2:1 共振 ${ILR21.toFixed(0)} km(J2 真算)`,'#ff9e8a',18);
+ an(ROCHE,`洛希极限 ${ROCHE.toFixed(0)} km(真算)`,'#8fd4ff',0);
+ ctx.fillStyle='#8a90a0';ctx.font='14px ui-monospace';
+ ctx.fillText('D',X(70500),y1+20);ctx.fillText('C',X(83000),y1+20);ctx.fillText('B',X(104000),y1+20);
+ ctx.fillText('卡西尼缝',X(118600),y1+20);ctx.fillText('A',X(128500),y1+20);ctx.fillText('F',X(140000),y1+20);
+ ctx.fillText('Encke',X(133400)-20,y1+36);ctx.fillText('Keeler',X(136500)-16,y1+52);
+ // 速度曲线
+ const y2=330,y2t=250;
+ ctx.strokeStyle='#ffd9a0';ctx.lineWidth=2.5;ctx.beginPath();
+ for(let r=64000;r<=146000;r+=500){const v=Math.sqrt(GM/r);
+  const py=y2-(v-15.5)/(24.5-15.5)*(y2-y2t);
+  r===64000?ctx.moveTo(X(r),py):ctx.lineTo(X(r),py)}
+ ctx.stroke();
+ ctx.fillStyle='#ffd9a0';ctx.font='14px ui-monospace';
+ ctx.fillText('轨道速度 v=√(GM/r)：内缘 23.8 → F 环 16.4 km/s（内快外慢=剪切）',x0,348)}
+function chartLabA(){
+ const w=880,h=350;ctx.clearRect(0,0,w,h);
+ ctx.font='21px ui-monospace';ctx.fillStyle='#a8b2c4';
+ ctx.fillText(`偏心率剖面 e(a₀) —— 已演化 ${labA.orbits.toFixed(0)} 圈`,26,32);
+ const x0=70,x1=850,y0=60,y1=310;
+ const prof=labAProfile(22);
+ const pm=Math.max(0.0035,...prof);
+ ctx.strokeStyle='rgba(168,178,196,.5)';ctx.beginPath();ctx.moveTo(x0,y1);ctx.lineTo(x1,y1);ctx.moveTo(x0,y0);ctx.lineTo(x0,y1);ctx.stroke();
+ ctx.strokeStyle='#8fd4ff';ctx.lineWidth=2.5;ctx.beginPath();
+ prof.forEach((e,i)=>{const px=x0+(i+0.5)/22*(x1-x0),py=y1-e/pm*(y1-y0-10);
+  i?ctx.lineTo(px,py):ctx.moveTo(px,py)});
+ ctx.stroke();
+ const Xa=a=>x0+(a-115800)/2200*(x1-x0);
+ ctx.strokeStyle='#ff9e8a';ctx.setLineDash([6,5]);
+ ctx.beginPath();ctx.moveTo(Xa(116877),y0);ctx.lineTo(Xa(116877),y1);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#ff9e8a';ctx.font='15px ui-monospace';ctx.fillText('2:1 共振理论位置',Xa(116877)+6,y0+16);
+ ctx.fillStyle='#8a90a0';ctx.font='14px ui-monospace';
+ ctx.fillText('115800',x0-8,y1+20);ctx.fillText('118000 km',x1-60,y1+20);
+ ctx.fillText('共振带粒子被反复同相拉扯→e 疯涨→轨道交叉相撞→物质清空=缝',x0,344)}
+function chartLabB(){
+ const w=880,h=350;ctx.clearRect(0,0,w,h);
+ ctx.font='21px ui-monospace';ctx.fillStyle='#a8b2c4';
+ const lam=labBLambda(),th=3*Math.PI*41;
+ ctx.fillText(`缝缘波形 δr(Δθ) —— 涌现波长 ${lam?lam.toFixed(0):'…'} km vs 理论 3πΔa≈${th.toFixed(0)} km`,26,32);
+ const {prof,cnt,w0,w1}=labBWave(90);
+ const x0=70,x1=850,y0=70,y1=310,ym=(y0+y1)/2;
+ const pm=Math.max(0.3,...prof.map(Math.abs));
+ ctx.strokeStyle='rgba(168,178,196,.4)';ctx.beginPath();ctx.moveTo(x0,ym);ctx.lineTo(x1,ym);ctx.stroke();
+ ctx.strokeStyle='#ffd9a0';ctx.lineWidth=2.5;ctx.beginPath();let started=false;
+ prof.forEach((v,i)=>{if(cnt[i]<2){started=false;return}
+  const px=x0+i/90*(x1-x0),py=ym-v/pm*(y1-y0)/2*0.9;
+  started?ctx.lineTo(px,py):ctx.moveTo(px,py);started=true});
+ ctx.stroke();
+ ctx.fillStyle='#8a90a0';ctx.font='14px ui-monospace';
+ ctx.fillText('← 下游（远离 Daphnis）　　外侧缝缘带 Δa≈41 km，掠过注入本轮摆动，剪切把相位排成波',x0,340);
+ ctx.fillText('Daphnis →',x1-88,y1+20)}
+function drawChart(){if(mode==='ring')chartProfile();else if(labTab==='cassini')chartLabA();else chartLabB()}
+
+/* ══════════ UI ══════════ */
+const story=$('#story'),dict=$('#dict');
+function setStory(t,b,c){story.querySelector('.st').textContent=t;story.querySelector('.sb').textContent=b;story.querySelector('.sc').textContent=c}
+function showDict(key){const d=DICT[key];if(!d)return;
+ dict.querySelector('h3').textContent=key;
+ dict.querySelector('.rows').innerHTML=d[0].map(([k,v])=>`<div class="row"><span>${k}</span><b>${v}</b></div>`).join('');
+ dict.querySelector('.blurb').textContent=d[1];
+ dict.style.display='block'}
+const VIEWS={
+ over:{yaw:0.85,pitch:1.02,dist:6.4,st:['土星环 —— 引力刻出来的黑胶唱片','六十万颗粒子，每一颗都在页内真解开普勒方程沿自己的椭圆奔跑。缝隙不是画上去的分割线：卡西尼缝是 Mimas 的 2:1 共振日复一日"扫"出来的。点击环面任意位置查档案。','结构（半径/亮度）按 Cassini 实测；缝的成因在共振实验室里真算复现。土星影/环影为真几何投影。']},
+ graze:{yaw:2.2,pitch:0.10,dist:3.1,st:['贴环飞掠','从这个高度看，环是一张有纹理的唱片。内圈粒子 23 km/s，外圈 16 km/s——内快外慢的开普勒剪切让任何"图案"都活不过几圈（试试左下角"标记一条径向线"）。','粒子亮度含土星影：背日侧突然变暗的那道弧就是行星的影子。']},
+ edge:{yaw:1.9,pitch:0.003,dist:4.6,st:['侧视 —— 薄得不像话','环的直径 27 万 km，厚度只有几米到一公里：比例相当于一张 A4 纸铺满整个上海。本页粒子倾角用真实量级（~10⁻⁵ rad），所以侧视时环真的消失成一条线——没有作弊。','等比例事实：若把土星缩成一个篮球，环比保鲜膜还薄一千倍。']},
+ encke:{yaw:0.5,pitch:0.75,dist:2.9,st:['A 环与它的缝','A 环里两道刻痕：325 km 宽的 Encke 缝（Pan 住在正中央）和 42 km 的 Keeler 缝（Daphnis 的家）。小卫星不断把飘进缝里的粒子引力"劝退"，缝才得以维持。','Pan/Daphnis 光点大小放大约 8 倍以可见（真实直径 28/8 km）。']},
+ fring:{yaw:0.2,pitch:0.55,dist:3.5,st:['F 环 —— 被牧羊犬夹住的发辫','主环之外一根细得离谱的环，内外两颗牧羊卫星 Prometheus 与 Pandora 用引力把它夹在中间。Cassini 拍到 Prometheus 周期性扎进环里拖出扇形"偷料"痕。','F 环在洛希极限（本页算得 135276 km）之外一点点——聚不成球，散不了伙。']}};
+$$('#modes .mbtn').forEach(b=>b.onclick=()=>{
+ $$('#modes .mbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+ mode=b.dataset.m;dict.style.display='none';
+ $('#lab').style.display=mode==='lab'?'block':'none';
+ $('#labcv').style.display=mode==='lab'?'block':'none';
+ $('#views').style.display=mode==='ring'?'flex':'none';
+ $('#bar').style.display=mode==='ring'?'flex':'none';
+ $$('.moonlab').forEach(e=>e.style.display=mode==='ring'?'block':'none');
+ if(mode==='lab')setLab(labTab);else setView('over');
+ drawChart()});
+function setView(v){const V=VIEWS[v];if(!V)return;
+ yaw=V.yaw;pitch=V.pitch;dist=V.dist;autoRot=v==='over';
+ $$('#views .mbtn').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+ setStory(...V.st)}
+$$('#views .mbtn').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+$('#sSp').oninput=e=>{speed=spOf(+e.target.value);updSpeed()};
+function updSpeed(){const d=speed*3600;
+ $('#tspeed').textContent=`时间 ×${speed<10?speed.toFixed(1):Math.round(speed)}（1s=${speed<1200?(speed/60).toFixed(1)+' 分':(speed/3600).toFixed(1)+' 时'}）`}
+$('#mark').onclick=()=>{markOn=1;markT0=ringT;
+ setStory('开普勒剪切 —— 图案的死刑','刚才那条青色径向线上的每颗粒子此刻处在同一方位角，但内圈角速度快、外圈慢（Ω∝r^-3/2）。看它几圈内被拉成横跨几万公里的螺旋——这就是为什么环上不可能有持久的"辐条"图案（真实的辐条是静电悬浮尘埃，另一回事）。','标记只改颜色，不改动力学；再点一次重新标记。')};
+/* 实验室 */
+function setLab(tab){labTab=tab;
+ $$('#lab .tabs .mbtn').forEach(x=>x.classList.toggle('on',x.dataset.l===tab));
+ const L=$('#lbody');
+ if(tab==='cassini'){
+  L.innerHTML=`<div class="ctl">Mimas 质量 ×300（把数万年压缩成一分钟，共振位置不变）<br>
+   <button id="laGo">▶ 演化</button><button id="laPause">⏸</button><button id="laReset">↺ 重来</button>
+   <button id="laMimas">切换：Mimas 开/关（对照）</button><div class="stat" id="laStat"></div></div>`;
+  $('#laGo').onclick=()=>labRun=1;$('#laPause').onclick=()=>labRun=0;
+  $('#laReset').onclick=()=>{labA=makeLabA();labA.on=labAon;drawChart()};
+  $('#laMimas').onclick=()=>{labAon=!labAon;labA=makeLabA();labA.on=labAon;drawChart()};
+  setStory('实验一 · 卡西尼缝的诞生','2200 颗试验粒子撒在共振带附近。Mimas 每绕一圈，共振处的粒子恰好绕两圈——每次都在同一位置被拉一把，像推秋千一样越推越高。看偏心率剖面在理论共振位置长出尖峰。','真算：RK4 三体积分（proto 对拍：峰位涌现 116925 vs 理论 116877 km）。Mimas 增重 ×300 压缩时标——共振位置不动，缝宽被夸大；真实清空还需碰撞参与。')}
+ else{
+  L.innerHTML=`<div class="ctl">Daphnis（直径 8 km）在 Keeler 缝里犁出波浪<br>
+   <button id="lbGo">▶ 运行</button><button id="lbPause">⏸</button><button id="lbReset">↺ 重来</button>
+   <div class="stat" id="lbStat"></div></div>`;
+  $('#lbGo').onclick=()=>labRun=1;$('#lbPause').onclick=()=>labRun=0;
+  $('#lbReset').onclick=()=>{labB=makeLabB();drawChart()};
+  setStory('实验二 · Daphnis 的水波','缝缘粒子每次被 Daphnis 掠过，都获得一点本轮摆动；因为剪切，下游粒子的摆动相位依次错开——排成一列波。理论波长 λ=3π·Δa，看它从积分里自己长出来。','真算：RK4（proto 对拍：涌现 376 km vs 理论 377 km）。视图纵向放大 ×80（真实波幅 ~0.5 km，Cassini 实测 Keeler 缘波 0.5–1.5 km）。')}
+ drawChart()}
+let labRun=1,labAon=true;
+$('#lab').addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(b)setLab(b.dataset.l)});
+/* 拾取：点环平面查区/卫星 */
+cv.addEventListener('click',e=>{if(mode!=='ring')return;
+ const c=camBasis(),d=saveMode?dpr*0.62:dpr;
+ const px=(e.clientX*d*2-W)/H,py=-(e.clientY*d*2-H)/H;
+ const rd=[c.f[0]+(px*c.r[0]+py*c.u[0])*.62,c.f[1]+(px*c.r[1]+py*c.u[1])*.62,c.f[2]+(px*c.r[2]+py*c.u[2])*.62];
+ const L=Math.hypot(...rd);rd[0]/=L;rd[1]/=L;rd[2]/=L;
+ // 先卫星
+ let best=null,bd=1e9;
+ for(const m of MOONS){const p=moonPos(m,ringT);
+  const oc=[p[0]-c.pos[0],p[1]-c.pos[1],p[2]-c.pos[2]];
+  const t=oc[0]*rd[0]+oc[1]*rd[1]+oc[2]*rd[2];if(t<0)continue;
+  const d2=oc[0]**2+oc[1]**2+oc[2]**2-t*t;
+  if(d2<0.0035&&t<bd){bd=t;best=m.n}}
+ if(best){showDict(best);return}
+ // 环平面交点
+ if(Math.abs(rd[2])>1e-6){const t=-c.pos[2]/rd[2];
+  if(t>0){const hx=c.pos[0]+rd[0]*t,hy=c.pos[1]+rd[1]*t;
+   const rk=Math.hypot(hx,hy)*RS;
+   if(rk>66000&&rk<147000){
+    let key=null;
+    if(rk<74510)key='D 环';else if(rk<92000&&rk>74658)key='C 环';
+    else if(rk<117580)key='B 环';else if(rk<122170)key='卡西尼缝';
+    else if(rk>=ENCKE[0]&&rk<=ENCKE[1])key='Encke 缝';
+    else if(rk>=KEELER[0]-150&&rk<=KEELER[1]+150)key='Keeler 缝';
+    else if(rk<136780)key='A 环';
+    else if(rk>139900&&rk<140600)key='F 环';
+    else if(Math.abs(rk-ROCHE)<1200)key='洛希极限';
+    else key='环的身世';
+    showDict(key)}}}});
+/* 拖拽/滚轮 */
+let drag=null;
+cv.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];autoRot=false});
+addEventListener('pointermove',e=>{if(!drag)return;
+ yaw+=(e.clientX-drag[0])*0.005;pitch=clamp(pitch+(e.clientY-drag[1])*0.005,0.002,1.45);drag=[e.clientX,e.clientY]});
+addEventListener('pointerup',()=>drag=null);
+cv.addEventListener('wheel',e=>{e.preventDefault();dist=clamp(dist*Math.exp(e.deltaY*0.001),1.5,14)},{passive:false});
+/* 卫星标签 */
+const labels=MOONS.map(m=>{const s=document.createElement('span');s.className='moonlab';
+ s.textContent=m.n.split(' ')[0];document.body.appendChild(s);return s});
+function updLabels(){const c=camBasis(),d=saveMode?dpr*0.62:dpr;
+ MOONS.forEach((m,i)=>{if(mode!=='ring'){labels[i].style.display='none';return}
+  const p=moonPos(m,ringT);
+  const rel=[p[0]-c.pos[0],p[1]-c.pos[1],p[2]-c.pos[2]];
+  const z=rel[0]*c.f[0]+rel[1]*c.f[1]+rel[2]*c.f[2];
+  if(z<0.05){labels[i].style.display='none';return}
+  const rr=[rel[0]-c.f[0]*z,rel[1]-c.f[1]*z,rel[2]-c.f[2]*z];
+  const sx=rr[0]*c.r[0]+rr[1]*c.r[1]+rr[2]*c.r[2],sy=rr[0]*c.u[0]+rr[1]*c.u[1]+rr[2]*c.u[2];
+  const nx=sx/(.62*z)*(H/W),ny=sy/(.62*z);
+  if(Math.abs(nx)>1||Math.abs(ny)>1){labels[i].style.display='none';return}
+  labels[i].style.display='block';
+  labels[i].style.left=((nx+1)/2*innerWidth)+'px';
+  labels[i].style.top=((1-ny)/2*innerHeight)+'px'})}
+/* 近似声明 */
+$('#notetxt').innerHTML=['<b style="color:#9fe6a0">真算</b>：每颗粒子每帧在 GPU 里解开普勒方程（3 次牛顿迭代）沿真实椭圆运动，剪切/周期全部涌现；土星影与球上环影为真几何投影；共振位置（含 J2 扁率修正 117550 km）、洛希极限 135276 km 页内数值解；实验室两个实验为 RK4 三体真积分（Node 端 proto 对拍全绿：共振峰位 116925/理论 116877，波长 376/理论 377 km）。',
+'<b style="color:#ff9e7a">示意/夸大</b>：主环的半径结构与亮度按 Cassini 实测表初始化（缝为何在那里→实验室真算解释）；每颗显示粒子代表~10⁹ 颗真实冰块；B 环径向细纹用噪声示意（真实细结构=密度波/黏性过稳定性）；卫星光点放大~8 倍、Mimas 实验增重 ×300（时标压缩,缝宽被夸大）；Daphnis 波视图纵向 ×80；粒子间碰撞与自引力尾流未模拟；环倾角一阶近似。',
+'<b style="color:#8fd4ff">数据</b>：环区半径/卫星轨道=PDG…不,=NASA/JPL & Cassini 出版值；环总质量 1.54×10¹⁹ kg（Cassini 终章重力测量）；环年龄 1–40 亿年为未决争议，页内如实标注。'].map(s=>`<div style="margin:4px 0">${s}</div>`).join('');
+$('#foot').onclick=()=>{const n=$('#note');n.style.display=n.style.display==='block'?'none':'block';
+ story.style.display=n.style.display==='block'?'none':'block'};
+
+/* ══════════ 主循环 ══════════ */
+let last=0,fps=[],hidden=false;
+document.addEventListener('visibilitychange',()=>hidden=document.hidden);
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){saveMode=true;NPART=250000;resize()}
+function loop(ts){requestAnimationFrame(loop);
+ if(hidden)return;
+ const dt=Math.min((ts-last)/1000,0.1);
+ if(ts-last<1000/46)return;
+ fps.push(1/(dt||0.016));if(fps.length>60)fps.shift();
+ last=ts;tGlob+=dt;
+ if(mode==='ring'){
+  ringT+=dt*speed;
+  if(autoRot)yaw+=dt*0.02;
+  render(dt);updLabels();
+ } else {
+  if(labRun){
+   if(labTab==='cassini'){
+    const stepsPerFrame=26;
+    stepBody(labA,stepsPerFrame,aMimas,labA.nM,labA.on?labA.mu2:0);
+    labA.orbits=labA.t/labA.Tp;
+    $('#laStat')&&($('#laStat').textContent=`已演化 ${labA.orbits.toFixed(0)} 圈 · Mimas ${labA.on?'开':'关(对照)'} · 共振带峰 e=${(Math.max(...labAProfile(22))*1e4).toFixed(0)}×10⁻⁴`);
+   } else {
+    stepBody(labB,60,labB.aD,labB.nD,labB.mu2);
+    if(labB.t>7*labB.TD)labB=makeLabB();
+    const lam=labBLambda();
+    $('#lbStat')&&($('#lbStat').textContent=`t=${(labB.t/labB.TD).toFixed(1)} Daphnis 周期 · 涌现波长 ${lam?lam.toFixed(0)+' km':'积累中…'} · 理论 3πΔa=386 km`);
+   }
+   drawChart()}
+  render(dt);drawLab();
+ }
+}
+requestAnimationFrame(loop);
+setView('over');updSpeed();drawChart();
+
+/* ══════════ 验证钩子 ══════════ */
+window.__SR__={
+ solveE,Torb,ILR21,ROCHE,GM,REG,DICT,MOONS,
+ nOf,kOf,
+ state(){return {mode,labTab,S:0,speed,dist,pitch,yaw,
+  labAorbits:labA.orbits,labBt:labB.t/labB.TD,
+  fps:fps.length?fps.reduce((a,b)=>a+b)/fps.length:0}},
+ setMode(m){$$('#modes .mbtn').find(b=>b.dataset.m===m).click()},
+ setView, setLabTab(t){setLab(t)},
+ setSpeed(v){speed=v;updSpeed()},
+ setTime(t){ringT=t},
+ setYawPitch(y,p,d){yaw=y;pitch=p;if(d)dist=d;autoRot=false},
+ stopRot(){autoRot=false},
+ mark(){$('#mark').click()},
+ labApause(){labRun=0},labArun(n){ // 同步推进 n 圈
+  const steps=Math.round(n*160);stepBody(labA,steps,aMimas,labA.nM,labA.on?labA.mu2:0);
+  labA.orbits=labA.t/labA.Tp;drawChart();return labAProfile(22)},
+ labAprofile(){return labAProfile(22)},
+ labAreset(on){labA=makeLabA();labAon=on===undefined?true:!!on;labA.on=labAon},
+ labBrun(nT){const steps=Math.round(nT*2600);stepBody(labB,steps,labB.aD,labB.nD,labB.mu2);
+  drawChart();return labBLambda()},
+ labBreset(){labB=makeLabB()},
+ labBlambda:labBLambda,
+ pickAt(rKm){ // 环区判定（与点击逻辑同源）
+  const rk=rKm;
+  if(rk<74510)return 'D 环';if(rk<92000&&rk>74658)return 'C 环';
+  if(rk<117580)return 'B 环';if(rk<122170)return '卡西尼缝';
+  if(rk>=ENCKE[0]&&rk<=ENCKE[1])return 'Encke 缝';
+  if(rk>=KEELER[0]-150&&rk<=KEELER[1]+150)return 'Keeler 缝';
+  if(rk<136780)return 'A 环';if(rk>139900&&rk<140600)return 'F 环';
+  return '?'},
+ sample(){const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let sum=0,nb=0,mx=0,cf=0;const cx=W/2,cy=H/2,rad=Math.min(W,H)*0.25;
+  for(let i=0;i<W*H;i++){const l=(px[i*4]+px[i*4+1]+px[i*4+2])/3;
+   sum+=l;if(l>10)nb++;if(l>mx)mx=l;
+   const x=i%W,y=(i/W)|0;
+   if((x-cx)**2+(y-cy)**2<rad*rad&&l>10)cf++}
+  return {mean:sum/(W*H),nonblack:nb/(W*H),max:mx,centerFrac:cf/(Math.PI*rad*rad)}},
+ sampleRadial(nb){const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const cx=W/2,cy=H/2,rmax=Math.min(W,H)*0.48,bins=new Array(nb).fill(0),cnt=new Array(nb).fill(0);
+  for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
+   const r=Math.hypot(x-cx,y-cy);if(r>=rmax)continue;
+   const i=(y*W+x)*4,l=(px[i]+px[i+1]+px[i+2])/3,b=Math.min(nb-1,r/rmax*nb|0);
+   bins[b]+=l;cnt[b]++}
+  return bins.map((v,i)=>v/Math.max(1,cnt[i]))},
+ sampleBands(n){const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const bands=new Array(n).fill(0),cnt=new Array(n).fill(0);
+  for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
+   const i=(y*W+x)*4,l=(px[i]+px[i+1]+px[i+2])/3,b=Math.min(n-1,(H-1-y)/H*n|0);
+   bands[b]+=l;cnt[b]++}
+  return bands.map((v,i)=>v/Math.max(1,cnt[i]))},
+ sampleHalves(){const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let l=0,r=0;
+  for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
+   const i=(y*W+x)*4,v=(px[i]+px[i+1]+px[i+2])/3;
+   (x<W/2?l+=v:r+=v)}
+  return {left:l,right:r}},
+ radialLine(n){ // 沿屏幕中心向右水平线采样：逐像素解环面物理半径（km）+亮度（消透视混叠）
+  const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const c=camBasis(),out=[];
+  for(let k=0;k<n;k++){
+   const x=Math.round(W/2+ (k+0.5)/n*(W/2-6)), y=Math.round(H/2);
+   const ndx=(2*x-W)/H, ndy=0;
+   const rd=[c.f[0]+(ndx*c.r[0]+ndy*c.u[0])*.62,c.f[1]+(ndx*c.r[1]+ndy*c.u[1])*.62,c.f[2]+(ndx*c.r[2]+ndy*c.u[2])*.62];
+   if(Math.abs(rd[2])<1e-8){continue}
+   const t=-c.pos[2]/rd[2];if(t<=0)continue;
+   const hx=c.pos[0]+rd[0]*t,hy=c.pos[1]+rd[1]*t;
+   const km=Math.hypot(hx,hy)*RS;
+   let lum=0;for(let dy=-3;dy<=3;dy++){const i=((y+dy)*W+x)*4;lum+=(px[i]+px[i+1]+px[i+2])/3}
+   out.push([km,lum/7])}
+  return out},
+ sampleBandsSide(n){ // 只统计左右外侧 1/3（避开中央行星）的水平条带
+  const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const bands=new Array(n).fill(0),cnt=new Array(n).fill(0);
+  for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
+   if(x>W/3&&x<W*2/3)continue;
+   const i=(y*W+x)*4,l=(px[i]+px[i+1]+px[i+2])/3,b=Math.min(n-1,(H-1-y)/H*n|0);
+   bands[b]+=l;cnt[b]++}
+  return bands.map((v,i)=>v/Math.max(1,cnt[i]))},
+ setSave(v){saveMode=v;resize()},setExpo(v){EX=v},setN(n){NPART=n}};
+</script>

@@ -1,0 +1,562 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>施瓦西黑洞 · GR 实时渲染</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --void:#060709;
+    --panel:rgba(13,16,22,.80);
+    --ink:#E8E4DA;
+    --dim:#9A9686;
+    --faint:#6B685C;
+    --accent:#E8A33D;
+    --line:rgba(232,228,218,.14);
+    --line-soft:rgba(232,228,218,.07);
+    --serif:"Songti SC","STSong",Georgia,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  html,body{height:100%;margin:0;background:var(--void);}
+  #stage{position:fixed;inset:0;overflow:hidden;background:var(--void);
+    font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+  #cv.grabbing{cursor:grabbing;}
+
+  .fade{opacity:0;transition:opacity 1.2s ease .15s;}
+  #stage.ready .fade{opacity:1;}
+  .notrans .fade{transition:none;}
+  @media (prefers-reduced-motion: reduce){ .fade{transition:none;} }
+
+  /* ── observation plate (top-left) ─────────────────── */
+  .plate{position:absolute;top:22px;left:24px;pointer-events:none;user-select:none;}
+  .plate .obj{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--faint);margin-bottom:8px;}
+  .plate h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.15;margin:0 0 7px;
+    color:var(--ink);text-wrap:balance;}
+  .plate .sub{font-size:12px;color:var(--dim);letter-spacing:.02em;}
+  .plate .sub .m{font-family:var(--mono);font-size:11px;color:var(--faint);}
+
+  /* ── live readout (bottom-left) ───────────────────── */
+  .readout{position:absolute;left:24px;bottom:18px;font-family:var(--mono);font-size:11px;
+    color:var(--faint);letter-spacing:.04em;pointer-events:none;user-select:none;
+    font-variant-numeric:tabular-nums;line-height:1.9;}
+
+  /* ── control panel (bottom-right) ─────────────────── */
+  .panel{position:absolute;right:20px;bottom:18px;width:252px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    backdrop-filter:blur(12px) saturate(1.15);-webkit-backdrop-filter:blur(12px) saturate(1.15);}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;cursor:pointer;user-select:none;}
+  .panel-head .t{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);}
+  .panel-head .caret{color:var(--faint);font-size:10px;transition:transform .25s;}
+  .panel.closed .caret{transform:rotate(-90deg);}
+  .panel-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:13px;
+    border-top:1px solid var(--line-soft);}
+  .panel.closed .panel-body{display:none;}
+
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:11px;color:var(--dim);margin-bottom:6px;letter-spacing:.03em;}
+  .ctl label .v{font-family:var(--mono);font-size:10.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  .seg button{flex:1;background:none;border:none;color:var(--dim);font-family:var(--sans);
+    font-size:11px;padding:5px 0;cursor:pointer;border-right:1px solid var(--line-soft);}
+  .seg button:last-child{border-right:none;}
+  .seg button.on{background:rgba(232,163,61,.13);color:var(--accent);}
+  .seg button:focus-visible{outline:1px solid var(--accent);outline-offset:-1px;}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:none;margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:1px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;
+    border-radius:50%;background:var(--accent);margin-top:-4.5px;border:none;}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(232,163,61,.3);}
+
+  .switchrow{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--dim);}
+  .sw{position:relative;width:30px;height:16px;border-radius:9px;border:1px solid var(--line);
+    background:none;cursor:pointer;padding:0;}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;
+    background:var(--faint);transition:transform .18s,background .18s;}
+  .sw.on{border-color:rgba(232,163,61,.5);}
+  .sw.on::after{transform:translateX(14px);background:var(--accent);}
+  .sw:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+
+  .ghost{background:none;border:1px solid var(--line);border-radius:6px;color:var(--dim);
+    font-family:var(--sans);font-size:11px;padding:6px 0;cursor:pointer;letter-spacing:.05em;}
+  .ghost:hover{color:var(--ink);border-color:var(--dim);}
+  .ghost:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+
+  /* ── info button + panel (top-right) ──────────────── */
+  #infoBtn{position:absolute;top:22px;right:20px;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;color:var(--dim);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;padding:8px 13px;cursor:pointer;
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+  #infoBtn:hover{color:var(--accent);border-color:rgba(232,163,61,.4);}
+  #infoBtn:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+
+  .info{position:absolute;top:0;right:0;bottom:0;width:min(400px,92vw);
+    background:rgba(9,11,15,.92);border-left:1px solid var(--line);
+    backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);
+    transform:translateX(102%);transition:transform .32s cubic-bezier(.3,.9,.3,1);
+    overflow-y:auto;overscroll-behavior:contain;}
+  .info.open{transform:translateX(0);}
+  @media (prefers-reduced-motion: reduce){ .info{transition:none;} }
+  .info-inner{padding:26px 28px 40px;}
+  .info .obj{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--faint);}
+  .info h2{font-family:var(--serif);font-weight:400;font-size:22px;margin:8px 0 0;}
+  .info h3{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--accent);
+    margin:30px 0 10px;font-weight:400;}
+  .info p{font-size:13px;line-height:1.85;color:var(--dim);margin:0 0 10px;max-width:62ch;}
+  .info p strong{color:var(--ink);font-weight:500;}
+  .info ul{margin:0;padding-left:18px;font-size:13px;line-height:1.85;color:var(--dim);}
+  .info li{margin-bottom:7px;}
+  .info li strong{color:var(--ink);font-weight:500;}
+  .info .eq{font-family:var(--mono);font-size:11.5px;line-height:2.1;color:var(--dim);
+    border:1px solid var(--line-soft);border-radius:8px;padding:12px 14px;overflow-x:auto;
+    white-space:pre;margin:0 0 10px;}
+  .info .eq b{color:var(--ink);font-weight:400;}
+  #infoClose{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--faint);
+    font-size:20px;cursor:pointer;line-height:1;padding:6px;}
+  #infoClose:hover{color:var(--ink);}
+  #infoClose:focus-visible{outline:1px solid var(--accent);}
+
+  /* ── overlays ─────────────────────────────────────── */
+  #err{position:absolute;inset:auto 12px 12px 12px;max-height:45%;overflow:auto;z-index:50;
+    background:rgba(40,10,10,.92);border:1px solid rgba(255,120,100,.4);border-radius:8px;
+    color:#ffb0a0;font-family:var(--mono);font-size:11px;padding:12px;white-space:pre-wrap;}
+  #nogl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    text-align:center;color:var(--dim);font-size:14px;line-height:2;padding:30px;}
+  [hidden]{display:none !important;}
+
+  @media (max-width:720px){
+    .plate h1{font-size:22px;}
+    .plate{top:16px;left:16px;}
+    .panel{right:12px;bottom:12px;width:228px;}
+    .readout{left:16px;bottom:12px;font-size:10px;}
+    #infoBtn{top:16px;right:12px;}
+  }
+</style>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+
+  <header class="plate fade">
+    <div class="obj">OBJ. SCHWARZSCHILD&nbsp;BH&nbsp;&nbsp;·&nbsp;&nbsp;NULL GEODESIC TRACER</div>
+    <h1>施瓦西黑洞</h1>
+    <div class="sub">逐像素测地线积分 · 广义相对论实时渲染&nbsp;&nbsp;<span class="m">r<sub>s</sub> = 2GM/c²</span></div>
+  </header>
+
+  <div class="readout fade" id="readout"></div>
+
+  <button id="infoBtn" class="fade" aria-label="打开物理说明">物理说明</button>
+
+  <aside class="panel fade" id="panel">
+    <div class="panel-head" id="panelHead" role="button" tabindex="0" aria-label="折叠控制面板">
+      <span class="t">INSTRUMENT</span><span class="caret">▾</span>
+    </div>
+    <div class="panel-body">
+      <div class="ctl">
+        <label>画质 <span class="v" id="qv">中</span></label>
+        <div class="seg" id="qseg">
+          <button data-q="low">低</button><button data-q="mid" class="on">中</button><button data-q="high">高</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>多普勒集束 g⁴ <span class="v" id="dopv">1.00 · 物理</span></label>
+        <input type="range" id="dop" min="0" max="1" step="0.01" value="1" aria-label="多普勒集束强度">
+      </div>
+      <div class="ctl">
+        <label>曝光 <span class="v" id="expv">1.0</span></label>
+        <input type="range" id="expo" min="0.3" max="3" step="0.05" value="1.0" aria-label="曝光">
+      </div>
+      <div class="switchrow">自动环绕
+        <button class="sw" id="orbitSw" role="switch" aria-checked="true" aria-label="自动环绕"></button>
+      </div>
+      <div class="switchrow">吸积盘流动
+        <button class="sw on" id="flowSw" role="switch" aria-checked="true" aria-label="吸积盘流动"></button>
+      </div>
+      <button class="ghost" id="resetBtn">重置视角</button>
+    </div>
+  </aside>
+
+  <aside class="info" id="info" aria-label="物理说明">
+    <div class="info-inner">
+      <button id="infoClose" aria-label="关闭">×</button>
+      <div class="obj">OBSERVATION NOTES</div>
+      <h2>你看到的都是被掰弯的光</h2>
+
+      <h3>三十秒版</h3>
+      <p>黑洞本身不发光——画面里的一切，都是它把光<strong>掰弯</strong>的结果。中央黑影不是视界本身，而是被引力透镜放大约 2.6 倍的「捕获截面」。吸积盘明明是个平盘，你却能同时看到它的上表面、跨过黑洞顶部的<strong>后半段</strong>、甚至盘的<strong>底面</strong>——因为那些方向的光被弯到了你的眼睛里。一侧亮一侧暗：物质以约一半光速冲向你时，亮度被相对论「车灯效应」放大了上百倍。</p>
+
+      <h3>逐一辨认</h3>
+      <ul>
+        <li><strong>中央黑影</strong> — 光子捕获截面，直径 √27·r<sub>s</sub> ≈ 5.2 r<sub>s</sub>，比视界（2 r<sub>s</sub>）大得多；</li>
+        <li><strong>紧贴黑影的细亮环</strong> — 光子环：在 1.5 r<sub>s</sub> 光子球附近绕行半圈到数圈才逃逸的光；</li>
+        <li><strong>盘上下的「光拱」</strong> — 吸积盘远端的一次像与二次像，光从黑洞上方/下方绕过来；</li>
+        <li><strong>左右亮度不对称</strong> — 多普勒集束：I ∝ g⁴，逼近侧增亮、退行侧变暗变红；</li>
+        <li><strong>盘内缘的暗隙</strong> — ISCO（3 r<sub>s</sub>）以内无稳定圆轨道，物质坠入，盘在此截断。</li>
+      </ul>
+
+      <h3>物理实现</h3>
+      <div class="eq"><b>光子轨道（精确）</b>
+d²u/dφ² + u = (3/2) rₛ u²   , u = 1/r
+等价矢量形式  a = −(3/2) h² rₛ r̂ / r⁴
+每像素 RK4 积分，自适应步长
+
+<b>特征半径</b>
+r_ph   = 1.5 rₛ        光子球
+b_crit = (3√3/2) rₛ    ≈ 2.598 rₛ → 阴影
+r_ISCO = 3 rₛ          v_orbit = 0.5 c
+
+<b>薄盘（Novikov–Thorne 型）</b>
+T(r) ∝ r^(−3/4) · (1 − √(r_in/r))^(1/4)
+
+<b>红移 × 多普勒（圆轨道精确合成）</b>
+g = √(1−rₛ/r) · √(1−β²) / (1 − β·cosθ)
+I_obs = g⁴ · I_em ,  T_obs = g · T_em</div>
+
+      <h3>诚实声明 · 简化之处</h3>
+      <ul>
+        <li>这是<strong>无自旋 Schwarzschild</strong> 解。真实的 M87* 或《星际穿越》的 Gargantua 是高自旋 Kerr 黑洞——阴影会不对称，盘可深入 ISCO 以内；</li>
+        <li>吸积盘是几何薄盘 + 程序化湍流纹理的玩具模型，未做辐射转移与磁流体；</li>
+        <li>相机是远处静态观者，未模拟观者自身的引力时间延缓；</li>
+        <li>「多普勒集束」滑到 0 即《星际穿越》式的艺术弱化——诺兰团队当年就是嫌真实的 g⁴ 太暗才关掉的。</li>
+      </ul>
+    </div>
+  </aside>
+
+  <pre id="err" hidden></pre>
+  <div id="nogl" hidden>此设备/浏览器未启用 WebGL2，无法进行实时测地线渲染。<br>请换用桌面版 Chrome / Safari / Edge 再试。</div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const $=function(id){return document.getElementById(id);};
+const canvas=$("cv"), stage=$("stage");
+const errBox=$("err");
+function fail(msg){errBox.hidden=false;errBox.textContent+=msg+"\n";}
+window.addEventListener("error",function(e){fail("JS: "+e.message+" @"+e.lineno);});
+
+const gl=canvas.getContext("webgl2",{antialias:false,alpha:false,depth:false,stencil:false,powerPreference:"high-performance"});
+if(!gl){$("nogl").hidden=false;return;}
+
+/* ───────────────────────── shaders ───────────────────────── */
+const VS=`#version 300 es
+void main(){
+  vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));
+  gl_Position=vec4(p*2.0-1.0,0.0,1.0);
+}`;
+
+const FS=`#version 300 es
+precision highp float;
+out vec4 O;
+uniform vec2  uRes;
+uniform vec3  uCamPos,uRight,uUp,uFwd;
+uniform float uTimeDisk,uDoppler,uExposure,uStepK;
+uniform int   uMaxSteps;
+
+const float PI=3.141592653589793, TAU=6.283185307179586;
+const float R_IN=3.0, R_OUT=13.0;   /* rs = 1 */
+const int   HARD=760;
+
+/* hashes & noise */
+float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
+float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453123);}
+float n2(vec2 p){
+  vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+  return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),
+             mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);
+}
+float fbm2(vec2 p){float s=0.0,a=0.5;
+  for(int i=0;i<4;i++){s+=a*n2(p);p=p*2.03+17.31;a*=0.5;}return s;}
+float n3(vec3 p){
+  vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+  float a=mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y);
+  float b=mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y);
+  return mix(a,b,f.z);
+}
+float fbm3(vec3 p){float s=0.0,a=0.5;
+  for(int i=0;i<3;i++){s+=a*n3(p);p=p*2.11+31.7;a*=0.5;}return s;}
+
+/* blackbody (Tanner Helland fit, T in K, normalized chroma) */
+vec3 blackbody(float T){
+  float t=clamp(T,1200.0,14000.0)*0.01;
+  float r=(t<=66.0)?1.0:clamp(1.2929*pow(t-60.0,-0.1332),0.0,1.0);
+  float g=(t<=66.0)?clamp(0.3901*log(t)-0.6318,0.0,1.0):clamp(1.1299*pow(t-60.0,-0.0755),0.0,1.0);
+  float b=(t>=66.0)?1.0:((t<=19.0)?0.0:clamp(0.5432*log(t-10.0)-1.1963,0.0,1.0));
+  return vec3(r,g,b);
+}
+
+/* background: lensed starfield + faint dust band */
+vec3 starLayer(vec3 d,float S,float k,float amp,float dens){
+  vec3 g=floor(d*S);
+  float h=h31(g);
+  if(h>dens)return vec3(0.0);
+  vec3 j=vec3(h31(g+11.1),h31(g+27.3),h31(g+51.7));
+  vec3 sd=normalize(g+0.5+(j-0.5)*0.75);
+  float a=dot(d,sd)-1.0;
+  float T=mix(3400.0,11500.0,j.x);
+  return blackbody(T)*amp*(0.25+0.75*j.y*j.y)*exp(a*k);
+}
+vec3 background(vec3 d){
+  vec3 c=vec3(0.0);
+  c+=starLayer(d,41.0,5.5e5,0.85,0.04);
+  c+=starLayer(d,113.0,2.6e6,0.5,0.07);
+  vec3 nb=normalize(vec3(0.19,1.0,0.11));
+  float band=exp(-pow(dot(d,nb)*3.4,2.0));
+  float neb=fbm3(d*2.3+5.0);
+  c+=band*(0.040*vec3(0.70,0.73,0.86)*neb*neb
+          +0.020*vec3(0.82,0.62,0.45)*pow(fbm3(d*5.1-2.0),3.0));
+  return c;
+}
+
+/* accretion disk sample at equatorial crossing */
+void shadeDisk(vec3 pc,vec3 vdir,inout vec3 col,inout float trans){
+  float rc=length(pc.xz);
+  if(rc<R_IN||rc>R_OUT)return;
+  float phi=atan(pc.z,pc.x);
+  float omg=0.70710678*pow(rc,-1.5);            /* Ω=√(M/r³), M=rs/2 */
+  float beta=min(omg*rc*inversesqrt(max(1.0-1.0/rc,1e-4)),0.985);
+  vec3 that=vec3(-pc.z,0.0,pc.x)/rc;            /* +φ̂ */
+  vec3 nhat=-vdir;                               /* photon dir toward camera */
+  float dopp=sqrt(1.0-beta*beta)/(1.0-beta*dot(that,nhat));
+  float g=sqrt(max(1.0-1.0/rc,0.0))*dopp;       /* exact for circular orbits */
+  float gE=mix(1.0,g,uDoppler);
+
+  /* Novikov–Thorne-type thin-disk temperature profile, peak≈1 */
+  float x=rc/R_IN;
+  float prof=pow(x,-0.75)*pow(max(1.0-inversesqrt(x),0.0),0.25)/0.488;
+
+  /* differentially-rotating turbulence, periodic in φ */
+  float pr=phi-omg*uTimeDisk;
+  float p01=fract(pr/TAU)*TAU;
+  float L=log(rc)*6.5;
+  float nA=fbm2(vec2(L,p01*1.55));
+  float nB=fbm2(vec2(L,(p01-TAU)*1.55));
+  float n=mix(nA,nB,p01/TAU);
+  n=0.55+0.8*n;
+
+  vec3 bb=blackbody(5150.0*max(prof,0.02)*gE);
+  bb*=vec3(1.04,0.97,0.87);
+  bb=mix(vec3(dot(bb,vec3(0.299,0.587,0.114))),bb,1.3);
+  float lum=pow(prof,2.4)*n*pow(gE,4.0)*1.05;
+  float aEdge=smoothstep(R_OUT,R_OUT-2.6,rc)*smoothstep(R_IN,R_IN+0.4,rc);
+  float alpha=clamp(0.86*aEdge*(0.4+0.6*clamp(n-0.3,0.0,1.0)),0.0,1.0);
+
+  col+=trans*bb*lum*aEdge;
+  trans*=(1.0-alpha);
+}
+
+vec3 acc(vec3 p,float h2){
+  float r2=dot(p,p);
+  return -1.5*h2*p/(r2*r2*sqrt(r2));
+}
+
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.0-uRes)/uRes.y;
+  const float tanH=0.62;
+  vec3 dir=normalize(uFwd+tanH*(uv.x*uRight+uv.y*uUp));
+
+  vec3 p=uCamPos, v=dir;
+  vec3 hv=cross(p,v); float h2=dot(hv,hv);
+  float rEnd=max(length(uCamPos)*1.7,30.0);
+
+  vec3 col=vec3(0.0);
+  float trans=1.0;
+  bool captured=false;
+  bool escaped=false;
+  vec3 vOut=v;
+
+  for(int i=0;i<HARD;i++){
+    if(i>=uMaxSteps)break;
+    float r=length(p);
+    if(r<1.02){captured=true;break;}
+    if(r>rEnd&&dot(p,v)>0.0){escaped=true;break;}
+    float dt=uStepK*clamp(r*0.045,0.015,0.35);
+
+    vec3 k1p=v,           k1v=acc(p,h2);
+    vec3 p2=p+0.5*dt*k1p, v2=v+0.5*dt*k1v;
+    vec3 k2p=v2,          k2v=acc(p2,h2);
+    vec3 p3=p+0.5*dt*k2p, v3=v+0.5*dt*k2v;
+    vec3 k3p=v3,          k3v=acc(p3,h2);
+    vec3 p4=p+dt*k3p,     v4=v+dt*k3v;
+    vec3 k4p=v4,          k4v=acc(p4,h2);
+    vec3 np=p+dt*(k1p+2.0*k2p+2.0*k3p+k4p)/6.0;
+    vec3 nv=normalize(v+dt*(k1v+2.0*k2v+2.0*k3v+k4v)/6.0);
+
+    if(p.y*np.y<0.0){
+      float t=p.y/(p.y-np.y);
+      shadeDisk(mix(p,np,t),normalize(mix(v,nv,t)),col,trans);
+      if(trans<0.02){p=np;v=nv;vOut=nv;break;}
+    }
+    p=np;v=nv;vOut=nv;
+  }
+
+  /* rays still trapped near the photon sphere after max steps: treat as captured */
+  if(!captured&&!escaped&&length(p)<6.0)captured=true;
+  if(!captured){col+=trans*background(normalize(vOut));}
+
+  col*=uExposure;
+  col=clamp((col*(2.51*col+0.03))/(col*(2.43*col+0.59)+0.14),0.0,1.0); /* ACES */
+  col=pow(col,vec3(1.0/2.2));
+  col+=(h21(gl_FragCoord.xy)-0.5)/255.0;  /* dither */
+  O=vec4(col,1.0);
+}`;
+
+function mkShader(type,src){
+  const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){
+    fail((type===gl.VERTEX_SHADER?"VS":"FS")+" compile:\n"+gl.getShaderInfoLog(s));return null;}
+  return s;
+}
+const vs=mkShader(gl.VERTEX_SHADER,VS),fs=mkShader(gl.FRAGMENT_SHADER,FS);
+if(!vs||!fs)return;
+const prog=gl.createProgram();
+gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){fail("link: "+gl.getProgramInfoLog(prog));return;}
+gl.useProgram(prog);
+gl.bindVertexArray(gl.createVertexArray());
+const U={};
+["uRes","uCamPos","uRight","uUp","uFwd","uTimeDisk","uDoppler","uExposure","uStepK","uMaxSteps"]
+  .forEach(function(n){U[n]=gl.getUniformLocation(prog,n);});
+
+/* ───────────────────────── state ───────────────────────── */
+const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const DEF={az:2.45,el:0.10,R:18.2};
+const st={az:DEF.az,el:DEF.el,R:DEF.R,
+  quality:"mid",doppler:1,exposure:1.0,
+  orbit:!reduceMotion,flow:true,diskTime:0};
+const QP={low:{scale:0.5,steps:240,k:1.6},mid:{scale:0.75,steps:420,k:1.0},high:{scale:1.0,steps:700,k:0.62}};
+if(location.hash==="#test"){QP.mid={scale:0.45,steps:280,k:1.3};document.documentElement.classList.add("notrans");}
+
+/* ───────────────────────── resize ───────────────────────── */
+function resize(){
+  const q=QP[st.quality];
+  const dpr=Math.min(devicePixelRatio||1,2);
+  let w=Math.round(canvas.clientWidth*dpr*q.scale);
+  let h=Math.round(canvas.clientHeight*dpr*q.scale);
+  const cap=Math.sqrt(2.3e6/Math.max(w*h,1));
+  if(cap<1){w=Math.round(w*cap);h=Math.round(h*cap);}
+  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+}
+addEventListener("resize",resize);
+
+/* ───────────────────────── interaction ───────────────────────── */
+const ptrs=new Map();let lastPinch=0;
+canvas.addEventListener("pointerdown",function(e){
+  canvas.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  canvas.classList.add("grabbing");
+});
+canvas.addEventListener("pointermove",function(e){
+  if(!ptrs.has(e.pointerId))return;
+  const p=ptrs.get(e.pointerId);
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;
+  p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size===1){
+    st.az-=dx*0.0045;
+    st.el=Math.max(-1.45,Math.min(1.45,st.el+dy*0.0045));
+  }else if(ptrs.size===2){
+    const a=[];ptrs.forEach(function(v){a.push(v);});
+    const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(lastPinch>0)st.R=clampR(st.R*lastPinch/d);
+    lastPinch=d;
+  }
+});
+function endPtr(e){ptrs.delete(e.pointerId);lastPinch=0;canvas.classList.remove("grabbing");}
+canvas.addEventListener("pointerup",endPtr);
+canvas.addEventListener("pointercancel",endPtr);
+function clampR(r){return Math.max(4.2,Math.min(55,r));}
+canvas.addEventListener("wheel",function(e){e.preventDefault();st.R=clampR(st.R*Math.exp(e.deltaY*0.0012));},{passive:false});
+addEventListener("keydown",function(e){
+  if(e.target.tagName==="INPUT")return;
+  const s=0.06;
+  if(e.key==="ArrowLeft")st.az+=s;else if(e.key==="ArrowRight")st.az-=s;
+  else if(e.key==="ArrowUp")st.el=Math.min(1.45,st.el+s*0.6);
+  else if(e.key==="ArrowDown")st.el=Math.max(-1.45,st.el-s*0.6);
+  else if(e.key==="+"||e.key==="=")st.R=clampR(st.R*0.93);
+  else if(e.key==="-")st.R=clampR(st.R*1.07);
+});
+
+/* ───────────────────────── UI wiring ───────────────────────── */
+$("qseg").addEventListener("click",function(e){
+  const b=e.target.closest("button");if(!b)return;
+  st.quality=b.dataset.q;
+  Array.prototype.forEach.call($("qseg").children,function(x){x.classList.toggle("on",x===b);});
+  $("qv").textContent=b.textContent;
+  resize();
+});
+$("dop").addEventListener("input",function(e){
+  st.doppler=+e.target.value;
+  $("dopv").textContent=st.doppler.toFixed(2)+(st.doppler>0.85?" · 物理":st.doppler<0.15?" · 电影":"");
+});
+$("expo").addEventListener("input",function(e){
+  st.exposure=+e.target.value;$("expv").textContent=st.exposure.toFixed(1);
+});
+function wireSw(id,key){
+  const el=$(id);
+  el.classList.toggle("on",st[key]);
+  el.setAttribute("aria-checked",String(st[key]));
+  el.addEventListener("click",function(){
+    st[key]=!st[key];el.classList.toggle("on",st[key]);
+    el.setAttribute("aria-checked",String(st[key]));
+  });
+}
+wireSw("orbitSw","orbit");wireSw("flowSw","flow");
+$("resetBtn").addEventListener("click",function(){st.az=DEF.az;st.el=DEF.el;st.R=DEF.R;});
+const panel=$("panel");
+function togglePanel(){panel.classList.toggle("closed");}
+$("panelHead").addEventListener("click",togglePanel);
+$("panelHead").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();togglePanel();}});
+if(innerWidth<720)panel.classList.add("closed");
+$("infoBtn").addEventListener("click",function(){$("info").classList.add("open");});
+$("infoClose").addEventListener("click",function(){$("info").classList.remove("open");});
+addEventListener("keydown",function(e){if(e.key==="Escape")$("info").classList.remove("open");});
+
+/* ───────────────────────── render loop ───────────────────────── */
+const readout=$("readout");
+let last=performance.now(),fps=0,acc_t=0,first=true;
+function frame(now){
+  requestAnimationFrame(frame);
+  if(document.hidden)return;
+  const dt=Math.min((now-last)/1000,0.1);last=now;
+  fps=fps*0.92+(dt>0?1/dt:0)*0.08;
+
+  if(st.orbit)st.az+=dt*0.05;
+  if(st.flow)st.diskTime+=dt*5.0;
+
+  resize();
+  const ce=Math.cos(st.el),se=Math.sin(st.el);
+  const cp=[st.R*ce*Math.cos(st.az),st.R*se,st.R*ce*Math.sin(st.az)];
+  const f=norm([-cp[0],-cp[1],-cp[2]]);
+  const r=norm(crossv(f,[0,1,0]));
+  const u=crossv(r,f);
+  const q=QP[st.quality];
+
+  gl.viewport(0,0,canvas.width,canvas.height);
+  gl.uniform2f(U.uRes,canvas.width,canvas.height);
+  gl.uniform3fv(U.uCamPos,cp);
+  gl.uniform3fv(U.uRight,r);
+  gl.uniform3fv(U.uUp,u);
+  gl.uniform3fv(U.uFwd,f);
+  gl.uniform1f(U.uTimeDisk,st.diskTime);
+  gl.uniform1f(U.uDoppler,st.doppler);
+  gl.uniform1f(U.uExposure,st.exposure);
+  gl.uniform1f(U.uStepK,q.k);
+  gl.uniform1i(U.uMaxSteps,q.steps);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+
+  if(first){first=false;stage.classList.add("ready");}
+  acc_t+=dt;
+  if(acc_t>0.3){acc_t=0;
+    readout.textContent=
+      "r_cam "+st.R.toFixed(1)+" rs · 倾角 "+(st.el*57.2958).toFixed(1)+"° · "+
+      Math.round(fps)+" fps · "+canvas.width+"×"+canvas.height;
+  }
+}
+function norm(a){const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];}
+function crossv(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+resize();
+requestAnimationFrame(frame);
+})();
+</script>

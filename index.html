@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>宇宙可视化系列 · A Computed Universe</title>
+<meta name="description" content="十三部交互式天体物理可视化：从大爆炸到黑洞蒸发,从夸克到宇宙之网。全部物理真算,无预设动画。">
+<style>
+:root{--bg:#04060c;--panel:rgba(13,18,30,.82);--line:rgba(120,150,200,.15);--gold:#ffd27a;--cyan:#6fd7ff;--teal:#37e0c8;--tx:#d7e3f4;--dim:#8fa3c0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font:15px/1.7 -apple-system,"PingFang SC","Noto Sans SC",sans-serif;min-height:100vh;overflow-x:hidden}
+#sky{position:fixed;inset:0;z-index:0;pointer-events:none}
+main{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:56px 22px 40px}
+header{text-align:center;margin-bottom:14px}
+h1{font-size:clamp(30px,5vw,46px);letter-spacing:6px;color:var(--gold);font-weight:800;text-shadow:0 0 34px rgba(255,210,122,.25)}
+h1 small{display:block;font-size:13px;letter-spacing:5px;color:var(--dim);font-weight:400;margin-top:10px}
+.ribbon{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:22px 0 8px;font-size:12.5px;color:var(--cyan)}
+.ribbon span{padding:3px 12px;border:1px solid var(--line);border-radius:14px;background:rgba(111,215,255,.05)}
+.creed{text-align:center;color:var(--dim);font-size:13.5px;max-width:760px;margin:10px auto 40px}
+.creed b{color:var(--gold);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
+.card{position:relative;display:block;text-decoration:none;color:var(--tx);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px 16px;transition:transform .18s,border-color .18s,box-shadow .18s;backdrop-filter:blur(3px)}
+.card:hover{transform:translateY(-4px);border-color:rgba(255,210,122,.55);box-shadow:0 10px 34px rgba(0,0,0,.5),0 0 26px rgba(255,210,122,.07)}
+.card .no{position:absolute;top:16px;right:18px;font-size:11px;color:var(--dim);letter-spacing:1px;border:1px solid var(--line);border-radius:10px;padding:1px 8px}
+.card .em{font-size:30px;line-height:1;margin-bottom:10px;display:block;filter:drop-shadow(0 0 10px rgba(255,210,122,.3))}
+.card h2{font-size:17.5px;color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px}
+.card h2 small{color:var(--dim);font-weight:400;font-size:11.5px;margin-left:6px;letter-spacing:1px}
+.card p{font-size:13px;color:var(--tx);opacity:.92;margin-bottom:12px;min-height:58px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:11px;color:var(--cyan);border:1px solid rgba(111,215,255,.25);border-radius:10px;padding:1px 8px;background:rgba(111,215,255,.05)}
+.chips span.gate{color:var(--teal);border-color:rgba(55,224,200,.3);background:rgba(55,224,200,.05)}
+.card.wide{grid-column:1/-1;display:grid;grid-template-columns:1.15fr 2fr;gap:20px;align-items:center}
+.sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.sub a{display:block;text-decoration:none;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--tx);transition:border-color .15s,background .15s}
+.sub a:hover{border-color:rgba(111,215,255,.6);background:rgba(111,215,255,.06)}
+.sub a b{display:block;color:var(--cyan);font-size:14px;margin-bottom:3px}
+.sub a i{font-style:normal;font-size:11.5px;color:var(--dim)}
+.sect{margin:44px 0 14px;text-align:center;color:var(--dim);font-size:12px;letter-spacing:4px}
+.sect b{color:var(--cyan);font-weight:600}
+footer{position:relative;z-index:1;text-align:center;padding:44px 20px 60px;color:var(--dim);font-size:12.5px;line-height:2}
+footer a{color:var(--cyan);text-decoration:none}
+footer .hr{width:120px;height:1px;background:var(--line);margin:0 auto 18px}
+@media(max-width:760px){.card.wide{grid-template-columns:1fr}.card p{min-height:0}}
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<main>
+<header>
+  <h1>宇宙可视化系列<small>A&nbsp;COMPUTED&nbsp;UNIVERSE&nbsp;·&nbsp;十三部曲</small></h1>
+  <div class="ribbon"><span>空间跨度 10⁻¹⁹ m → 10²⁶ m</span><span>时间跨度 大爆炸 → 10¹⁰⁰ 年</span><span>全部单文件 WebGL2</span></div>
+  <p class="creed">这里没有一帧是"预先做好的动画"。每一页都在你的浏览器里<b>实时求解真实的物理方程</b>——测地线、N 体、ODE、波函数——并配有独立数值内核对拍与无头验证闸门；能算的一定真算，不能算的在各页「声明」里明说。</p>
+</header>
+
+<div class="sect">从 <b>创生</b> 到 <b>结构</b></div>
+<div class="grid">
+  <a class="card" href="bigbang/"><span class="no">第二作</span><span class="em">💥</span>
+    <h2>大爆炸创生<small>THE FIRST 380,000 YEARS</small></h2>
+    <p>暴胀、夸克汤、核合成、复合、第一代恒星——五个相位连续演化，温度与标度因子随真实方程流动。</p>
+    <div class="chips"><span>五相位连续演化</span><span>a(t)·T(t) 真算</span><span class="gate">闸门全绿</span></div></a>
+  <a class="card" href="cosmic-web/"><span class="no">第七作</span><span class="em">🕸️</span>
+    <h2>宇宙之网<small>ΛCDM COSMIC WEB</small></h2>
+    <p>64³ 高斯随机场经 Zel'dovich 近似长成纤维与空洞：210 万粒子在 GPU 里从 z=49 演化到暗能量把结构冻结。</p>
+    <div class="chips"><span>210 万粒子 GPU</span><span>增长因子 D(a) 积分</span><span class="gate">闸门全绿</span></div></a>
+  <a class="card" href="milkomeda/"><span class="no">第三作</span><span class="em">🌌</span>
+    <h2>银河 × 仙女并合<small>MILKOMEDA</small></h2>
+    <p>40 亿年后的星系相撞：Toomre 受限三体 + GPU 26 万颗恒星，潮汐尾甩出、双核合并于 7.34 Gyr——全部涌现。</p>
+    <div class="chips"><span>26 万星 GPU</span><span>并合 7.34 Gyr 涌现</span><span class="gate">闸门全绿</span></div></a>
+</div>
+
+<div class="sect">恒星的 <b>死亡</b> 与 <b>遗骸</b></div>
+<div class="grid">
+  <a class="card" href="sn1054/"><span class="no">第五作</span><span class="em">🌟</span>
+    <h2>超新星 SN 1054<small>→ 蟹状星云</small></h2>
+    <p>1054 年宋朝天官记下的"天关客星"：用《宋史》两处记载锚定光变曲线，薄壳 ODE 把爆发吹成今天的蟹状星云。</p>
+    <div class="chips"><span>宋史两锚点</span><span>13 个数量级</span><span class="gate">闸门全绿</span></div></a>
+  <a class="card" href="pulsar/"><span class="no">第十三作</span><span class="em">📡</span>
+    <h2>脉冲星灯塔<small>PULSAR LIGHTHOUSE</small></h2>
+    <p>蟹的遗骸核心还在转：波束扫掠的球面三角逐帧生成脉冲轮廓，间脉冲自己涌现；毫秒星的转速快成一个 642Hz 的音符。</p>
+    <div class="chips"><span>轮廓由几何涌现</span><span>消色散小游戏</span><span>642Hz 之声</span><span class="gate">22/22</span></div></a>
+  <a class="card" href="gw170817/"><span class="no">第六作</span><span class="em">💫</span>
+    <h2>中子星并合<small>GW170817</small></h2>
+    <p>多信使天文学的开端：后牛顿啁啾闭式解 + 千新星 Arnett 双成分光变，引力波与光在同一时间轴上对表。</p>
+    <div class="chips"><span>后牛顿啁啾</span><span>千新星双成分</span><span class="gate">闸门全绿</span></div></a>
+</div>
+
+<div class="sect"><b>黑洞</b> 与 <b>弯曲时空</b></div>
+<div class="grid">
+  <div class="card wide"><div><span class="no">第一作</span><span class="em">⚫</span>
+    <h2>黑洞三部曲<small>GR TRILOGY</small></h2>
+    <p style="min-height:0">系列的起点：三页广义相对论实时渲染,从测地线轨道到 GW150914 双黑洞并合。</p></div>
+    <div class="sub">
+      <a href="blackhole/orbit.html"><b>Ⅰ · 施瓦西轨道</b><i>测地线进动 · 光子球</i></a>
+      <a href="blackhole/tde.html"><b>Ⅱ · 潮汐撕裂 TDE</b><i>恒星被黑洞撕成吸积流</i></a>
+      <a href="blackhole/bbh.html"><b>Ⅲ · 双黑洞并合</b><i>GW150914 · 啁啾与铃宕</i></a>
+    </div></div>
+  <a class="card" href="gargantua/"><span class="no">第十二作</span><span class="em">🌑</span>
+    <h2>Gargantua<small>吸积盘 · 压轴</small></h2>
+    <p>每个像素一条光线在史瓦西时空里 RK4 积分 ~500 步：影子 b=√27/2 从捕获边界涌现，上下双弧是盘的"背面"，关掉引力弯曲它退化成土星环。</p>
+    <div class="chips"><span>GPU 逐像素测地线</span><span>GPU-vs-JS 66/66</span><span class="gate">16/16</span></div></a>
+  <a class="card" href="wormhole/"><span class="no">第八作</span><span class="em">🕳️</span>
+    <h2>穿越虫洞<small>MORRIS–THORNE</small></h2>
+    <p>《星际穿越》同款 Dneg 度规：shader 内逐像素 RK4 积分测地线，实时穿过喉部看见另一个宇宙，幽灵环是纯物理。</p>
+    <div class="chips"><span>实时逐像素 GR</span><span>对拍 512 条 100%</span><span class="gate">19/19</span></div></a>
+</div>
+
+<div class="sect"><b>相对论飞行</b> · <b>行星系统</b> · <b>微观</b></div>
+<div class="grid">
+  <a class="card" href="starflight/"><span class="no">第四作</span><span class="em">🚀</span>
+    <h2>0.9c 星际漫游<small>SPECIAL RELATIVITY</small></h2>
+    <p>9096 颗耶鲁真星表恒星逐星做洛伦兹变换：光行差把星空挤向前方，多普勒改写每颗星的颜色；含 1g 织女星航线。</p>
+    <div class="chips"><span>9096 真星逐星变换</span><span>1g 航线</span><span class="gate">闸门全绿</span></div></a>
+  <a class="card" href="saturn-rings/"><span class="no">第十作</span><span class="em">🪐</span>
+    <h2>土星环交响曲<small>RING RESONANCES</small></h2>
+    <p>60 万粒子真解开普勒方程：Mimas 的 2:1 共振（含 J2 修正）亲手雕出卡西尼缝，Daphnis 掀起的波纹波长 403km 涌现（理论 386）。</p>
+    <div class="chips"><span>60 万粒子</span><span>ILR=117,531 km</span><span class="gate">16/16</span></div></a>
+  <a class="card" href="particle-zoo/"><span class="no">第九作</span><span class="em">🧱</span>
+    <h2>万物之砖<small>PARTICLE ZOO</small></h2>
+    <p>系列首次潜入微观：氢原子波函数 |ψ|² 体渲染真算、标准模型 17 展馆、夸克禁闭弦断裂与 β 衰变三实验。</p>
+    <div class="chips"><span>ψ 体渲染真算</span><span>SM 17 粒子</span><span class="gate">33/33</span></div></a>
+</div>
+
+<div class="sect">直到 <b>时间尽头</b></div>
+<div class="grid">
+  <a class="card" href="cosmic-future/" style="grid-column:1/-1"><span class="no">第十一作</span><span class="em">⏳</span>
+    <h2>宇宙未来年表<small>TIMELINE OF THE FAR FUTURE</small></h2>
+    <p style="min-height:0">对数轴上的 92 个数量级：最后一颗恒星熄灭、白矮星冷却成黑矮星、质子时代终结，直到最后一个黑洞在 10¹⁰⁰ 年蒸发爆闪——霍金 ODE 与解析解相对差 1.0000。</p>
+    <div class="chips"><span>92 个数量级</span><span>霍金蒸发 ODE</span><span>今最冷白矮星 3457K</span><span class="gate">27/27</span></div></a>
+</div>
+
+</main>
+<footer>
+  <div class="hr"></div>
+  诚实标准：每一作附独立 Node 数值内核对拍 + 无头浏览器验证闸门；近似之处在各页「声明」逐条列明。<br>
+  为笔记本着想：全部页面 45fps 帽 + 省电档。桌面 Chrome/Edge/Safari 体验最佳。<br>
+  <a href="https://github.com/zhaopuyuan001-lgtm/cosmos-visualizations">GitHub</a> · 与 Claude 共同建造 · 2026
+</footer>
+<script>
+'use strict';
+(()=>{ // 静态星空(PCG 逐索引哈希,零动画零耗电)
+ const cv=document.getElementById('sky'),ctx=cv.getContext('2d');
+ const draw=()=>{
+  const w=cv.width=innerWidth*devicePixelRatio,h=cv.height=Math.max(innerHeight,document.body.scrollHeight)*devicePixelRatio;
+  cv.style.width=innerWidth+'px';cv.style.height=(h/devicePixelRatio)+'px';
+  ctx.clearRect(0,0,w,h);
+  const hash=i=>{let x=(i>>>0)*747796405+2891336453;x>>>=0;x=((x>>>((x>>>28)+4))^x)>>>0;x=(x*277803737)>>>0;return((x>>>22)^x)>>>0;};
+  const N=Math.round(w*h/9000);
+  for(let i=0;i<N;i++){
+   const a=hash(i*3),b=hash(i*3+1),c=hash(i*3+2);
+   const x=(a/4294967296)*w,y=(b/4294967296)*h,t=c/4294967296;
+   const r=t<.85?.7+t:1.4+t*1.6,al=.12+.55*Math.pow(t,3);
+   ctx.beginPath();ctx.arc(x,y,r,0,7);
+   ctx.fillStyle=`rgba(${200+Math.round(55*t)},${215+Math.round(30*(1-t))},255,${al})`;ctx.fill();}
+ };
+ draw();addEventListener('resize',draw);
+})();
+</script>
+</body>
+</html>

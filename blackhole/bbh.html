@@ -1,0 +1,922 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>双黑洞并合 · GW150914 实时渲染</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --void:#060709; --panel:rgba(13,16,22,.80);
+    --ink:#E8E4DA; --dim:#9A9686; --faint:#6B685C; --accent:#E8A33D;
+    --line:rgba(232,228,218,.14); --line-soft:rgba(232,228,218,.07);
+    --serif:"Songti SC","STSong",Georgia,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  html,body{height:100%;margin:0;background:var(--void);}
+  #stage{position:fixed;inset:0;overflow:hidden;background:var(--void);
+    font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+  #cv.grabbing{cursor:grabbing;}
+  .fade{opacity:0;transition:opacity 1.1s ease .1s;}
+  #stage.ready .fade{opacity:1;}
+  .notrans .fade{transition:none;}
+  @media (prefers-reduced-motion: reduce){ .fade{transition:none;} }
+
+  .plate{position:absolute;top:22px;left:24px;pointer-events:none;-webkit-user-select:none;user-select:none;}
+  .plate .obj{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--faint);margin-bottom:8px;}
+  .plate h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.15;margin:0 0 7px;color:var(--ink);}
+  .plate .sub{font-size:12px;color:var(--dim);letter-spacing:.02em;}
+
+  .rbox{position:absolute;top:22px;right:20px;text-align:right;pointer-events:none;-webkit-user-select:none;user-select:none;}
+  #d1{font-family:var(--mono);font-size:26px;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.1;}
+  #d1 .u{font-size:12px;color:var(--dim);margin-left:3px;}
+  #rsub{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.85;}
+  #phbadge{display:inline-block;margin-top:8px;padding:3px 9px;border:1px solid rgba(232,163,61,.55);
+    border-radius:5px;font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.1em;}
+  #sc{margin-top:10px;background:rgba(9,11,15,.55);border:1px solid var(--line-soft);border-radius:6px;}
+  #sclabel{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--faint);margin-top:4px;}
+
+  #cap{position:absolute;left:0;right:0;bottom:96px;text-align:center;font-family:var(--serif);
+    font-size:19px;color:var(--ink);opacity:0;pointer-events:none;
+    text-shadow:0 0 8px rgba(0,0,0,.9);}
+  .readout{position:absolute;left:24px;bottom:18px;font-family:var(--mono);font-size:11px;
+    color:var(--faint);letter-spacing:.04em;pointer-events:none;-webkit-user-select:none;user-select:none;
+    font-variant-numeric:tabular-nums;line-height:1.9;}
+
+  .panel{position:absolute;right:20px;bottom:18px;width:268px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    -webkit-backdrop-filter:blur(12px) saturate(1.15);backdrop-filter:blur(12px) saturate(1.15);}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;cursor:pointer;-webkit-user-select:none;user-select:none;}
+  .panel-head .t{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);}
+  .panel-head .caret{color:var(--faint);font-size:10px;transition:transform .25s;}
+  .panel.closed .caret{transform:rotate(-90deg);}
+  .panel-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px;
+    border-top:1px solid var(--line-soft);}
+  .panel.closed .panel-body{display:none;}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:11px;color:var(--dim);margin-bottom:6px;letter-spacing:.03em;}
+  .ctl label .v{font-family:var(--mono);font-size:10.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  .seg button{flex:1;background:none;border:none;color:var(--dim);font-family:var(--sans);
+    font-size:11px;padding:5px 0;cursor:pointer;border-right:1px solid var(--line-soft);}
+  .seg button:last-child{border-right:none;}
+  .seg button.on{background:rgba(232,163,61,.13);color:var(--accent);}
+  .seg button:focus-visible{outline:1px solid var(--accent);outline-offset:-1px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:none;margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:1px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;
+    border-radius:50%;background:var(--accent);margin-top:-4.5px;border:none;}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(232,163,61,.3);}
+  .tlrow{display:flex;align-items:center;gap:8px;}
+  .tlrow input[type=range]{flex:1;}
+  .iconbtn{background:none;border:1px solid var(--line);border-radius:6px;color:var(--accent);
+    font-family:var(--mono);font-size:12px;width:34px;height:26px;cursor:pointer;line-height:1;}
+  .iconbtn:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+  .switchrow{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--dim);}
+  .sw{position:relative;width:30px;height:16px;border-radius:9px;border:1px solid var(--line);
+    background:none;cursor:pointer;padding:0;}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;
+    background:var(--faint);transition:transform .18s,background .18s;}
+  .sw.on{border-color:rgba(232,163,61,.5);}
+  .sw.on::after{transform:translateX(14px);background:var(--accent);}
+  .sw:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+  .ghost{background:none;border:1px solid var(--line);border-radius:6px;color:var(--dim);
+    font-family:var(--sans);font-size:11px;padding:6px 0;cursor:pointer;letter-spacing:.05em;}
+  .ghost:hover{color:var(--ink);border-color:var(--dim);}
+  .ghost:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+
+  #infoBtn2{background:none;border:1px solid var(--line);border-radius:6px;color:var(--dim);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;padding:6px 0;cursor:pointer;}
+  #infoBtn2:hover{color:var(--accent);border-color:rgba(232,163,61,.4);}
+  .info{position:absolute;top:0;right:0;bottom:0;width:min(410px,92vw);
+    background:rgba(9,11,15,.93);border-left:1px solid var(--line);
+    -webkit-backdrop-filter:blur(18px) saturate(1.1);backdrop-filter:blur(18px) saturate(1.1);
+    transform:translateX(102%);transition:transform .32s cubic-bezier(.3,.9,.3,1);
+    overflow-y:auto;overscroll-behavior:contain;z-index:20;}
+  .info.open{transform:translateX(0);}
+  @media (prefers-reduced-motion: reduce){ .info{transition:none;} }
+  .info-inner{padding:26px 28px 40px;}
+  .info .obj{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--faint);}
+  .info h2{font-family:var(--serif);font-weight:400;font-size:22px;margin:8px 0 0;}
+  .info h3{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--accent);
+    margin:28px 0 10px;font-weight:400;}
+  .info p{font-size:13px;line-height:1.85;color:var(--dim);margin:0 0 10px;max-width:62ch;}
+  .info p strong{color:var(--ink);font-weight:500;}
+  .info ul{margin:0;padding-left:18px;font-size:13px;line-height:1.85;color:var(--dim);}
+  .info li{margin-bottom:7px;}
+  .info li strong{color:var(--ink);font-weight:500;}
+  .info .eq{font-family:var(--mono);font-size:11.5px;line-height:2.05;color:var(--dim);
+    border:1px solid var(--line-soft);border-radius:8px;padding:12px 14px;overflow-x:auto;
+    white-space:pre;margin:0 0 10px;}
+  .info .eq b{color:var(--ink);font-weight:400;}
+  #infoClose{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--faint);
+    font-size:20px;cursor:pointer;line-height:1;padding:6px;}
+  #infoClose:hover{color:var(--ink);}
+  #err{position:absolute;inset:auto 12px 12px 12px;max-height:45%;overflow:auto;z-index:50;
+    background:rgba(40,10,10,.92);border:1px solid rgba(255,120,100,.4);border-radius:8px;
+    color:#ffb0a0;font-family:var(--mono);font-size:11px;padding:12px;white-space:pre-wrap;}
+  #nogl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    text-align:center;color:var(--dim);font-size:14px;line-height:2;padding:30px;}
+  [hidden]{display:none !important;}
+  @media (max-width:720px){
+    .plate h1{font-size:22px;} .plate{top:16px;left:16px;}
+    .panel{right:12px;bottom:12px;width:240px;}
+    .readout{left:16px;bottom:12px;font-size:10px;}
+    .rbox{top:16px;right:12px;} #cap{font-size:15px;bottom:120px;}
+  }
+</style>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+
+  <header class="plate fade">
+    <div class="obj">BINARY BLACK HOLE MERGER · GW150914 · SUPERPOSED KERR–SCHILD · NULL GEODESIC TRACER</div>
+    <h1>双黑洞并合</h1>
+    <div class="sub">36 + 29 M☉ 黑洞的最后一秒 · 引力波啁啾 · 逐像素广义相对论渲染</div>
+  </header>
+
+  <div class="rbox fade">
+    <div id="d1"></div>
+    <div id="rsub"></div>
+    <div id="phbadge"></div><br>
+    <canvas id="sc" width="440" height="128" style="width:220px;height:64px;"></canvas>
+    <div id="sclabel">引力波应变 h(t) · 峰值 1.0×10⁻²¹ @ 410 Mpc</div>
+  </div>
+
+  <div id="cap"></div>
+  <div class="readout fade" id="readout"></div>
+
+  <aside class="panel fade" id="panel">
+    <div class="panel-head" id="panelHead" role="button" tabindex="0" aria-label="折叠控制面板">
+      <span class="t">INSTRUMENT</span><span class="caret">▾</span>
+    </div>
+    <div class="panel-body">
+      <div class="ctl">
+        <label>事件时间线 <span class="v" id="tlv">0%</span></label>
+        <div class="tlrow">
+          <button class="iconbtn" id="playBtn" aria-label="播放/暂停">⏸</button>
+          <input type="range" id="tl" min="0" max="1000" step="1" value="0" aria-label="时间线">
+        </div>
+      </div>
+      <div class="ctl">
+        <label>播放速度 <span class="v" id="spv">1×</span></label>
+        <div class="seg" id="spseg">
+          <button data-s="0.5">0.5×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>画质 <span class="v" id="qv">中</span></label>
+        <div class="seg" id="qseg">
+          <button data-q="low">低</button><button data-q="mid" class="on">中</button><button data-q="high">高</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>多普勒/红移 g⁴ <span class="v" id="dopv">1.00 · 物理</span></label>
+        <input type="range" id="dop" min="0" max="1" step="0.01" value="1" aria-label="红移强度">
+      </div>
+      <div class="ctl">
+        <label>曝光 <span class="v" id="expv">1.0</span></label>
+        <input type="range" id="expo" min="0.3" max="3" step="0.05" value="1.0" aria-label="曝光">
+      </div>
+      <div class="switchrow">引力波网格
+        <button class="sw on" id="gridSw" role="switch" aria-checked="true" aria-label="引力波网格"></button>
+      </div>
+      <div class="switchrow">自动环绕
+        <button class="sw on" id="orbitSw" role="switch" aria-checked="true" aria-label="自动环绕"></button>
+      </div>
+      <button class="ghost" id="resetBtn">重置视角</button>
+      <button id="infoBtn2">物理说明</button>
+    </div>
+  </aside>
+
+  <aside class="info" id="info" aria-label="物理说明">
+    <div class="info-inner">
+      <button id="infoClose" aria-label="关闭">×</button>
+      <div class="obj">OBSERVATION NOTES · GW150914</div>
+      <h2>人类第一次听见的声音*</h2>
+      <p style="margin-top:6px;font-size:11px;color:var(--faint);">*2015-09-14，LIGO 探测到 13 亿年前两个黑洞并合的引力波。本页按其参数重演：整场事件真实时长不到 1 秒，各相位慢放倍率见右上角标注。</p>
+
+      <h3>三十秒版</h3>
+      <p>两个黑洞互相绕转时，会搅动时空本身，把能量以<strong>引力波</strong>的形式甩出去。失去能量的轨道只能收紧，越转越快、波也越强——这个正反馈的结局是<strong>失控的螺旋坠落</strong>：最后几圈速度达 0.3 倍光速，两个视界相触、并成一个，剩下的形变像钟声一样以固定频率<strong>振铃衰减</strong>（铃宕）。36+29 个太阳质量进去，62 个出来——<strong>差的 3 个太阳质量在零点几秒内全部化作了引力波</strong>，峰值功率超过可观测宇宙中所有恒星光度之和。</p>
+
+      <h3>逐一辨认</h3>
+      <ul>
+        <li><strong>两个黑影</strong> — 两个事件视界的阴影；影子边缘的星光被强透镜拉成弧；</li>
+        <li><strong>影子内侧的"眉毛"</strong> — 每个黑洞把<strong>对方的影子</strong>也透镜成一条细弧，这是双黑洞特有的次级像，光线追踪的真实产物；</li>
+        <li><strong>网格上的螺旋亮纹</strong> — 引力波的四极辐射图样：以光速外传、振幅按 1/r 衰减、间距随频率爬升而收紧（啁啾）；</li>
+        <li><strong>右上角波形</strong> — 应变 h(t)：旋近的啁啾 → 并合峰 → 铃宕的阻尼振荡，正是 LIGO 看到的形状；</li>
+        <li><strong>并合后的单一阴影</strong> — 克尔黑洞遗迹：62 M☉、自旋 χ=0.67，阴影微微振铃后归于安静。</li>
+      </ul>
+
+      <h3>物理实现</h3>
+      <div class="eq"><b>度规（叠加 Kerr–Schild + 精确逆）</b>
+g = η + 2H₁ l₁⊗l₁ + 2H₂ l₂⊗l₂（每孔经瞬时 boost）
+g⁻¹ 由两次 rank-1 修正解析给出：
+  s=η(l₁,l₂), D=1−4H₁H₂s², w=η⁻¹l₂−2H₁s·η⁻¹l₁
+  g⁻¹ = η⁻¹ − 2H₁u₁u₁ − (2H₂/D)ww   （机器精度验证）
+
+<b>轨道（引力波驱动旋近 · Peters 1964）</b>
+a(t) = a₀(1−t/t_c)^¼ ,  t_c = 5a₀⁴/(256νM²)
+φ(t) 闭式积分 · 起始 a₀=13M → f_GW 21 Hz 进 LIGO 频段
+末圈轨速 ~0.31c · 共 ~12 圈
+
+<b>光线</b>
+逐像素 8 维哈密顿零测地线 RK4（t 亦为动力学量，
+时变度规中光子能量不守恒——这是物理，不是误差）
+
+<b>终态与铃宕</b>
+M_f = 62 M☉ · χ_f = 0.67 →
+QNM (l=2,m=2,n=0)：f ≈ 272 Hz，τ ≈ 3.7 ms（Berti 拟合）
+
+<b>应变</b>
+h ∝ (Ω/Ω₀)^⅔ cos2φ → 峰值 1.0×10⁻²¹ @ 410 Mpc（实测标度）</div>
+
+      <h3>诚实声明 · 近似之处</h3>
+      <ul>
+        <li>叠加 Kerr–Schild 度规<strong>不是爱因斯坦方程的严格解</strong>（双黑洞没有解析解）；两孔相距 &lt;5.5M 起平滑插值到克尔终态——这段本属数值相对论的领地；</li>
+        <li>轨道用 Peters 四极矩公式（含引力波反作用的领头阶），非数值相对论轨道；boost 为瞬时近似（匀速时精确）；</li>
+        <li>铃宕以"双中心衰减"作代理呈现，但频率与阻尼时间取<strong>真实 QNM 拟合值</strong>；</li>
+        <li>网格与涟漪是<strong>示意层</strong>：真实应变 ~10⁻²¹，此处放大约 10²⁰ 倍才可见；但其传播速度 (=c)、四极图样、啁啾与 1/r 衰减均按物理绘制；</li>
+        <li>双阴影、"眉毛"次级像、星光透镜均为光线追踪真实产物，非贴图；</li>
+        <li>真实事件全程 &lt;1 秒——各相位慢放 40× 到 900× 不等，右上角逐相位标注。</li>
+      </ul>
+    </div>
+  </aside>
+
+  <pre id="err" hidden></pre>
+  <div id="nogl" hidden>此设备/浏览器未启用 WebGL2，无法进行实时测地线渲染。<br>请换用桌面版 Chrome / Safari / Edge 再试。</div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const $=id=>document.getElementById(id);
+const Q=new URLSearchParams(location.search);
+const FREEZE=Q.get("t")!==null? Math.min(1,Math.max(0,+Q.get("t"))):null;
+const TEST=Q.get("test")!==null;
+const VIDEO=Q.get("video")!==null;
+const VFPS=+(Q.get("fps")||60), VDUR=+(Q.get("dur")||76);
+const VW=+(Q.get("w")||0), VH=+(Q.get("h")||0);
+if(TEST)document.documentElement.classList.add("notrans");
+const canvas=$("cv"), stage=$("stage");
+const errBox=$("err");
+function fail(m){errBox.hidden=false;errBox.textContent+=m+"\n";}
+window.addEventListener("error",e=>fail("JS: "+e.message+" @"+e.lineno));
+
+const gl=canvas.getContext("webgl2",{antialias:false,alpha:false,depth:false,stencil:false,powerPreference:"high-performance"});
+if(!gl){$("nogl").hidden=false;return;}
+
+/* ═══════════ GW150914 constants (M_tot = 1 geometric) ═══════════ */
+const M1=36/65, M2=29/65, NU=M1*M2;
+const A0=13.0;
+const TC=5*Math.pow(A0,4)/(256*NU);            // Peters coalescence time ≈ 2257.6 M
+const DMRG=3.2;                                 // hand-off separation to ringdown proxy
+const TMRG=TC*(1-Math.pow(DMRG/A0,4));          // ≈ 2249.4 M
+const OM0=Math.pow(A0,-1.5), KPHI=8*TC*OM0/5;   // φ(t)=KPHI·(1−f^⅝)
+const FM=Math.pow(DMRG/A0,4);
+const PHIM=KPHI*(1-Math.pow(FM,0.625));         // orbital phase at hand-off
+const OMM=Math.pow(DMRG,-1.5);                  // Ω at hand-off
+const CHI=0.67, MF=62/65, AF=CHI*MF;            // remnant: mass, spin
+const RHF=MF+Math.sqrt(MF*MF-AF*AF);            // remnant horizon ≈ 1.662 M
+const OMQ=0.5227/MF;                            // QNM l=m=2 ω_R (Berti fit, χ=0.67)
+const QQ=3.167, TAUQ=2*QQ/OMQ, OMQ2=OMQ/2;      // τ ≈ 11.6 M; pattern rotation ω/2
+const MSEC=65*4.9255e-6;                        // seconds per M (65 M☉) = 0.32 ms
+const T_END=2600;                               // timeline end (coordinate time)
+const MUCAP=0.82;                               // blend reached at hand-off (rest rings down)
+
+/* ═══════════ float64 toolkit (mirrors the GLSL exactly) ═══════════ */
+function trajJ(t){
+  const dtm=t-TMRG;
+  let d,Om,phi,dd,mu;
+  if(dtm<0){
+    const f=Math.max(1e-9,1-t/TC);
+    d=A0*Math.pow(f,0.25);Om=Math.pow(d,-1.5);
+    phi=KPHI*(1-Math.pow(f,0.625));
+    dd=-A0/(4*TC)*Math.pow(f,-0.75);
+    const s=Math.min(1,Math.max(0,(5.5-d)/2.3));
+    mu=MUCAP*s*s*(3-2*s);
+  }else{
+    d=DMRG*Math.exp(-dtm/(2*TAUQ));
+    Om=OMQ2-(OMQ2-OMM)*Math.exp(-dtm/5);
+    phi=PHIM+OMQ2*dtm-(OMQ2-OMM)*5*(1-Math.exp(-dtm/5));
+    dd=-d/(2*TAUQ);
+    mu=1-(1-MUCAP)*Math.exp(-dtm/TAUQ);
+  }
+  const c=Math.cos(phi),s2=Math.sin(phi);
+  const r1=M2*d,r2=M1*d,d1=M2*dd,d2=M1*dd;
+  return {d,Om,phi,mu,
+    p1:[r1*c,r1*s2,0], v1:[d1*c-r1*Om*s2,d1*s2+r1*Om*c,0],
+    p2:[-r2*c,-r2*s2,0],v2:[-d2*c+r2*Om*s2,-d2*s2-r2*Om*c,0]};
+}
+function hlJ(m,P,V,q){
+  const dx=[q[0]-P[0],q[1]-P[1],q[2]-P[2]];
+  const v2=V[0]*V[0]+V[1]*V[1]+V[2]*V[2];
+  if(v2<1e-16){const r=Math.hypot(dx[0],dx[1],dx[2])||1e-300;
+    return {H:m/r,l:[1,dx[0]/r,dx[1]/r,dx[2]/r],rs:r};}
+  const vn=Math.sqrt(v2),ga=1/Math.sqrt(1-v2);
+  const n=[V[0]/vn,V[1]/vn,V[2]/vn];
+  const dp=dx[0]*n[0]+dx[1]*n[1]+dx[2]*n[2];
+  const pp=[dx[0]-dp*n[0],dx[1]-dp*n[1],dx[2]-dp*n[2]];
+  const rs=Math.sqrt(ga*ga*dp*dp+pp[0]*pp[0]+pp[1]*pp[1]+pp[2]*pp[2])||1e-300;
+  const lsP=ga*dp/rs, lt=ga*(1-vn*lsP), lP=ga*(lsP-vn);
+  return {H:m/rs,l:[lt,lP*n[0]+pp[0]/rs,lP*n[1]+pp[1]/rs,lP*n[2]+pp[2]/rs],rs};
+}
+function kerrJ(q){
+  const R2=q[0]*q[0]+q[1]*q[1]+q[2]*q[2],b=R2-AF*AF;
+  const r=Math.sqrt(0.5*(b+Math.sqrt(b*b+4*AF*AF*q[2]*q[2])));
+  const r2=r*r,dn=r2+AF*AF;
+  return {H:MF*(r*r2)/(r2*r2+AF*AF*q[2]*q[2]+1e-300),
+    l:[1,(r*q[0]+AF*q[1])/dn,(r*q[1]-AF*q[0])/dn,r>1e-12?q[2]/r:0],r};
+}
+const dE=(a,b)=>-a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3];
+function ginvEff(t,q){          /* effective inverse metric of the Φ-blend */
+  const T=trajJ(t);
+  const h1=hlJ(M1,T.p1,T.v1,q), h2=hlJ(M2,T.p2,T.v2,q);
+  const s=dE(h1.l,h2.l), D=Math.max(1-4*h1.H*h2.H*s*s,0.03);
+  const u1=[-h1.l[0],h1.l[1],h1.l[2],h1.l[3]];
+  const u2=[-h2.l[0],h2.l[1],h2.l[2],h2.l[3]];
+  const w=u2.map((x,i)=>x-2*h1.H*s*u1[i]);
+  const gi=[[-1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+  const c1=(1-T.mu)*2*h1.H, c2=(1-T.mu)*2*h2.H/D;
+  for(let i=0;i<4;i++)for(let j=0;j<4;j++)gi[i][j]-=c1*u1[i]*u1[j]+c2*w[i]*w[j];
+  if(T.mu>1e-4){const k=kerrJ(q);const uk=[-k.l[0],k.l[1],k.l[2],k.l[3]];
+    for(let i=0;i<4;i++)for(let j=0;j<4;j++)gi[i][j]-=T.mu*2*k.H*uk[i]*uk[j];}
+  return gi;
+}
+function inv4(A){
+  const M=A.map(r=>r.slice()), I=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+  for(let c=0;c<4;c++){
+    let piv=c;for(let r=c+1;r<4;r++)if(Math.abs(M[r][c])>Math.abs(M[piv][c]))piv=r;
+    [M[c],M[piv]]=[M[piv],M[c]];[I[c],I[piv]]=[I[piv],I[c]];
+    const d=M[c][c];for(let j=0;j<4;j++){M[c][j]/=d;I[c][j]/=d;}
+    for(let r=0;r<4;r++)if(r!==c){const f=M[r][c];
+      for(let j=0;j<4;j++){M[r][j]-=f*M[c][j];I[r][j]-=f*I[c][j];}}}
+  return I;
+}
+function gCovAt(t,q){return inv4(ginvEff(t,q));}
+function mdot(g,u,v){let s=0;for(let i=0;i<4;i++)for(let j=0;j<4;j++)s+=g[i][j]*u[i]*v[j];return s;}
+
+/* ═══════════ timeline u∈[0,1] → coordinate time ═══════════ */
+const UKEYS=[[0,0],[0.30,1800],[0.62,2225],[0.75,2258],[0.92,2380],[1.0001,T_END]];
+function tOf(u){
+  for(let i=0;i<UKEYS.length-1;i++){
+    if(u>=UKEYS[i][0]&&u<UKEYS[i+1][0]){
+      const f=(u-UKEYS[i][0])/(UKEYS[i+1][0]-UKEYS[i][0]);
+      return UKEYS[i][1]+(UKEYS[i+1][1]-UKEYS[i][1])*f;}}
+  return T_END;
+}
+const PHASES=[
+  {u0:0.00,u1:0.30,zh:"相位 A · 旋近",speed:"慢放 ~40×"},
+  {u0:0.30,u1:0.62,zh:"相位 B · 末段旋近",speed:"慢放 ~180×"},
+  {u0:0.62,u1:0.75,zh:"相位 C · 并合",speed:"慢放 ~900×"},
+  {u0:0.75,u1:0.92,zh:"相位 D · 铃宕",speed:"慢放 ~330×"},
+  {u0:0.92,u1:1.01,zh:"相位 E · 遗迹",speed:"慢放 ~90×"}];
+const CAPS=[
+  [0.015,0.115,"两个黑洞，已互相绕转了亿万年——这是最后的 0.8 秒"],
+  [0.13,0.25,"网格上的亮纹以光速向外奔跑——引力波：时空自身的涟漪"],
+  [0.315,0.44,"每一圈都在把能量甩成引力波——轨道收紧，音调爬升"],
+  [0.47,0.59,"0.2 倍光速，仍在加速——啁啾扫过 LIGO 灵敏频段"],
+  [0.625,0.74,"视界相触——两个阴影在十毫秒内融为一体"],
+  [0.755,0.87,"新生黑洞如被敲响的钟：272 Hz，振铃十几毫秒后归于寂静"],
+  [0.92,0.995,"62 M☉ 克尔黑洞 · 3 M☉ 化作引力波——这就是 GW150914"]];
+function smooth(t){return t*t*(3-2*t);}
+function lerp(a,b,f){return a+(b-a)*f;}
+function fGW(t){ // physical Hz
+  if(t<TMRG){const o=trajJ(t);return o.Om/Math.PI/MSEC;}
+  return OMQ/(2*Math.PI*MSEC);
+}
+function eRad(t){ // cumulative radiated energy, M☉
+  if(t<TMRG){const o=trajJ(t);return Math.max(0,NU/2*(1/o.d-1/A0)*65);}
+  const base=NU/2*(1/DMRG-1/A0)*65;
+  return base+(3.0-base)*(1-Math.exp(-(t-TMRG)/TAUQ));
+}
+/* strain waveform h(t), precomputed (normalized so merger peak = 1) */
+const NW=2400, WAVE=new Float32Array(NW);
+(function(){
+  const AMAX=A0/DMRG*1.3;
+  for(let i=0;i<NW;i++){
+    const t=i/(NW-1)*T_END;
+    let h;
+    if(t<TMRG){
+      const o=trajJ(t);
+      const a=(A0/o.d)*(1+0.3*Math.exp(-Math.pow((t-TMRG)/6,2)));
+      h=a*Math.cos(2*o.phi);
+    }else{
+      const dtm=t-TMRG;
+      h=(A0/DMRG)*1.3*Math.exp(-dtm/TAUQ)*Math.cos(OMQ*dtm+2*PHIM);
+    }
+    WAVE[i]=h/AMAX;
+  }
+})();
+
+/* ═══════════ WebGL ═══════════ */
+const F9=x=>{const s=x.toPrecision(9);return s.includes(".")||s.includes("e")?s:s+".";};
+const VS=`#version 300 es
+void main(){vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));
+gl_Position=vec4(p*2.-1.,0.,1.);}`;
+const FS=`#version 300 es
+precision highp float;
+out vec4 O;
+uniform vec2 uRes;
+uniform vec3 uPos;uniform mat4 uGcam;uniform vec4 uU,uEf,uEu,uEr;
+uniform mat3 uLook;uniform float uFovT;
+uniform float uDoppler,uExpo,uKstep,uSeam,uF0,uDTM,uMu,uGrid;
+uniform int uMax;
+const float PI=3.141592653589793,TAU=6.283185307179586;
+const float M1_=${F9(M1)},M2_=${F9(M2)},A0_=${F9(A0)},TC_=${F9(TC)};
+const float KPHI_=${F9(KPHI)},DMRG_=${F9(DMRG)},PHIM_=${F9(PHIM)},OMM_=${F9(OMM)};
+const float MF_=${F9(MF)},AF_=${F9(AF)},RHF_=${F9(RHF)};
+const float OMQ_=${F9(OMQ)},OMQ2_=${F9(OMQ2)},TAUQ_=${F9(TAUQ)},MUCAP_=${F9(MUCAP)};
+float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
+float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453123);}
+float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  float a=mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y);
+  float b=mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y);
+  return mix(a,b,f.z);}
+float fbm3(vec3 p){float s=0.,a=.5;for(int i=0;i<3;i++){s+=a*n3(p);p=p*2.11+31.7;a*=.5;}return s;}
+vec3 blackbody(float T){float t=clamp(T,1200.,14000.)*.01;
+  float r=(t<=66.)?1.:clamp(1.2929*pow(t-60.,-.1332),0.,1.);
+  float g=(t<=66.)?clamp(.3901*log(t)-.6318,0.,1.):clamp(1.1299*pow(t-60.,-.0755),0.,1.);
+  float b=(t>=66.)?1.:((t<=19.)?0.:clamp(.5432*log(t-10.)-1.1963,0.,1.));
+  return vec3(r,g,b);}
+vec3 starLayer(vec3 d,float S,float k,float amp,float dens,float gS){
+  vec3 gc=floor(d*S);float h=h31(gc);
+  if(h>dens)return vec3(0.);
+  vec3 j=vec3(h31(gc+11.1),h31(gc+27.3),h31(gc+51.7));
+  vec3 sd=normalize(gc+.5+(j-.5)*.75);
+  float a=dot(d,sd)-1.;
+  float T=mix(3400.,11500.,j.x)*clamp(gS,.35,2.5);
+  return blackbody(T)*amp*(.25+.75*j.y*j.y)*exp(a*k);}
+vec3 bgSky(vec3 d,float gS,float supp,float wdk){
+  vec3 st=vec3(0.);
+  st+=starLayer(d,41.,5.5e5,.85,.04,gS);
+  st+=starLayer(d,113.,2.6e6,.5,.07,gS);
+  vec3 nb=normalize(vec3(.19,1.,.11));
+  float band=exp(-pow(dot(d,nb)*3.4,2.));
+  float neb=fbm3(d*2.3+5.);
+  vec3 nbc=band*(.04*vec3(.70,.73,.86)*neb*neb+.02*vec3(.82,.62,.45)*pow(fbm3(d*5.1-2.),3.));
+  vec3 glow=vec3(.045,.05,.065)*(.6+.8*band);
+  float gpow=pow(clamp(gS,.3,2.2),3.);
+  return ((st+nbc)*(1.-supp)+glow*supp*1.4)*gpow*wdk;}
+/* ── binary trajectory (closed forms; dt = offset from frame time) ── */
+struct TR{vec3 p1;vec3 v1;vec3 p2;vec3 v2;float mu;};
+TR traj(float dt){
+  float dtm=uDTM+dt;
+  float d,Om,phi,dd,mu;
+  if(dtm<0.){
+    float f=max(uF0-dt/TC_,1e-7);
+    float s4=sqrt(sqrt(f));                   /* f^¼ — sqrt chains, no pow */
+    d=A0_*s4;
+    Om=inversesqrt(d)/d;                      /* d^−3/2 */
+    phi=KPHI_*(1.-s4*s4*sqrt(s4));            /* f^⅝ */
+    dd=-A0_/(4.*TC_)/(s4*s4*s4);              /* f^−¾ */
+    float s=clamp((5.5-d)/2.3,0.,1.);mu=MUCAP_*s*s*(3.-2.*s);
+  }else{
+    d=DMRG_*exp(-dtm/(2.*TAUQ_));
+    Om=OMQ2_-(OMQ2_-OMM_)*exp(-dtm/5.);
+    phi=PHIM_+OMQ2_*dtm-(OMQ2_-OMM_)*5.*(1.-exp(-dtm/5.));
+    dd=-d/(2.*TAUQ_);
+    mu=1.-(1.-MUCAP_)*exp(-dtm/TAUQ_);
+  }
+  float c=cos(phi),s=sin(phi);
+  float r1=M2_*d,r2=M1_*d,e1=M2_*dd,e2=M1_*dd;
+  TR t_;
+  t_.p1=vec3(r1*c,r1*s,0.);t_.v1=vec3(e1*c-r1*Om*s,e1*s+r1*Om*c,0.);
+  t_.p2=vec3(-r2*c,-r2*s,0.);t_.v2=vec3(-e2*c+r2*Om*s,-e2*s-r2*Om*c,0.);
+  t_.mu=mu;return t_;}
+/* ── boosted Schwarzschild-KS piece ── */
+void hlB(float m,vec3 P,vec3 V,vec3 q,out float H,out vec4 l,out float rs){
+  vec3 dx=q-P;float v2=dot(V,V);
+  if(v2<1e-12){float r=max(length(dx),1e-9);H=m/r;l=vec4(1.,dx/r);rs=r;return;}
+  float vn=sqrt(v2),ga=inversesqrt(1.-v2);
+  vec3 n=V/vn;float dp=dot(dx,n);vec3 pp=dx-dp*n;
+  rs=max(sqrt(ga*ga*dp*dp+dot(pp,pp)),1e-9);
+  float lsP=ga*dp/rs,lt=ga*(1.-vn*lsP),lP=ga*(lsP-vn);
+  H=m/rs;l=vec4(lt,lP*n+pp/rs);}
+float ksrF(vec3 q){float R2=dot(q,q);float b=R2-AF_*AF_;
+  return sqrt(.5*(b+sqrt(b*b+4.*AF_*AF_*q.z*q.z)));}
+void kerrHL(vec3 q,out float H,out vec4 l,out float rk){
+  float r=ksrF(q),r2=r*r,dn=r2+AF_*AF_;
+  H=MF_*(r*r2)/(r2*r2+AF_*AF_*q.z*q.z+1e-20);
+  l=vec4(1.,(r*q.x+AF_*q.y)/dn,(r*q.y-AF_*q.x)/dn,(r>1e-9)?q.z/r:0.);rk=r;}
+float dE4(vec4 a,vec4 b){return -a.x*b.x+dot(a.yzw,b.yzw);}
+float PhiTR(TR t_,vec3 q,vec4 p){
+  float Ph=0.;
+  if(t_.mu<.9995){                            /* binary term dead in remnant phase */
+    float H1,H2,rs1,rs2;vec4 l1,l2;
+    hlB(M1_,t_.p1,t_.v1,q,H1,l1,rs1);
+    hlB(M2_,t_.p2,t_.v2,q,H2,l2,rs2);
+    float c1=dE4(l1,p),c2=dE4(l2,p),s=dE4(l1,l2);
+    float D=max(1.-4.*H1*H2*s*s,.03);
+    float cw=c2-2.*H1*s*c1;
+    Ph=(1.-t_.mu)*(H1*c1*c1+H2/D*cw*cw);}
+  if(t_.mu>1e-4){float Hk,rk;vec4 lk;kerrHL(q,Hk,lk,rk);
+    float ck=dE4(lk,p);Ph+=t_.mu*Hk*ck*ck;}
+  return Ph;}
+vec4 velTR(TR t_,vec3 q,vec4 p){
+  vec4 v=vec4(-p.x,p.yzw);
+  if(t_.mu<.9995){
+    float H1,H2,rs1,rs2;vec4 l1,l2;
+    hlB(M1_,t_.p1,t_.v1,q,H1,l1,rs1);
+    hlB(M2_,t_.p2,t_.v2,q,H2,l2,rs2);
+    float c1=dE4(l1,p),c2=dE4(l2,p),s=dE4(l1,l2);
+    float D=max(1.-4.*H1*H2*s*s,.03);
+    vec4 u1=vec4(-l1.x,l1.yzw),u2=vec4(-l2.x,l2.yzw);
+    vec4 w=u2-2.*H1*s*u1;
+    float cw=c2-2.*H1*s*c1;
+    v-=(1.-t_.mu)*(2.*H1*c1*u1+(2.*H2/D)*cw*w);}
+  if(t_.mu>1e-4){float Hk,rk;vec4 lk;kerrHL(q,Hk,lk,rk);
+    float ck=dE4(lk,p);v-=t_.mu*2.*Hk*ck*vec4(-lk.x,lk.yzw);}
+  return v;}
+void geo(float dt,vec3 q,vec4 p,out vec4 dxd,out vec4 dpd){
+  TR a=traj(dt);
+  float HT=.02;
+  TR b=traj(dt+HT),c=traj(dt-HT);
+  dxd=velTR(a,q,p);
+  float h=2e-3*max(1.,length(q)*.15);
+  dpd=vec4(
+   (PhiTR(b,q,p)-PhiTR(c,q,p))/(2.*HT),
+   (PhiTR(a,q+vec3(h,0,0),p)-PhiTR(a,q-vec3(h,0,0),p))/(2.*h),
+   (PhiTR(a,q+vec3(0,h,0),p)-PhiTR(a,q-vec3(0,h,0),p))/(2.*h),
+   (PhiTR(a,q+vec3(0,0,h),p)-PhiTR(a,q-vec3(0,0,h),p))/(2.*h));}
+/* ── GW ripple grid on the orbital plane (illustrative; badge on page) ── */
+void gridField(vec3 qc,vec4 p,TR a,float dtc,float wk,inout vec3 col,inout float trans){
+  float rc=length(qc.xy);
+  if(rc<7.5||rc>44.)return;
+  float th=atan(qc.y,qc.x);
+  /* retarded phase/envelope of the outgoing wave (c = 1) */
+  float fr=clamp(uF0+(rc-dtc)/TC_,1e-7,1.2);
+  float dmr=uDTM+dtc-rc;
+  float amp,ph2;
+  if(dmr<0.){
+    float dr=A0_*pow(fr,.25);
+    amp=(A0_/dr)*(1.+.3*exp(-dmr*dmr/40.));
+    ph2=2.*KPHI_*(1.-pow(fr,.625));
+  }else{
+    amp=(A0_/DMRG_)*1.3*exp(-dmr/TAUQ_);
+    ph2=2.*PHIM_+OMQ_*dmr-(OMQ_-2.*OMM_)*5.*(1.-exp(-dmr/5.));
+  }
+  float RIP=clamp(.45*amp/5.28,0.,1.)*(22./max(rc,10.))*cos(ph2-2.*th);
+  /* polar lattice: rings every 4M, spokes every 30° */
+  float ld=(.5-abs(fract(rc/4.)-.5))*4.;
+  float sd=(.5-abs(fract(th*12./TAU)-.5))*(TAU/12.)*rc;
+  float line=exp(-pow(ld/.16,2.))+exp(-pow(sd/.16,2.));
+  float edge=smoothstep(44.,37.,rc)*smoothstep(7.5,10.,rc);
+  /* static-emitter gravitational redshift */
+  float H1,H2,r1,r2,Hk,rk;vec4 l1,l2,lk;
+  hlB(M1_,a.p1,a.v1,qc,H1,l1,r1);
+  hlB(M2_,a.p2,a.v2,qc,H2,l2,r2);
+  kerrHL(qc,Hk,lk,rk);
+  float mgtt=1.-2.*((1.-a.mu)*(H1*l1.x*l1.x+H2*l2.x*l2.x)+a.mu*Hk);
+  float ut=inversesqrt(max(.05,mgtt));
+  float g=1./max(abs(p.x)*ut,1e-4);
+  float gE=mix(1.,g,uDoppler);
+  float e=line*edge*(.13+.50*max(0.,RIP)+.10*abs(RIP))*wk;
+  vec3 gcol=vec3(.50,.60,.80)+vec3(.35,.3,.2)*max(0.,RIP);
+  col+=trans*gcol*e*pow(clamp(gE,.05,2.),4.);
+  trans*=(1.-clamp(e*.22,0.,.35));}
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.-uRes)/uRes.y;
+  vec3 nl=normalize(uLook*normalize(vec3(uv.x*uFovT,uv.y*uFovT,1.)));
+  vec4 k4=-uU+nl.x*uEr+nl.y*uEu+nl.z*uEf;
+  vec4 p=uGcam*k4;                       /* covariant p at camera (CPU-built blended g) */
+  vec3 q=uPos;float dtA=0.;
+  vec3 col=vec3(0.);float trans=1.;
+  vec3 escD=vec3(0,0,1);bool esc=false,cap=false;
+  float rr0=length(uPos);
+  float rEnd=max(rr0*1.6,90.);
+  float wind=0.;vec3 qhPrev=normalize(uPos);
+  float trap=0.;
+  vec4 dxd,dpd;
+  for(int i=0;i<1400;i++){
+    if(i>=uMax)break;
+    TR a=traj(dtA);
+    /* proximity to horizons (binary pieces skipped once remnant settles) */
+    float prox=99.,rel=99.;
+    if(a.mu<.9995){
+      float H1,H2,rs1,rs2;vec4 l1,l2;
+      hlB(M1_,a.p1,a.v1,q,H1,l1,rs1);
+      hlB(M2_,a.p2,a.v2,q,H2,l2,rs2);
+      prox=min(rs1-2.*M1_,rs2-2.*M2_);
+      rel=min(rs1/(2.*M1_),rs2/(2.*M2_));}
+    if(a.mu>.02){
+      float rk=ksrF(q);
+      if(rk<RHF_*1.02){cap=true;break;}
+      prox=min(prox,rk-RHF_);
+      rel=min(rel,rk/RHF_);}
+    if(a.mu<.995&&prox<.04){cap=true;break;}
+    float R=length(q);
+    if(R>rEnd){geo(dtA,q,p,dxd,dpd);escD=normalize(dxd.yzw);esc=true;break;}
+    float dcap=(prox>12.)?1.0:.55;             /* long strides in the flat far field */
+    float dl=uKstep*clamp(.05*min(prox+.03,R),.010,dcap);
+    if(rel<2.)trap+=dl;
+    /* RK4 on (dt, q, p) */
+    vec4 X=vec4(dtA,q);
+    geo(X.x,X.yzw,p,dxd,dpd);vec4 k1x=dxd,k1p=dpd;
+    vec4 X2=X+.5*dl*k1x;vec4 p2=p+.5*dl*k1p;
+    geo(X2.x,X2.yzw,p2,dxd,dpd);vec4 k2x=dxd,k2p=dpd;
+    vec4 X3=X+.5*dl*k2x;vec4 p3=p+.5*dl*k2p;
+    geo(X3.x,X3.yzw,p3,dxd,dpd);vec4 k3x=dxd,k3p=dpd;
+    vec4 X4=X+dl*k3x;vec4 p4=p+dl*k3p;
+    geo(X4.x,X4.yzw,p4,dxd,dpd);vec4 k4x=dxd,k4p=dpd;
+    vec4 Xn=X+dl*(k1x+2.*k2x+2.*k3x+k4x)/6.;
+    vec4 pn=p+dl*(k1p+2.*k2p+2.*k3p+k4p)/6.;
+    if(PhiTR(a,Xn.yzw,pn)>1e5){cap=true;break;}   /* substep punched a horizon */
+    if(uGrid>.5&&q.z*Xn.w<0.){
+      float f=q.z/(q.z-Xn.w);
+      float wkk=exp(-max(0.,wind-5.5));
+      gridField(mix(q,Xn.yzw,f),mix(p,pn,f),a,mix(X.x,Xn.x,f),wkk,col,trans);
+      if(trans<.02){q=Xn.yzw;dtA=Xn.x;p=pn;break;}}
+    vec3 qh=normalize(Xn.yzw);
+    wind+=acos(clamp(dot(qh,qhPrev),-1.,1.));qhPrev=qh;
+    q=Xn.yzw;dtA=Xn.x;p=pn;}
+  float mfw=length(fwidth(escD));
+  float wdk=exp(-max(0.,wind-5.5));
+  float tdk=exp(-max(0.,trap-14.)*.45);
+  float supp=max(smoothstep(.006,.05,mfw),smoothstep(5.5,10.5,wind));
+  if(esc){
+    float gS=1./max(abs(p.x),1e-3);
+    col+=trans*bgSky(escD,gS,supp,wdk*tdk);}
+  else if(!esc&&!cap){
+    TR a=traj(dtA);
+    float H1,H2,rs1,rs2;vec4 l1,l2;
+    hlB(M1_,a.p1,a.v1,q,H1,l1,rs1);
+    hlB(M2_,a.p2,a.v2,q,H2,l2,rs2);
+    float rel=min(min(rs1/(2.*M1_),rs2/(2.*M2_)),(a.mu>.02)?ksrF(q)/RHF_:99.);
+    if(rel>1.25){
+      float gS=1./max(abs(p.x),1e-3);
+      col+=trans*vec3(.05,.055,.07)*pow(clamp(gS,.3,2.2),3.)*1.2*wdk*tdk;}}
+  col*=uExpo*uSeam;
+  col=clamp((col*(2.51*col+.03))/(col*(2.43*col+.59)+.14),0.,1.);
+  col=pow(col,vec3(1./2.2));
+  col+=(h21(gl_FragCoord.xy)-.5)/255.;
+  O=vec4(col,1.);}`;
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)){fail("shader:\n"+gl.getShaderInfoLog(o));throw 0;}
+  return o;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));
+gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){fail("link: "+gl.getProgramInfoLog(prog));return;}
+gl.useProgram(prog);gl.bindVertexArray(gl.createVertexArray());
+const U={};
+["uRes","uPos","uGcam","uU","uEf","uEu","uEr","uLook","uFovT","uDoppler","uExpo",
+ "uKstep","uSeam","uF0","uDTM","uMu","uGrid","uMax"]
+ .forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+
+/* ═══════════ camera: static observer, GS tetrad against blended g ═══════════ */
+function tetrad(t,x,y,z,fg,ug){
+  const g=gCovAt(t,[x,y,z]);
+  const u=[1/Math.sqrt(Math.max(1e-9,-g[0][0])),0,0,0];
+  const proj=(v,es)=>{let w=v.slice();
+    for(const o of es){const c=mdot(g,w,o.e)*o.s;for(let i=0;i<4;i++)w[i]-=c*o.e[i];}return w;};
+  const nrm=v=>{const n=Math.sqrt(Math.max(1e-15,mdot(g,v,v)));return v.map(q=>q/n);};
+  const es=[{e:u,s:-1}];
+  const ef=nrm(proj(fg,es));es.push({e:ef,s:1});
+  const eu=nrm(proj(ug,es));es.push({e:eu,s:1});
+  let best=null,bn=-1;
+  for(const c of [[0,1,0,0],[0,0,1,0],[0,0,0,1]]){
+    const w=proj(c,es);const n=mdot(g,w,w);if(n>bn){bn=n;best=w;}}
+  return {u,ef,eu,er:nrm(best),g};
+}
+
+/* ═══════════ state & UI ═══════════ */
+const T_PLAY=76;
+const DEF={az:2.50,el:0.55,R:42};
+const st={az:DEF.az,el:DEF.el,R:DEF.R,quality:"mid",doppler:1,exposure:1.0,grid:true,
+  orbit:!matchMedia("(prefers-reduced-motion: reduce)").matches,
+  u:FREEZE!==null?FREEZE:0.002,playing:FREEZE===null,speed:1};
+const QP={low:{scale:.40,steps:220,k:1.5},mid:{scale:.55,steps:300,k:1.15},high:{scale:.85,steps:520,k:.8}};
+if(TEST)QP.mid={scale:.40,steps:200,k:1.5};
+st.dyn=1;                                   /* adaptive resolution multiplier */
+
+function resize(){
+  if(VIDEO){
+    if(canvas.width!==(VW||3840))canvas.width=VW||3840;
+    if(canvas.height!==(VH||2160))canvas.height=VH||2160;
+    return;}
+  const q=QP[st.quality];
+  const dpr=Math.min(devicePixelRatio||1,2);
+  let w=Math.round(canvas.clientWidth*dpr*q.scale*st.dyn);
+  let h=Math.round(canvas.clientHeight*dpr*q.scale*st.dyn);
+  const cap2=Math.sqrt(1.4e6/Math.max(w*h,1));
+  if(cap2<1){w=Math.round(w*cap2);h=Math.round(h*cap2);}
+  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}}
+addEventListener("resize",resize);
+
+const ptrs=new Map();let lastPinch=0;
+canvas.addEventListener("pointerdown",e=>{canvas.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add("grabbing");});
+canvas.addEventListener("pointermove",e=>{
+  if(!ptrs.has(e.pointerId))return;
+  const p=ptrs.get(e.pointerId);
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size===1){st.az-=dx*0.0045;st.el=Math.max(-1.45,Math.min(1.45,st.el+dy*0.0045));}
+  else if(ptrs.size===2){const a=[...ptrs.values()];
+    const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(lastPinch>0)st.R=clampR(st.R*lastPinch/d);lastPinch=d;}});
+function endPtr(e){ptrs.delete(e.pointerId);lastPinch=0;canvas.classList.remove("grabbing");}
+canvas.addEventListener("pointerup",endPtr);
+canvas.addEventListener("pointercancel",endPtr);
+function clampR(r){return Math.max(15,Math.min(80,r));}
+canvas.addEventListener("wheel",e=>{e.preventDefault();
+  st.R=clampR(st.R*Math.exp(e.deltaY*0.0012));},{passive:false});
+addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT")return;
+  const s=0.06;
+  if(e.key==="ArrowLeft")st.az+=s;else if(e.key==="ArrowRight")st.az-=s;
+  else if(e.key==="ArrowUp")st.el=Math.min(1.45,st.el+s*.6);
+  else if(e.key==="ArrowDown")st.el=Math.max(-1.45,st.el-s*.6);
+  else if(e.key==="+"||e.key==="=")st.R=clampR(st.R*.93);
+  else if(e.key==="-")st.R=clampR(st.R*1.07);
+  else if(e.key===" "){e.preventDefault();togglePlay();}});
+
+const tl=$("tl");
+tl.value=Math.round(st.u*1000);
+function togglePlay(){st.playing=!st.playing;$("playBtn").textContent=st.playing?"⏸":"▶";}
+if(!st.playing)$("playBtn").textContent="▶";
+$("playBtn").addEventListener("click",()=>{
+  if(!st.playing&&st.u>=0.999)st.u=0.002;   /* replay from start */
+  togglePlay();});
+tl.addEventListener("input",e=>{st.u=+e.target.value/1000;st.playing=false;
+  $("playBtn").textContent="▶";});
+$("spseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  st.speed=+b.dataset.s;
+  for(const x of $("spseg").children)x.classList.toggle("on",x===b);
+  $("spv").textContent=b.dataset.s+"×";});
+$("qseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  st.quality=b.dataset.q;st.dyn=1;
+  for(const x of $("qseg").children)x.classList.toggle("on",x===b);
+  $("qv").textContent=b.textContent;resize();});
+$("dop").addEventListener("input",e=>{st.doppler=+e.target.value;
+  $("dopv").textContent=st.doppler.toFixed(2)+(st.doppler>0.85?" · 物理":st.doppler<0.15?" · 电影":"");});
+$("expo").addEventListener("input",e=>{st.exposure=+e.target.value;
+  $("expv").textContent=st.exposure.toFixed(1);});
+(function(){const el2=$("gridSw");
+  el2.classList.toggle("on",st.grid);el2.setAttribute("aria-checked",String(st.grid));
+  el2.addEventListener("click",()=>{st.grid=!st.grid;
+    el2.classList.toggle("on",st.grid);el2.setAttribute("aria-checked",String(st.grid));});})();
+(function(){const el2=$("orbitSw");
+  el2.classList.toggle("on",st.orbit);el2.setAttribute("aria-checked",String(st.orbit));
+  el2.addEventListener("click",()=>{st.orbit=!st.orbit;
+    el2.classList.toggle("on",st.orbit);el2.setAttribute("aria-checked",String(st.orbit));});})();
+$("resetBtn").addEventListener("click",()=>{st.az=DEF.az;st.el=DEF.el;st.R=DEF.R;});
+const panel=$("panel");
+function togglePanel(){panel.classList.toggle("closed");}
+$("panelHead").addEventListener("click",togglePanel);
+$("panelHead").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();togglePanel();}});
+if(innerWidth<720)panel.classList.add("closed");
+$("infoBtn2").addEventListener("click",()=>$("info").classList.add("open"));
+$("infoClose").addEventListener("click",()=>$("info").classList.remove("open"));
+addEventListener("keydown",e=>{if(e.key==="Escape")$("info").classList.remove("open");});
+
+/* ═══════════ strain chart (LIGO style) ═══════════ */
+const scv=$("sc"),sctx=scv.getContext("2d");
+function drawSC(u){
+  const W2=scv.width,H2=scv.height,mid=H2/2;
+  sctx.clearRect(0,0,W2,H2);
+  sctx.strokeStyle="rgba(232,228,218,.10)";sctx.lineWidth=1;
+  sctx.beginPath();sctx.moveTo(6,mid);sctx.lineTo(W2-6,mid);sctx.stroke();
+  const xm=6+(W2-12)*(TMRG/T_END);
+  sctx.strokeStyle="rgba(232,163,61,.25)";
+  sctx.setLineDash([3,4]);sctx.beginPath();sctx.moveTo(xm,6);sctx.lineTo(xm,H2-6);sctx.stroke();
+  sctx.setLineDash([]);
+  const tNow=tOf(u), iNow=Math.min(NW-1,Math.round(tNow/T_END*(NW-1)));
+  const px=i=>6+(W2-12)*i/(NW-1), py=i=>mid-WAVE[i]*(H2/2-8);
+  sctx.strokeStyle="rgba(232,228,218,.16)";sctx.lineWidth=1.2;sctx.beginPath();
+  for(let i=0;i<NW;i+=2){if(i===0)sctx.moveTo(px(i),py(i));else sctx.lineTo(px(i),py(i));}
+  sctx.stroke();
+  sctx.strokeStyle="rgba(232,163,61,.95)";sctx.lineWidth=2;sctx.beginPath();
+  for(let i=0;i<=iNow;i++){if(i===0)sctx.moveTo(px(i),py(i));else sctx.lineTo(px(i),py(i));}
+  sctx.stroke();
+  sctx.fillStyle="#E8E4DA";sctx.beginPath();sctx.arc(px(iNow),py(iNow),4,0,7);sctx.fill();
+}
+
+/* ═══════════ render loop ═══════════ */
+const readout=$("readout");
+let last=performance.now(),fps=0,acc=0,first=true,dynAcc=0;
+function frame(now){
+  requestAnimationFrame(frame);
+  if(document.hidden)return;
+  const dt=Math.min((now-last)/1000,0.1);last=now;
+  fps=fps*.92+(dt>0?1/dt:0)*.08;
+  dynAcc+=dt;                       /* adaptive resolution: aim for fluid interaction */
+  if(dynAcc>0.9&&!first){dynAcc=0;
+    if(fps<22)st.dyn=Math.max(0.5,st.dyn*0.85);
+    else if(fps>44)st.dyn=Math.min(1,st.dyn*1.12);}
+  if(st.orbit)st.az+=dt*0.035;
+  if(st.playing&&FREEZE===null){
+    st.u+=dt*st.speed/T_PLAY;
+    if(st.u>=0.9999){st.u=0.9999;st.playing=false;$("playBtn").textContent="▶";}
+    tl.value=Math.round(st.u*1000);}
+  acc+=dt;
+  drawCore(FREEZE!==null);
+}
+function drawCore(forceHUD){
+  resize();
+  const t=tOf(st.u);
+  const o=trajJ(t);
+  const ce=Math.cos(st.el),se=Math.sin(st.el);
+  const cp=[st.R*ce*Math.cos(st.az),st.R*ce*Math.sin(st.az),st.R*se];
+  const rr=Math.hypot(cp[0],cp[1],cp[2]);
+  const T0=tetrad(t,cp[0],cp[1],cp[2],[0,-cp[0]/rr,-cp[1]/rr,-cp[2]/rr],[0,0,0,1]);
+  const Gflat=new Float32Array(16);
+  for(let c=0;c<4;c++)for(let r=0;r<4;r++)Gflat[c*4+r]=T0.g[r][c];  /* column-major */
+  gl.viewport(0,0,canvas.width,canvas.height);
+  gl.uniform2f(U.uRes,canvas.width,canvas.height);
+  gl.uniform3fv(U.uPos,cp);
+  gl.uniformMatrix4fv(U.uGcam,false,Gflat);
+  gl.uniform4fv(U.uU,T0.u);gl.uniform4fv(U.uEf,T0.ef);
+  gl.uniform4fv(U.uEu,T0.eu);gl.uniform4fv(U.uEr,T0.er);
+  gl.uniformMatrix3fv(U.uLook,false,[1,0,0, 0,1,0, 0,0,1]);
+  gl.uniform1f(U.uFovT,Math.tan(62*Math.PI/360));
+  gl.uniform1f(U.uDoppler,st.doppler);
+  gl.uniform1f(U.uExpo,st.exposure);
+  const seam=st.u<0.015?st.u/0.015:1;
+  gl.uniform1f(U.uSeam,seam);
+  const q=QP[st.quality];
+  gl.uniform1f(U.uKstep,q.k);gl.uniform1i(U.uMax,q.steps);
+  gl.uniform1f(U.uF0,1-t/TC);
+  gl.uniform1f(U.uDTM,t-TMRG);
+  gl.uniform1f(U.uMu,o.mu);
+  gl.uniform1f(U.uGrid,st.grid?1:0);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  if(first){first=false;stage.classList.add("ready");window.__ready=true;}
+  /* HUD */
+  if(acc>0.12||forceHUD){acc=0;
+    const ph=PHASES.find(p2=>st.u>=p2.u0&&st.u<p2.u1)||PHASES[4];
+    if(o.mu<0.90)
+      $("d1").innerHTML="d "+o.d.toFixed(1)+'<span class="u">M</span>';
+    else
+      $("d1").innerHTML="f<sub>ring</sub> "+Math.round(fGW(t))+'<span class="u">Hz</span>';
+    const v=Math.min(0.99,o.Om*o.d*M1);
+    $("rsub").innerHTML=
+      "f_GW "+fGW(t).toFixed(0)+" Hz · v_orb "+(o.mu<0.9?v.toFixed(2)+" c":"—")+"<br>"+
+      "E_GW "+eRad(t).toFixed(2)+" / 3.0 M☉ · 36+29 M☉";
+    $("phbadge").textContent=ph.zh+" · "+ph.speed;
+    let cap="",cop=0;const ts=st.u;
+    for(const c2 of CAPS)if(ts>=c2[0]&&ts<=c2[1]){cap=c2[2];
+      const fi=Math.min(1,(ts-c2[0])/0.012),fo=Math.min(1,(c2[1]-ts)/0.012);
+      cop=Math.max(0,Math.min(fi,fo));break;}
+    const C=$("cap");C.textContent=cap;C.style.opacity=cop;
+    $("tlv").textContent=Math.round(st.u*100)+"%";
+    readout.textContent="r_cam "+st.R.toFixed(0)+" M · "+Math.round(fps)+" fps · "
+      +canvas.width+"×"+canvas.height;
+    drawSC(st.u);}
+}
+/* ═══════════ video mode: deterministic frame API + scripted camera ═══════════ */
+function camKeys(ts){
+  const K=[[0,2.30,0.95,55],[13,2.62,0.72,44],[27,2.95,0.50,33],
+           [40,3.25,0.38,26],[47,3.50,0.34,22],[54,3.70,0.42,26],
+           [63,3.95,0.55,33],[76.01,4.15,0.62,40]];
+  let a=K[0],b=K[K.length-1];
+  for(let i=0;i<K.length-1;i++)if(ts>=K[i][0]&&ts<=K[i+1][0]){a=K[i];b=K[i+1];break;}
+  const f=smooth(Math.min(1,Math.max(0,(ts-a[0])/Math.max(1e-6,b[0]-a[0]))));
+  return {az:lerp(a[1],b[1],f),el:lerp(a[2],b[2],f),R:lerp(a[3],b[3],f)};}
+/* ═══════════ physics self-test (?test) ═══════════ */
+if(TEST){
+  const t0=2245, q0=[3,-5,2];
+  const gi=ginvEff(t0,q0), gc=inv4(gi);
+  let wI=0;
+  for(let i=0;i<4;i++)for(let j=0;j<4;j++){
+    let s=0;for(let a2=0;a2<4;a2++)s+=gi[i][a2]*gc[a2][j];
+    wI=Math.max(wI,Math.abs(s-(i===j?1:0)));}
+  const T5=tetrad(t0,0,-40,14,[0,0,1,0],[0,0,0,1]);
+  const nn=Math.hypot(0.3,0.9),na=0.3/nn,nb=0.9/nn;   /* unit spatial dir → exact null */
+  const k=[-T5.u[0]+na*T5.er[0]+nb*T5.ef[0],-T5.u[1]+na*T5.er[1]+nb*T5.ef[1],
+           -T5.u[2]+na*T5.er[2]+nb*T5.ef[2],-T5.u[3]+na*T5.er[3]+nb*T5.ef[3]];
+  /* covariant p = g·k, then 𝓗 = ½p·g⁻¹·p should vanish… up to tetrad norm (k not unit-null here) */
+  const gk=[0,1,2,3].map(i=>T5.g[i][0]*k[0]+T5.g[i][1]*k[1]+T5.g[i][2]*k[2]+T5.g[i][3]*k[3]);
+  const gi5=ginvEff(t0,[0,-40,14]);
+  let H5=0;for(let i=0;i<4;i++)for(let j=0;j<4;j++)H5+=0.5*gi5[i][j]*gk[i]*gk[j];
+  const e1=trajJ(TMRG-1e-6), e2=trajJ(TMRG+1e-6);
+  window.__PHYS={ginvResid:wI,camNull:Math.abs(H5),
+    trajC0:Math.abs(e1.d-e2.d)+Math.abs(e1.phi-e2.phi),
+    muAtMrg:e2.mu, dAt2225:trajJ(2225).d};
+  console.log("PHYS",window.__PHYS);
+}
+if(VIDEO){
+  document.documentElement.classList.add("notrans");
+  $("panel").style.display="none";
+  const Z=(VW||innerWidth)/1280;
+  for(const sel of[".plate",".rbox","#cap",".readout"]){
+    const el2=document.querySelector(sel);if(el2)el2.style.zoom=Z;}
+  st.orbit=false;st.playing=false;
+  const QOV=Q.get("q");
+  st.quality=(QOV&&QP[QOV])?QOV:(TEST?st.quality:"high");
+  window.__nframes=Math.round(VFPS*VDUR);
+  window.__setFrame=f=>{window.__frameReady=false;
+    const ts=f/VFPS;st.u=Math.min(0.9999,ts/VDUR);
+    const c=camKeys(ts);st.az=c.az;st.el=c.el;st.R=c.R;
+    requestAnimationFrame(()=>{drawCore(true);gl.finish();window.__frameReady=true;});};
+  resize();
+  drawCore(true);
+  stage.classList.add("ready");window.__ready=true;
+}else{
+  resize();
+  requestAnimationFrame(frame);
+}
+})();
+</script>

@@ -1,0 +1,716 @@
+<title>Cosmogenesis · 宇宙创生</title>
+<style>
+  :root{
+    --ink:#e9ecf5; --dim:#8b93a7; --line:rgba(255,255,255,.14);
+    --panel:rgba(10,12,20,.44); --panelb:rgba(255,255,255,.10);
+    --accent:#8fbfff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;touch-action:none;}
+  #app{position:fixed;inset:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  /* cinematic letterbox */
+  .bar{position:absolute;left:0;right:0;height:0;background:#000;z-index:5;
+    transition:height .6s cubic-bezier(.4,0,.2,1);pointer-events:none}
+  .bar.top{top:0} .bar.bot{bottom:0}
+  body.cine .bar{height:6.5vh}
+
+  /* top-left epoch readout */
+  #hud{position:absolute;top:22px;left:24px;z-index:10;max-width:min(46vw,420px);
+    pointer-events:none;text-shadow:0 1px 18px rgba(0,0,0,.9)}
+  #epoch{font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);
+    font-weight:600;opacity:.9}
+  #ename{font-size:clamp(20px,3.2vw,34px);font-weight:600;margin:.18em 0 .05em;
+    letter-spacing:.01em;line-height:1.08}
+  #esub{font-size:13px;color:var(--dim);letter-spacing:.04em;line-height:1.5;max-width:34ch}
+  #stats{margin-top:14px;display:grid;grid-template-columns:auto auto;gap:5px 20px;
+    font-variant-numeric:tabular-nums;font-size:12.5px}
+  #stats .k{color:var(--dim);letter-spacing:.06em}
+  #stats .v{color:var(--ink);text-align:right;font-weight:500}
+
+  /* right meta */
+  #brand{position:absolute;top:22px;right:24px;z-index:10;text-align:right;
+    pointer-events:none;text-shadow:0 1px 18px rgba(0,0,0,.9)}
+  #brand .t{font-size:13px;letter-spacing:.34em;text-transform:uppercase;color:var(--dim)}
+  #brand .s{font-size:11px;color:#5a6379}
+
+  /* bottom control deck */
+  #deck{position:absolute;left:0;right:0;bottom:0;z-index:12;padding:16px clamp(16px,3vw,34px) 20px;
+    background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.30) 62%,rgba(0,0,0,0) 100%);}
+  #chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
+  .chip{pointer-events:auto;cursor:pointer;font-size:12px;letter-spacing:.03em;
+    padding:7px 13px;border-radius:999px;border:1px solid var(--panelb);
+    background:var(--panel);color:var(--dim);backdrop-filter:blur(9px);
+    -webkit-backdrop-filter:blur(9px);white-space:nowrap;transition:.22s;display:flex;gap:8px;align-items:center}
+  .chip:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+  .chip.on{color:#06121f;background:var(--accent);border-color:var(--accent);font-weight:600}
+  .chip .n{opacity:.6;font-variant-numeric:tabular-nums}
+  .chip.on .n{opacity:.8}
+
+  /* timeline */
+  #tl{position:relative;height:26px;margin:2px 2px 12px;cursor:pointer;pointer-events:auto}
+  #track{position:absolute;top:11px;left:0;right:0;height:4px;border-radius:4px;
+    background:rgba(255,255,255,.12);overflow:hidden}
+  #fill{position:absolute;top:0;left:0;height:100%;border-radius:4px;
+    background:linear-gradient(90deg,#ff6a3d,#ffd166,#9fe6ff,#8fbfff);}
+  .mark{position:absolute;top:6px;width:2px;height:14px;background:rgba(255,255,255,.28);
+    transform:translateX(-1px);border-radius:2px}
+  #head{position:absolute;top:50%;width:15px;height:15px;border-radius:50%;
+    background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 4px rgba(143,191,255,.28),0 2px 10px rgba(0,0,0,.6);}
+
+  #row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .btn{pointer-events:auto;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+    gap:8px;height:38px;padding:0 15px;border-radius:10px;border:1px solid var(--panelb);
+    background:var(--panel);color:var(--ink);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+    font-size:13px;transition:.2s}
+  .btn:hover{border-color:rgba(255,255,255,.32);background:rgba(20,24,36,.6)}
+  .btn.icon{width:44px;padding:0}
+  .btn svg{width:15px;height:15px;fill:currentColor}
+  #play{width:52px;height:52px;border-radius:50%;background:var(--accent);color:#06121f;border:none}
+  #play:hover{background:#a8ccff}
+  #play svg{width:19px;height:19px}
+  .seg{display:inline-flex;border:1px solid var(--panelb);border-radius:10px;overflow:hidden;
+    background:var(--panel);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+  .seg button{pointer-events:auto;cursor:pointer;background:none;border:none;color:var(--dim);
+    font-size:12.5px;padding:9px 12px;transition:.18s;font-family:inherit}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:rgba(143,191,255,.18);color:var(--ink)}
+  .spacer{flex:1 1 auto;min-width:8px}
+  .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-right:2px}
+
+  #hint{position:absolute;left:50%;bottom:calc(20px + 160px);transform:translateX(-50%);z-index:9;
+    font-size:12px;color:var(--dim);letter-spacing:.05em;pointer-events:none;
+    opacity:0;transition:opacity .8s;text-align:center;text-shadow:0 1px 12px #000}
+  #hint.show{opacity:.85}
+
+  #err{position:absolute;inset:0;display:none;place-items:center;z-index:30;text-align:center;padding:30px}
+  #err.show{display:grid}
+  #err div{max-width:420px;color:var(--dim);font-size:14px;line-height:1.7}
+
+  @media (max-width:640px){
+    #hud{max-width:70vw} #brand{display:none}
+    #stats{grid-template-columns:auto auto}
+    .lbl{display:none}
+  }
+</style>
+
+<div id="app">
+  <canvas id="c"></canvas>
+  <div class="bar top"></div>
+  <div class="bar bot"></div>
+
+  <div id="hud">
+    <div id="epoch">— </div>
+    <div id="ename">宇宙创生</div>
+    <div id="esub"></div>
+    <div id="stats">
+      <span class="k">距大爆炸 t</span><span class="v" id="s-t">—</span>
+      <span class="k">温度 T</span><span class="v" id="s-temp">—</span>
+      <span class="k">红移 z</span><span class="v" id="s-z">—</span>
+      <span class="k">尺度因子 a</span><span class="v" id="s-a">—</span>
+    </div>
+  </div>
+
+  <div id="brand">
+    <div class="t">Cosmogenesis</div>
+    <div class="s" style="color:#5a6379">时空膨胀 · 示意可视化</div>
+  </div>
+
+  <div id="hint">拖动时间轴穿越宇宙纪元 · 拖拽画面视差 · 滚轮缩放 · 空格播放</div>
+
+  <div id="deck">
+    <div id="chips"></div>
+    <div id="tl">
+      <div id="track"><div id="fill"></div></div>
+      <div id="head"></div>
+    </div>
+    <div id="row">
+      <button id="play" class="btn" title="播放 / 暂停 (Space)">
+        <svg id="ic-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="ic-pause" viewBox="0 0 24 24" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+      <button id="replay" class="btn icon" title="重播">
+        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+      </button>
+      <div class="seg" id="speed">
+        <span class="lbl" style="padding:9px 4px 9px 12px">速度</span>
+        <button data-s="0.35">0.35×</button>
+        <button data-s="0.6" class="on">0.6×</button>
+        <button data-s="1">1×</button>
+        <button data-s="2">2×</button>
+      </div>
+      <div class="spacer"></div>
+      <div class="seg" id="quality">
+        <span class="lbl" style="padding:9px 4px 9px 12px">画质</span>
+        <button data-q="0.7">省电</button>
+        <button data-q="1" class="on">标准</button>
+        <button data-q="1.5">极致</button>
+      </div>
+      <button id="cine" class="btn">影院比例</button>
+    </div>
+  </div>
+
+  <div id="err"><div id="errmsg"></div></div>
+</div>
+
+<script type="text/plain" id="vert">#version 300 es
+void main(){
+  vec2 p = vec2(float((gl_VertexID<<1)&2), float(gl_VertexID&2));
+  gl_Position = vec4(p*2.0-1.0, 0.0, 1.0);
+}
+</script>
+
+<script type="text/plain" id="frag">#version 300 es
+precision highp float;
+out vec4 outColor;
+
+uniform vec2  uRes;
+uniform float uTime;    // seconds, motion
+uniform float uT;       // cosmic time 0..1
+uniform vec2  uMouse;   // parallax -1..1
+uniform float uZoom;    // user zoom
+uniform vec2  uPan;     // user pan
+uniform int   uOct;     // fbm octaves (quality)
+
+const float PI = 3.14159265;
+
+// ---------------- hashing ----------------
+float h11(float p){ p=fract(p*0.1031); p*=p+33.33; p*=p+p; return fract(p); }
+float h21(vec2 p){ vec3 p3=fract(vec3(p.xyx)*0.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+vec2  h22(vec2 p){ vec3 p3=fract(vec3(p.xyx)*vec3(.1031,.1030,.0973)); p3+=dot(p3,p3.yzx+33.33); return fract((p3.xx+p3.yz)*p3.zy); }
+
+// value noise
+float vnoise(vec2 p){
+  vec2 i=floor(p), f=fract(p);
+  vec2 u=f*f*(3.0-2.0*f);
+  float a=h21(i), b=h21(i+vec2(1,0)), c=h21(i+vec2(0,1)), d=h21(i+vec2(1,1));
+  return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
+}
+const mat2 M2 = mat2(1.62,1.20,-1.20,1.62);
+float fbm(vec2 p){
+  float s=0.0, a=0.55;
+  for(int i=0;i<8;i++){ if(i>=uOct) break; s+=a*vnoise(p); p=M2*p+11.3; a*=0.5; }
+  return s;
+}
+float ridged(vec2 p){
+  float s=0.0, a=0.55;
+  for(int i=0;i<8;i++){ if(i>=uOct) break; float n=1.0-abs(vnoise(p)*2.0-1.0); n*=n; s+=a*n; p=M2*p+5.7; a*=0.5; }
+  return s;
+}
+// cellular (worley) -> vec2(F1,F2)
+vec2 worley(vec2 p){
+  vec2 ip=floor(p), fp=fract(p);
+  float f1=9.0, f2=9.0;
+  for(int j=-1;j<=1;j++)
+  for(int i=-1;i<=1;i++){
+    vec2 g=vec2(float(i),float(j));
+    vec2 o=h22(ip+g);
+    o=0.5+0.42*sin(uTime*0.06 + 6.2831*o);
+    vec2 r=g+o-fp;
+    float d=dot(r,r);
+    if(d<f1){ f2=f1; f1=d; } else if(d<f2){ f2=d; }
+  }
+  return sqrt(vec2(f1,f2));
+}
+
+// ---------------- color ----------------
+// temperature ramp: 0 cool .. 1 white/blue-hot
+vec3 palTemp(float t){
+  t=clamp(t,0.0,1.0);
+  vec3 c0=vec3(0.32,0.028,0.02);   // deep red
+  vec3 c1=vec3(0.95,0.24,0.05);    // orange-red
+  vec3 c2=vec3(1.0,0.68,0.24);     // gold
+  vec3 c3=vec3(1.0,0.985,0.93);    // white-hot
+  vec3 c4=vec3(0.66,0.82,1.0);     // blue-white
+  vec3 c;
+  if(t<0.25)      c=mix(c0,c1,t/0.25);
+  else if(t<0.5)  c=mix(c1,c2,(t-0.25)/0.25);
+  else if(t<0.75) c=mix(c2,c3,(t-0.5)/0.25);
+  else            c=mix(c3,c4,(t-0.75)/0.25);
+  return c;
+}
+vec3 aces(vec3 x){
+  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0);
+}
+float starfield(vec2 p, float dens, float sc){
+  vec2 g=p*sc; vec2 ip=floor(g); vec2 fp=fract(g);
+  float v=0.0;
+  for(int j=-1;j<=1;j++)
+  for(int i=-1;i<=1;i++){
+    vec2 o=vec2(float(i),float(j));
+    vec2 r=h22(ip+o);
+    if(r.x>1.0-dens){
+      vec2 pos=o+vec2(r.y, h21(ip+o+3.1))-fp;
+      float d=length(pos);
+      float tw=0.7+0.3*sin(uTime*2.0+r.y*40.0);
+      v+=smoothstep(0.09,0.0,d)*tw;
+    }
+  }
+  return v;
+}
+
+// =============== PHASE 1 — primordial singularity ===============
+vec3 phase1(vec2 p){
+  float r=length(p);
+  // spacetime warp: swirl that intensifies toward the seed
+  float sw = 0.55/(r+0.14);
+  float ca=cos(sw), sa=sin(sw);
+  vec2 ps = mat2(ca,-sa,sa,ca)*p;
+  // roiling domain-warped core texture
+  vec2 q = vec2(fbm(ps*3.2+uTime*0.12), fbm(ps*3.2-uTime*0.10+7.0));
+  float n = fbm(ps*5.0 + q*2.4 + uTime*0.16);
+  float roil = 0.4+0.6*n;
+
+  vec3 col=vec3(0.0);
+  float core  = exp(-r*r*90.0);   // tight incandescent heart
+  float inner = exp(-r*9.0);      // energetic body
+  float halo  = exp(-r*4.0);      // limited halo (does NOT fill frame)
+
+  col += vec3(0.78,0.86,1.0)*core*(0.6+0.65*roil)*8.5;  // blue-white heart, textured (not a clean ball)
+  col += palTemp(0.80+0.18*roil)*inner*roil*3.0;    // gold/white energetic body
+  col += palTemp(0.32)*halo*roil*0.6;               // dim deep-red outer
+
+  // filamentary spacetime threads radiating from the seed
+  float thr = ridged(ps*(3.5 + r*10.0));
+  col += palTemp(0.7)*thr*inner*roil*0.85;
+
+  // warped spacetime grid bending near the seed (subtle, cool)
+  vec2 gp = ps*8.0;
+  float grid = min(abs(sin(gp.x)), abs(sin(gp.y)));
+  col += vec3(0.42,0.62,1.0)*smoothstep(0.12,0.0,grid)*exp(-r*4.2)*0.28;
+
+  // hard radial vignette down to deep space
+  col *= smoothstep(1.1,0.05,r);
+  return col;
+}
+
+// =============== PHASE 2 — inflation ===============
+vec3 phase2(vec2 p, float lt){ // lt: local progress 0..1
+  float r=length(p);
+  vec3 col=vec3(0.0);
+
+  // grid stretches: density collapses as space inflates
+  float dens = mix(22.0, 1.6, pow(lt,0.7));
+  vec2 g = p*dens;
+  vec2 gd = abs(fract(g)-0.5);
+  float line = 1.0 - smoothstep(0.0, 0.055, min(gd.x,gd.y));
+  float gfade = exp(-r*1.1);
+  col += vec3(0.45,0.68,1.0)*line*gfade*mix(1.6,0.5,lt);
+
+  // fading remnant of the seed being pulled away
+  col += palTemp(0.85)*exp(-r*(5.0+lt*30.0))*mix(4.0,0.2,lt);
+
+  // luminous expanding ripples of the inflaton field
+  float wl = mix(34.0, 5.0, lt);
+  float ph = r*wl - uTime*3.4 - lt*10.0;
+  float rip = 0.5+0.5*sin(ph);
+  rip = pow(rip, 5.0);
+  float ring = rip*exp(-r*1.4)*smoothstep(0.02,0.4,r);
+  col += palTemp(0.68)*ring*2.2;
+
+  // energy shimmer filling the stretched space
+  float sh=fbm(p*mix(4.0,1.4,lt)+uTime*0.2);
+  col += vec3(0.35,0.5,0.9)*sh*0.5*gfade*lt;
+
+  return col;
+}
+
+// =============== PHASE 3 — hot plasma universe ===============
+vec3 phase3(vec2 p){
+  // multi-level domain warp -> turbulent radiation fluid
+  vec2 q  = vec2(fbm(p*1.9+uTime*0.14), fbm(p*1.9-uTime*0.11+4.0));
+  vec2 r2 = vec2(fbm(p*2.4+q*3.0+uTime*0.18), fbm(p*2.4+q*3.0-uTime*0.15+9.0));
+  float f = fbm(p*3.1 + r2*3.2 + uTime*0.10);
+
+  // contrasty density: dark cool valleys between glowing plasma
+  float dens = clamp((f-0.28)/0.60, 0.0, 1.0);
+  float body = pow(dens, 1.7);
+
+  // independent large-scale TEMPERATURE field -> interwoven color zones
+  // (some regions blaze blue-white, others glow gold or orange-red)
+  float tf = fbm(p*1.5 + q*2.0 + vec2(uTime*0.05, uTime*0.03));
+  float temp = clamp(0.14 + tf*0.98, 0.0, 1.0);   // balanced: orange-red .. gold .. white .. blue-white
+
+  // colored everywhere (dense radiation fluid — valleys still glow, no empty holes)
+  vec3 col = palTemp(temp) * (0.11 + body*1.9);
+
+  // hottest dense cores blaze blue-white
+  float hot = smoothstep(0.80,1.0,dens);
+  col += vec3(0.74,0.85,1.0)*hot*hot*2.1;
+
+  // orange-gold radiation shock filaments threading the fluid
+  float streak = pow(max(0.0, r2.y-0.42), 2.0);
+  col += palTemp(0.44)*streak*1.6;
+  return col;
+}
+
+// =============== PHASE 4 — recombination / CMB ===============
+vec3 phase4(vec2 p, float lt){
+  float r=length(p);
+  // mottled temperature-fluctuation field (last scattering surface)
+  float f = fbm(p*6.5+2.0) + 0.5*fbm(p*15.0) + 0.25*fbm(p*33.0);
+  float dT = (f - 0.85);  // small anisotropy around mean
+
+  // faint divergent map: cold(blue) .. mean(dark) .. hot(red)
+  vec3 cold=vec3(0.16,0.28,0.66), warm=vec3(0.78,0.28,0.14);
+  vec3 cmb = cold*max(0.0,-dT)*2.6 + warm*max(0.0,dT)*2.6;
+  cmb += vec3(0.05,0.06,0.09); // dim mean glow
+
+  // inside-a-sphere dome vignette + all-sky afterglow fog
+  float dome = smoothstep(1.05,0.15,r);
+  vec3 fog = vec3(0.55,0.36,0.30)*exp(-r*1.15);
+
+  // residual heat still bleeding through early in the phase
+  float resid = (1.0-smoothstep(0.0,0.55,lt));
+  vec3 res = palTemp(0.55)*fbm(p*3.0+uTime*0.1)*resid*0.9;
+
+  vec3 col = cmb*dome*(0.55+0.6*lt) + fog*(0.4+0.3*lt) + res;
+
+  // faint emerging stars near the end (first light)
+  col += vec3(0.8,0.86,1.0)*starfield(p,0.05,7.0)*smoothstep(0.6,1.0,lt)*0.6;
+  return col;
+}
+
+// =============== PHASE 5 — cosmic web ===============
+vec3 phase5(vec2 p){
+  // grand overview: slow drift + slight projection skew for depth
+  vec2 uv = p*1.5 + vec2(uTime*0.012, 0.0);
+  uv += 0.05*vec2(fbm(uv*2.0), fbm(uv*2.0+5.3));   // organic warp of the web
+  vec2 F = worley(uv*3.1);
+  float edge = F.y - F.x;                 // small on cell walls
+  float fil  = 1.0 - smoothstep(0.0, 0.10, edge);   // filaments
+  fil = pow(fil, 1.4);
+
+  // cluster nodes: junctions where walls meet (thin filaments crossing)
+  float node = smoothstep(0.055,0.0,edge) * smoothstep(0.5,0.05,F.x);
+
+  // gas nebulosity threaded along the web
+  float gas = fbm(uv*4.5+3.0);
+
+  vec3 col=vec3(0.0);
+  col += vec3(0.34,0.45,0.85)*fil*0.8;                 // dark-matter filaments (cool)
+  col += vec3(0.14,0.20,0.42)*gas*fil*0.9;             // gas glow along filaments
+  col += vec3(1.0,0.82,0.55)*node*3.6;                 // galaxy-cluster seeds (warm)
+  col += vec3(1.0,0.9,0.72)*pow(node,3.0)*6.5;         // bright cluster cores
+
+  // scattered galaxies, denser on the web
+  float gal = starfield(uv, 0.09, 10.0);
+  col += mix(vec3(0.7,0.8,1.0),vec3(1.0,0.85,0.6), h21(floor(uv*10.0)))
+         * gal * (0.35 + 0.9*fil);
+
+  // deep-field background stars
+  col += vec3(0.6,0.66,0.85)*starfield(p, 0.04, 24.0)*0.4;
+
+  // subtle cosmic vignette
+  col *= 0.85 + 0.15*fbm(uv*0.8);
+  return col;
+}
+
+void main(){
+  vec2 p = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;
+  p /= uZoom;
+  p += uPan;
+  p += uMouse*0.024;
+
+  float t = uT;
+  // phase transition boundaries
+  const float b12=0.14, b23=0.30, b34=0.54, b45=0.76;
+  const float fw=0.045; // crossfade half-width
+
+  float e12=smoothstep(b12-fw,b12+fw,t);
+  float e23=smoothstep(b23-fw,b23+fw,t);
+  float e34=smoothstep(b34-fw,b34+fw,t);
+  float e45=smoothstep(b45-fw,b45+fw,t);
+
+  float w1=1.0-e12;
+  float w2=e12*(1.0-e23);
+  float w3=e23*(1.0-e34);
+  float w4=e34*(1.0-e45);
+  float w5=e45;
+
+  // local progress within active phases
+  float l2=clamp((t-b12)/(b23-b12),0.0,1.0);
+  float l4=clamp((t-b34)/(b45-b34),0.0,1.0);
+
+  vec3 col=vec3(0.0);
+  if(w1>0.001) col += w1*phase1(p);
+  if(w2>0.001) col += w2*phase2(p,l2);
+  if(w3>0.001) col += w3*phase3(p);
+  if(w4>0.001) col += w4*phase4(p,l4);
+  if(w5>0.001) col += w5*phase5(p);
+
+  // ---- faux volumetric bloom: wide soft halo around bright cores ----
+  // (single-pass approximation using the accumulated luminance)
+  float lum = dot(col, vec3(0.2126,0.7152,0.0722));
+  vec3 bloom = col * smoothstep(0.5,1.8,lum) * 0.55;
+  col += bloom;
+
+  // exposure + filmic tonemap (ACES)
+  col = aces(col*1.06);
+
+  // gentle S-curve contrast -> deep blacks, punchy highlights (cinematic)
+  col = mix(col, col*col*(3.0-2.0*col), 0.24);
+
+  // vignette
+  vec2 vp = (gl_FragCoord.xy/uRes - 0.5);
+  float vig = smoothstep(1.15,0.35,length(vp*vec2(1.15,1.0)));
+  col *= mix(0.52,1.0,vig);
+
+  // film grain
+  col += (h21(gl_FragCoord.xy + fract(uTime))-0.5)*0.022;
+
+  outColor = vec4(max(col,0.0), 1.0);
+}
+</script>
+
+<script>
+(() => {
+  "use strict";
+  const cv = document.getElementById('c');
+  const gl = cv.getContext('webgl2', {antialias:false, alpha:false, powerPreference:'high-performance'});
+  const errEl = document.getElementById('err'), errMsg = document.getElementById('errmsg');
+  function fail(msg){ errMsg.innerHTML = msg; errEl.classList.add('show'); }
+  if(!gl){ fail('你的浏览器/设备不支持 <b>WebGL2</b>，无法渲染此可视化。<br>请用较新的 Chrome、Safari 或 Firefox 打开。'); return; }
+
+  // ---------- shader build ----------
+  function sh(type, src){
+    const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){
+      console.error(gl.getShaderInfoLog(s)); fail('着色器编译失败（详见控制台）。'); throw new Error(gl.getShaderInfoLog(s));
+    }
+    return s;
+  }
+  const prog=gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, document.getElementById('vert').textContent.trim()));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, document.getElementById('frag').textContent.trim()));
+  gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ fail('着色器链接失败。'); return; }
+  gl.useProgram(prog);
+  const va=gl.createVertexArray(); gl.bindVertexArray(va); // empty VAO for gl_VertexID draw
+
+  const U={};
+  ['uRes','uTime','uT','uMouse','uZoom','uPan','uOct'].forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+
+  // ---------- state ----------
+  const st = {
+    T: 0, playing: true, speed: 0.6, dir: 1,
+    zoom: 1, pan:[0,0], mouse:[0,0], mtarget:[0,0],
+    res: 1.0, oct: 6,
+    dragging:false, lastX:0, lastY:0, scrubbing:false
+  };
+
+  // ---------- resize ----------
+  function resize(){
+    const dpr = Math.min(window.devicePixelRatio||1, st.res*1.5);
+    const w = Math.floor(innerWidth*dpr), h=Math.floor(innerHeight*dpr);
+    if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
+    gl.viewport(0,0,cv.width,cv.height);
+  }
+  addEventListener('resize', resize); resize();
+
+  // ---------- phases meta ----------
+  const PH = [
+    {n:'01', k:'PRIMORDIAL SINGULARITY', name:'原初奇点', at:0.02,
+     sub:'普朗克时代 — 极端致密、结构无法分辨的高能时空种子，扭曲的时空纹理在此翻涌。'},
+    {n:'02', k:'COSMIC INFLATION', name:'暴胀', at:0.20,
+     sub:'空间在极短瞬间指数暴涨，场结构被急速拉伸，发光波纹向外扩散，观察者被迅速拉远。'},
+    {n:'03', k:'HOT PLASMA UNIVERSE', name:'炽热等离子宇宙', at:0.42,
+     sub:'充满翻腾的辐射与等离子体流体，白炽、金黄、蓝白、橙红交织的致密光海。'},
+    {n:'04', k:'RECOMBINATION · CMB', name:'复合 · 微波背景', at:0.65,
+     sub:'宇宙冷却，光子挣脱束缚透出——末次散射面浮现，全向余辉与微小温度涨落弥漫。'},
+    {n:'05', k:'LARGE-SCALE STRUCTURE', name:'宇宙网', name2:'', at:0.90,
+     sub:'时间跳跃至暗物质丝状结构、原初气体云与星系团雏形交织成的宏大宇宙之网。'}
+  ];
+  const boundaries=[0.14,0.30,0.54,0.76];
+  function phaseIndex(T){
+    if(T<boundaries[0])return 0; if(T<boundaries[1])return 1;
+    if(T<boundaries[2])return 2; if(T<boundaries[3])return 3; return 4;
+  }
+
+  // ---------- physics readout (illustrative, log-anchored) ----------
+  const ANCH_T = [[0,-43],[0.14,-36],[0.30,-32],[0.54,0],[0.76,13.08],[1,16.2]];   // log10 sec
+  const ANCH_K = [[0,32],[0.14,28],[0.30,25],[0.54,10],[0.76,3.477],[1,1.28]];      // log10 kelvin
+  function interpLog(T, A){
+    for(let i=0;i<A.length-1;i++){
+      if(T<=A[i+1][0]){ const f=(T-A[i][0])/(A[i+1][0]-A[i][0]); return A[i][1]+(A[i+1][1]-A[i][1])*f; }
+    }
+    return A[A.length-1][1];
+  }
+  function sci(x, unit){
+    if(x<=0) return '0';
+    const e=Math.floor(Math.log10(x)); const m=x/Math.pow(10,e);
+    if(e>=-2 && e<=4){ // plain
+      let v = x>=100? Math.round(x): (x>=1? x.toFixed(1): x.toFixed(2));
+      return v+' '+unit;
+    }
+    return m.toFixed(1)+'×10'+sup(e)+' '+unit;
+  }
+  function sup(n){ const m={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+    return String(n).split('').map(c=>m[c]||c).join(''); }
+  function fmtTime(logsec){
+    const s=Math.pow(10,logsec);
+    if(s < 1) return sci(s,'s');
+    const yr=s/3.15576e7;
+    if(yr < 1) return sci(s,'s');
+    if(yr < 1e6) return sci(yr,'yr');
+    return sci(yr/1e6,'Myr');
+  }
+  const els={ep:document.getElementById('epoch'),nm:document.getElementById('ename'),
+    sub:document.getElementById('esub'),st:document.getElementById('s-t'),
+    temp:document.getElementById('s-temp'),z:document.getElementById('s-z'),a:document.getElementById('s-a')};
+  let lastIdx=-1;
+  function updateHUD(){
+    const idx=phaseIndex(st.T), ph=PH[idx];
+    if(idx!==lastIdx){
+      els.ep.textContent=ph.k; els.nm.textContent=ph.name; els.sub.textContent=ph.sub;
+      document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('on',i===idx));
+      lastIdx=idx;
+    }
+    const K=Math.pow(10,interpLog(st.T,ANCH_K));
+    const z=Math.max(0,K/2.725-1), a=1/(1+z);
+    els.st.textContent=fmtTime(interpLog(st.T,ANCH_T));
+    els.temp.textContent=sci(K,'K');
+    els.z.textContent = z>1e4? sci(z,''): (z>=100?Math.round(z): z>=1?z.toFixed(1):z.toFixed(3));
+    els.a.textContent = a<1e-3? sci(a,''): a.toFixed(a<0.1?4:3);
+  }
+
+  // ---------- UI wiring ----------
+  const chips=document.getElementById('chips');
+  PH.forEach((ph,i)=>{
+    const c=document.createElement('div'); c.className='chip'+(i===0?' on':'');
+    c.innerHTML=`<span class="n">${ph.n}</span>${ph.name}`;
+    c.onclick=()=>{ animateTo(ph.at); };
+    chips.appendChild(c);
+  });
+  const fill=document.getElementById('fill'), head=document.getElementById('head'), tl=document.getElementById('tl');
+  boundaries.forEach(b=>{ const m=document.createElement('div'); m.className='mark'; m.style.left=(b*100)+'%'; tl.appendChild(m); });
+  function reflectTL(){ const pct=st.T*100; fill.style.width=pct+'%'; head.style.left=pct+'%'; }
+
+  const playBtn=document.getElementById('play'), icP=document.getElementById('ic-play'), icPa=document.getElementById('ic-pause');
+  function setPlay(v){ st.playing=v; icP.style.display=v?'none':'block'; icPa.style.display=v?'block':'none'; }
+  playBtn.onclick=()=>{ if(st.T>=1 && !st.playing){ st.T=0; } setPlay(!st.playing); };
+  document.getElementById('replay').onclick=()=>{ st.T=0; setPlay(true); };
+
+  let animTarget=null;
+  function animateTo(target){ animTarget=target; setPlay(false); }
+
+  document.getElementById('speed').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-s]'); if(!b)return;
+    st.speed=parseFloat(b.dataset.s);
+    document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));
+  });
+  document.getElementById('quality').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-q]'); if(!b)return;
+    const q=parseFloat(b.dataset.q); st.res=q; st.oct = q<1?5 : q>1?7 : 6;
+    document.querySelectorAll('#quality button').forEach(x=>x.classList.toggle('on',x===b));
+    resize();
+  });
+  document.getElementById('cine').addEventListener('click',e=>{
+    document.body.classList.toggle('cine'); e.target.classList.toggle('on');
+  });
+
+  // timeline scrub
+  function tlSet(clientX){
+    const r=tl.getBoundingClientRect();
+    st.T=Math.min(1,Math.max(0,(clientX-r.left)/r.width));
+    animTarget=null;
+  }
+  tl.addEventListener('pointerdown',e=>{ st.scrubbing=true; tl.setPointerCapture(e.pointerId); tlSet(e.clientX); setPlay(false); });
+  tl.addEventListener('pointermove',e=>{ if(st.scrubbing) tlSet(e.clientX); });
+  tl.addEventListener('pointerup',e=>{ st.scrubbing=false; });
+
+  // canvas parallax drag + zoom
+  cv.addEventListener('pointerdown',e=>{ st.dragging=true; st.lastX=e.clientX; st.lastY=e.clientY; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove',e=>{
+    st.mtarget=[ (e.clientX/innerWidth-0.5)*2, -(e.clientY/innerHeight-0.5)*2 ];
+    if(st.dragging){
+      st.pan[0]-=(e.clientX-st.lastX)/innerHeight/st.zoom;
+      st.pan[1]+=(e.clientY-st.lastY)/innerHeight/st.zoom;
+      st.lastX=e.clientX; st.lastY=e.clientY;
+    }
+  });
+  cv.addEventListener('pointerup',()=>{ st.dragging=false; });
+  cv.addEventListener('wheel',e=>{ e.preventDefault();
+    st.zoom=Math.min(6,Math.max(0.4, st.zoom*(e.deltaY<0?1.1:0.9))); }, {passive:false});
+
+  addEventListener('keydown',e=>{
+    if(e.code==='Space'){ e.preventDefault(); if(st.T>=1&&!st.playing)st.T=0; setPlay(!st.playing); }
+    else if(e.code==='ArrowRight'){ st.T=Math.min(1,st.T+0.01); animTarget=null; }
+    else if(e.code==='ArrowLeft'){ st.T=Math.max(0,st.T-0.01); animTarget=null; }
+    else if(e.code>='Digit1'&&e.code<='Digit5'){ animateTo(PH[+e.code.slice(5)-1].at); }
+  });
+
+  // hint show/hide
+  const hint=document.getElementById('hint');
+  setTimeout(()=>hint.classList.add('show'),1200);
+  setTimeout(()=>hint.classList.remove('show'),7000);
+
+  // auto-pause when hidden (saves GPU / heat)
+  let hidden=false;
+  document.addEventListener('visibilitychange',()=>{ hidden=document.hidden; if(!hidden) last=performance.now(); });
+
+  // ---------- render loop ----------
+  let last=performance.now(), tmr=0;
+  const MINDT=1/46;                 // ~45fps cap — cuts GPU load/heat, no visible cost here
+  function frame(now){
+    requestAnimationFrame(frame);
+    if(hidden) return;
+    let dt=(now-last)/1000;
+    if(dt < MINDT) return;          // fps cap: skip this draw
+    last=now; dt=Math.min(dt,0.05); tmr+=dt;
+
+    // advance cosmic time
+    if(animTarget!==null){
+      st.T += (animTarget-st.T)*Math.min(1,dt*3.2);
+      if(Math.abs(animTarget-st.T)<0.002){ st.T=animTarget; animTarget=null; }
+    } else if(st.playing && !st.scrubbing){
+      st.T += dt*0.055*st.speed;
+      if(st.T>=1){ st.T=1; setPlay(false); }
+    }
+
+    // ease mouse parallax
+    st.mouse[0]+=(st.mtarget[0]-st.mouse[0])*Math.min(1,dt*3);
+    st.mouse[1]+=(st.mtarget[1]-st.mouse[1])*Math.min(1,dt*3);
+
+    reflectTL(); updateHUD();
+
+    gl.uniform2f(U.uRes, cv.width, cv.height);
+    gl.uniform1f(U.uTime, tmr);
+    gl.uniform1f(U.uT, st.T);
+    gl.uniform2f(U.uMouse, st.mouse[0], st.mouse[1]);
+    gl.uniform1f(U.uZoom, st.zoom);
+    gl.uniform2f(U.uPan, st.pan[0], st.pan[1]);
+    gl.uniform1i(U.uOct, st.oct);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+  }
+  requestAnimationFrame(frame);
+
+  // expose for headless verification
+  function drawNow(){
+    gl.uniform2f(U.uRes, cv.width, cv.height);
+    gl.uniform1f(U.uTime, tmr);
+    gl.uniform1f(U.uT, st.T);
+    gl.uniform2f(U.uMouse, st.mouse[0], st.mouse[1]);
+    gl.uniform1f(U.uZoom, st.zoom);
+    gl.uniform2f(U.uPan, st.pan[0], st.pan[1]);
+    gl.uniform1i(U.uOct, st.oct);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+  }
+  window.__COSMO__ = { gl, st, canvas: cv,
+    setT:(v)=>{ st.T=v; animTarget=null; setPlay(false); },
+    sample:(v)=>{                       // synchronous draw+read: brightness gate
+      if(v!==undefined){ st.T=v; }
+      drawNow();
+      const w=cv.width,h=cv.height, px=new Uint8Array(w*h*4);
+      gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,px);
+      let sum=0,max=0,nb=0,cnt=0;
+      for(let i=0;i<px.length;i+=16){ const l=px[i]+px[i+1]+px[i+2];
+        sum+=l; if(l>max)max=l; if(l>24)nb++; cnt++; }
+      return {mean:+(sum/cnt/3).toFixed(2), max, nonblack:+(nb/cnt).toFixed(3), w,h};
+    }
+  };
+})();
+</script>

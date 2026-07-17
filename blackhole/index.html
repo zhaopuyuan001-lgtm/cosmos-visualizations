@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>黑洞可视化 · 广义相对论实时渲染</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --void:#060709; --panel:rgba(13,16,22,.80); --line:rgba(232,228,218,.10);
+    --ink:#E8E4DA; --dim:#9A9686; --faint:#6B685C; --accent:#D9A45B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{background:var(--void)}
+  body{
+    font:16px/1.75 -apple-system,"PingFang SC","Noto Sans SC",sans-serif;
+    color:var(--ink); min-height:100vh; padding:8vh 24px 10vh;
+    background:
+      radial-gradient(1px 1px at 12% 18%, rgba(232,228,218,.55) 50%, transparent 51%),
+      radial-gradient(1px 1px at 78% 9%,  rgba(232,228,218,.40) 50%, transparent 51%),
+      radial-gradient(1px 1px at 33% 71%, rgba(232,228,218,.30) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 88% 62%, rgba(217,164,91,.45) 50%, transparent 51%),
+      radial-gradient(1px 1px at 55% 34%, rgba(232,228,218,.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 8% 88%,  rgba(232,228,218,.28) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 64% 92%, rgba(232,228,218,.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 95% 33%, rgba(232,228,218,.30) 50%, transparent 51%),
+      radial-gradient(ellipse 90% 60% at 50% -10%, rgba(217,164,91,.06), transparent 60%),
+      var(--void);
+  }
+  main{max-width:720px;margin:0 auto}
+  .eyebrow{
+    font:11px/1 ui-monospace,Menlo,monospace; letter-spacing:.32em;
+    color:var(--faint); text-transform:uppercase; margin-bottom:18px;
+  }
+  h1{
+    font-family:"Songti SC","Noto Serif SC",serif; font-size:clamp(30px,6vw,44px);
+    font-weight:600; letter-spacing:.04em; text-wrap:balance; line-height:1.3;
+  }
+  .sub{color:var(--dim);margin:10px 0 52px;font-size:15px}
+  .card{
+    display:block; text-decoration:none; color:inherit;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:26px 28px; margin-bottom:18px; position:relative;
+    transition:border-color .25s, transform .25s;
+  }
+  .card:hover{border-color:rgba(217,164,91,.45); transform:translateY(-2px)}
+  .card:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .card .tag{
+    font:10px/1 ui-monospace,Menlo,monospace; letter-spacing:.28em;
+    color:var(--accent); margin-bottom:10px;
+  }
+  .card h2{
+    font-family:"Songti SC","Noto Serif SC",serif; font-size:22px; font-weight:600;
+    letter-spacing:.03em; margin-bottom:6px;
+  }
+  .card p{color:var(--dim); font-size:14px; line-height:1.8}
+  .card .arrow{
+    position:absolute; right:26px; top:30px; color:var(--faint);
+    font-size:18px; transition:color .25s, transform .25s;
+  }
+  .card:hover .arrow{color:var(--accent); transform:translateX(3px)}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  .chips span{
+    font:11px/1 ui-monospace,Menlo,monospace; color:var(--faint);
+    border:1px solid var(--line); border-radius:99px; padding:6px 11px; letter-spacing:.05em;
+  }
+  .alt{margin-top:13px; font-size:13px; color:var(--faint)}
+  .alt a{color:var(--dim); text-decoration:underline; text-underline-offset:3px}
+  .alt a:hover{color:var(--accent)}
+  .notes{
+    margin-top:56px; padding-top:26px; border-top:1px solid var(--line);
+    color:var(--faint); font-size:13px; line-height:2;
+  }
+  .notes b{color:var(--dim); font-weight:600}
+  footer{
+    margin-top:34px; color:var(--faint); font-size:12px;
+    font-family:ui-monospace,Menlo,monospace; letter-spacing:.06em;
+  }
+  footer a{color:var(--dim)}
+  @media (prefers-reduced-motion: reduce){ .card,.card .arrow{transition:none} }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Null Geodesic Ray Tracing · WebGL</div>
+  <h1>黑洞可视化</h1>
+  <p class="sub">广义相对论数值渲染 · 逐像素测地线积分 · 三个可以拖动把玩的时空</p>
+
+  <a class="card" href="orbit.html">
+    <div class="tag">01 · SCHWARZSCHILD</div>
+    <h2>施瓦西黑洞 · 轨道观赏</h2>
+    <span class="arrow">→</span>
+    <p>环绕一颗带吸积盘的静态黑洞：引力透镜把盘的背面掀到阴影上下，多普勒集束让盘一侧亮一侧暗，光子环里叠着无穷级次级像。</p>
+    <div class="chips"><span>Kerr–Schild 度规</span><span>多普勒可调</span><span>自动环绕</span></div>
+  </a>
+
+  <a class="card" href="tde.html">
+    <div class="tag">02 · TIDAL DISRUPTION</div>
+    <h2>潮汐撕裂事件 · 一颗恒星的死亡</h2>
+    <span class="arrow">→</span>
+    <p>恒星闯入超大质量黑洞的潮汐半径被拉成面条，碎流回落自相撞、点亮吸积盘：76 秒完整事件时间线，配 t<sup>−5/3</sup> 光变曲线。</p>
+    <div class="chips"><span>76s 时间线</span><span>t^(−5/3) 光变</span><span>事件相位慢放标注</span></div>
+    <div class="alt">另有 <a href="tde.html?a=0.9" onclick="event.stopPropagation()">自旋黑洞版（a = 0.9，D 形阴影）→</a></div>
+  </a>
+
+  <a class="card" href="bbh.html">
+    <div class="tag">03 · GW150914</div>
+    <h2>双黑洞并合 · 引力波</h2>
+    <span class="arrow">→</span>
+    <p>按 GW150914 参数（36+29→62 M☉）重演人类首次听到的引力波：旋近十二圈、并合、272 Hz 铃宕，配 LIGO 风格应变波形和引力波网格涟漪。</p>
+    <div class="chips"><span>双 Kerr–Schild 叠加度规</span><span>时变时空 8 维哈密顿</span><span>延迟位置光线追踪</span></div>
+  </a>
+
+  <div class="notes">
+    <b>观看提示</b> — 桌面 Chrome / Edge / Safari 体验最佳（需要 WebGL）；卡顿时在页内把画质切到"低"，双黑洞页会自动降分辨率保流畅。每页右上角"物理说明"里有 30 秒讲解和逐条诚实声明：哪些是严格解、哪些是标注过的近似，全部写明。
+  </div>
+  <footer>
+    MIT License · <a href="https://github.com/zhaopuyuan001-lgtm/blackhole-visualizations">GitHub</a> · Physics &amp; code rendered with Claude (Fable 5)
+  </footer>
+</main>
+</body>
+</html>

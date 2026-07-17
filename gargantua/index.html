@@ -1,0 +1,480 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gargantua · 黑洞吸积盘</title>
+<style>
+:root{--fg:#d8dbe4;--dim:#8a8f9e;--acc:#ffc987;--acc2:#8fc6ff;--bg:#020204}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.panel{position:fixed;background:rgba(6,7,12,.78);border:1px solid rgba(255,201,135,.16);border-radius:10px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:10px 14px}
+#top{top:12px;left:12px;max-width:min(430px,92vw)}
+#top h1{margin:0 0 2px;font-size:17px;color:#fff;font-weight:700;letter-spacing:.5px}
+#top .sub{color:var(--dim);font-size:12px}
+#ctrl{top:12px;right:12px;width:min(270px,86vw);font-size:12.5px}
+#ctrl .row{margin:7px 0}
+#ctrl label{color:var(--dim);font-size:12px}
+#ctrl input[type=range]{width:100%;accent-color:var(--acc)}
+.mbtn{background:rgba(255,201,135,.08);border:1px solid rgba(255,201,135,.28);color:var(--fg);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px;margin:2px 3px 2px 0}
+.mbtn.on{background:rgba(255,201,135,.3);color:#fff;border-color:var(--acc)}
+.mbtn:hover{border-color:var(--acc)}
+#story{left:12px;bottom:12px;max-width:min(450px,90vw)}
+#story .st{color:var(--acc);font-weight:700;font-size:15px;margin-bottom:3px}
+#story .sb{font-size:13px}
+#story .sc{font-size:11.5px;color:var(--dim);margin-top:5px;border-top:1px dashed rgba(138,143,158,.35);padding-top:4px}
+#chart{right:12px;bottom:12px;width:min(430px,92vw);padding:8px}
+#chart canvas{display:block;width:100%}
+#chart .tabs{display:flex;gap:5px;margin-bottom:4px}
+#dict{right:12px;top:290px;width:min(330px,88vw);display:none;max-height:52vh;overflow:auto;z-index:5}
+#dict h3{margin:0 0 4px;color:var(--acc);font-size:15px}
+#dict .row{display:flex;justify-content:space-between;font-size:12.5px;padding:1.5px 0;border-bottom:1px dotted rgba(138,143,158,.2)}
+#dict .row b{color:var(--acc2);font-weight:600;font-family:ui-monospace,monospace;text-align:right}
+#dict .blurb{font-size:12.5px;margin-top:6px}
+#dict .x{float:right;cursor:pointer;color:var(--dim);font-size:16px;padding:0 4px}
+#note{position:fixed;left:12px;bottom:12px;max-width:min(450px,90vw);display:none;max-height:60vh;overflow:auto}
+#note h4{margin:0 0 4px;color:var(--acc2);font-size:13px}
+#note div{font-size:11.5px;color:var(--dim)}
+#foot{position:fixed;right:14px;top:8px;font-size:11px;color:var(--dim);cursor:pointer;text-decoration:underline dotted;z-index:6}
+#keys{position:fixed;left:12px;top:96px;font-size:11.5px;color:var(--dim)}
+@media(max-width:760px){#chart{display:none}}
+</style>
+<canvas id="gl"></canvas>
+<div class="panel" id="top"><h1>Gargantua · 黑洞吸积盘</h1><div class="sub">每个像素一条光线，在史瓦西时空里逐步积分测地线 —— 双弧、光子环、左右不对称全部涌现</div></div>
+<div id="keys">拖拽=转机位 · 滚轮=远近 · 点画面=看这里是什么</div>
+<div class="panel" id="ctrl">
+  <div class="row">机位：<button class="mbtn on" data-v="film">电影机位</button><button class="mbtn" data-v="high">俯瞰</button><button class="mbtn" data-v="graze">贴盘掠面</button><button class="mbtn" data-v="far">远望</button></div>
+  <div class="row"><label>盘面倾角（拖动自由调）</label><input type="range" id="sInc" min="40" max="89.5" step="0.1" value="87"></div>
+  <div class="row">
+   <button class="mbtn on" id="bDop">多普勒束流 开</button>
+   <button class="mbtn on" id="bLens">引力弯曲 开</button>
+   <button class="mbtn on" id="bSpin">盘流动 开</button></div>
+  <div class="row"><label>曝光</label><input type="range" id="sExp" min="0.4" max="2.6" step="0.02" value="0.9"></div>
+</div>
+<div class="panel" id="story"><div class="st"></div><div class="sb"></div><div class="sc"></div></div>
+<div class="panel" id="chart">
+  <div class="tabs"><button class="mbtn on" data-c="defl">光线偏转角 α(b)</button><button class="mbtn" data-c="disk">盘：温度与多普勒</button></div>
+  <canvas id="cv" width="860" height="320"></canvas>
+</div>
+<div class="panel" id="dict"><span class="x" onclick="dict.style.display='none'">✕</span><h3></h3><div class="rows"></div><div class="blurb"></div></div>
+<div class="panel" id="note"><h4>诚实声明：哪些是真算、哪些是示意</h4><div id="notetxt"></div></div>
+<div id="foot">近似声明</div>
+<script>
+'use strict';
+/* ══════════ Gargantua —— GPU 逐像素测地线（与 proto.mjs 对拍） ══════════ */
+const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+/* ── JS 端测地线（与 GLSL 同式;verify 对拍与图表用） ── */
+function traceDiskJS(P0,d,rin,rout,dphi,rEsc){
+ rin=rin||3;rout=rout||12.5;dphi=dphi||0.004;rEsc=rEsc||60;
+ const r0=Math.hypot(P0[0],P0[1],P0[2]);
+ const nx=P0[1]*d[2]-P0[2]*d[1],ny=P0[2]*d[0]-P0[0]*d[2],nz=P0[0]*d[1]-P0[1]*d[0];
+ const nn=Math.hypot(nx,ny,nz);
+ if(nn<1e-6)return {type:(P0[0]*d[0]+P0[1]*d[1]+P0[2]*d[2])<0?1:3};
+ const b=nn,Lz=nz;
+ const e1=[P0[0]/r0,P0[1]/r0,P0[2]/r0];
+ const n=[nx/nn,ny/nn,nz/nn];
+ let e2=[n[1]*e1[2]-n[2]*e1[1],n[2]*e1[0]-n[0]*e1[2],n[0]*e1[1]-n[1]*e1[0]];
+ const s=(d[0]*e2[0]+d[1]*e2[1]+d[2]*e2[2])>0?-1:1;
+ e2=[e2[0]*s,e2[1]*s,e2[2]*s];
+ let u=1/r0,phi=0,du=Math.sqrt(Math.max(1/(b*b)-u*u+u*u*u,0));
+ const acc=x=>-x+1.5*x*x;
+ let zPrev=e1[2],uPrev=u,phiPrev=0;
+ for(let i=0;i<12000;i++){
+  const k1u=du,k1d=acc(u);
+  const k2u=du+0.5*dphi*k1d,k2d=acc(u+0.5*dphi*k1u);
+  const k3u=du+0.5*dphi*k2d,k3d=acc(u+0.5*dphi*k2u);
+  const k4u=du+dphi*k3d,k4d=acc(u+dphi*k3u);
+  uPrev=u;phiPrev=phi;
+  u+=dphi/6*(k1u+2*k2u+2*k3u+k4u);
+  du+=dphi/6*(k1d+2*k2d+2*k3d+k4d);
+  phi+=dphi;
+  if(u>=1)return {type:1,phi,b,Lz};                       // capture
+  if(u<=1/rEsc&&du<0)return {type:3,phi,b,Lz};            // escape
+  const zc=e1[2]*Math.cos(phi)+e2[2]*Math.sin(phi);
+  if(zc*zPrev<0){
+   const f=zPrev/(zPrev-zc);
+   const uh=uPrev+(u-uPrev)*f,r=1/uh,ph=phiPrev+(phi-phiPrev)*f;
+   if(r>=rin&&r<=rout){
+    const px=(e1[0]*Math.cos(ph)+e2[0]*Math.sin(ph))*r,py=(e1[1]*Math.cos(ph)+e2[1]*Math.sin(ph))*r;
+    return {type:2,r,phi:ph,b,Lz,az:Math.atan2(py,px)}}}
+  zPrev=zc;
+  if(phi>11.5)return {type:3,phi,b,Lz}}
+ return {type:3,phi:0,b,Lz}}
+function traceRayJS(b,r0,dphi){ // α(b) 曲线用
+ r0=r0||2000;dphi=dphi||0.003;
+ let u=1/r0,du=Math.sqrt(Math.max(1/(b*b)-u*u+u*u*u,0)),phi=0,uPrev=u;
+ const acc=x=>-x+1.5*x*x;
+ for(let i=0;i<600000;i++){
+  const k1u=du,k1d=acc(u);
+  const k2u=du+0.5*dphi*k1d,k2d=acc(u+0.5*dphi*k1u);
+  const k3u=du+0.5*dphi*k2d,k3d=acc(u+0.5*dphi*k2u);
+  const k4u=du+dphi*k3d,k4d=acc(u+dphi*k3u);
+  uPrev=u;
+  u+=dphi/6*(k1u+2*k2u+2*k3u+k4u);du+=dphi/6*(k1d+2*k2d+2*k3d+k4d);phi+=dphi;
+  if(u>=1)return {cap:1,phi};
+  if(u<=0){const f=uPrev/(uPrev-u);            // u=0 交叉回插,消终止量化偏差
+   return {cap:0,defl:phi-dphi+f*dphi-Math.PI+Math.asin(Math.min(b/r0,1))}}
+  if(phi>40)return {cap:1,phi}}
+ return {cap:1,phi}}
+const gJS=(r,Lz)=>Math.sqrt(1-1.5/r)/(1-Math.sqrt(0.5/(r*r*r))*Lz);
+const TprofJS=r=>Math.pow(3/r,0.75)*Math.pow(Math.max(1-Math.sqrt(3/r),1e-9),0.25);
+const BC=Math.sqrt(27)/2, RIN=3, ROUT=14;
+
+/* ══════════ 词典 ══════════ */
+const DICT={
+ '影子与光子环':[[['影子半径','b=√27/2 rs≈2.60 rs（本页涌现）'],['光子球','r=1.5 rs'],['贴影细环','绕行 ≥1 圈的高阶像']],'影子不是视界（1 rs），而是所有被捕获光线的边界——比视界大 2.6 倍。贴着影子的极细亮环，是绕黑洞一整圈以上才逃出来的光，一圈套一圈无穷嵌套。'],
+ '上下双弧':[[['成因','盘远侧的光被引力弯过来'],['上弧','远侧盘的上表面像'],['下弧','远侧盘的下表面像']],'盘的远侧本该被黑洞挡住——但光沿弯曲时空爬过黑洞上方和下方，把"背面"同时呈现在你眼前。关掉"引力弯曲"开关，它立刻退化成一个平淡的土星环。'],
+ '左右为何不一样亮':[[['机制','相对论多普勒束流'],['规律','亮度 ∝ g⁴'],['本页左右比','~5–8 倍']],'盘物质以 ~0.4c 转动：冲向你的一侧被"车头灯效应"增亮聚焦，远离侧变暗变红。EHT 拍到的 M87* 亮月牙就是同一机制。关掉开关看对称的样子。'],
+ 'ISCO 内缘':[[['ISCO','3 rs（史瓦西）'],['更近?','圆轨道失稳,坠落'],['电影 Gargantua','高自旋→内缘贴视界']],'吸积盘不能一直铺到视界：3 rs 以内不存在稳定圆轨道，物质在这里"松手"螺旋坠入。黑洞自旋越快 ISCO 越小——电影里盘几乎贴着影子，就是 a≈0.999 的标志。'],
+ '引力红移':[[['盘内缘 g','√(1−1.5/3)=0.707'],['意义','光爬出引力井损失能量']],'即使不考虑运动，内缘的光到你眼里也丢了 29% 的能量——颜色变红、时钟变慢，都是同一件事。'],
+ 'EHT 实拍':[[['M87*','2019.4.10 首张黑洞照片'],['Sgr A*','2022.5.12'],['望远镜','地球口径的甚长基线阵']],'人类真的拍到了：橙色月牙环绕暗影，亮侧=多普勒束流侧——与本页同一套物理。角分辨率相当于在地球上看清月球上的一个甜甜圈。'],
+ '电影与本页的差别':[[['本页','史瓦西（无自旋）精确解'],['电影','Kerr a≈0.999 极端自旋'],['可见差异','影子略呈 D 形、内缘更贴影']],'《星际穿越》的 DNGR 渲染器与本页做同一件事：逐像素积分测地线。区别只在度规——自旋会把影子压成 D 形、让盘内缘伸到更深处。Thorne 团队为此发了两篇论文。'],
+ '为什么盘是热的':[[['机制','黏性摩擦耗散引力能'],['温度剖面','T∝r^(-3/4)（SS 盘）'],['峰值位置','r=(49/36)·r_in（本页涌现）']],'物质往下掉，引力能一半变热——吸积是宇宙中效率最高的发电机（可达 mc² 的 6–40%，核聚变才 0.7%）。']};
+
+/* ══════════ WebGL2 ══════════ */
+const cv=$('#gl'), gl=cv.getContext('webgl2',{alpha:false,antialias:false,preserveDrawingBuffer:true});
+if(!gl){document.body.innerHTML='<p style="padding:40px">需要 WebGL2</p>';throw 0}
+gl.getExtension('EXT_color_buffer_float');
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+ if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o)+'\n'+s.split('\n').map((l,i)=>i+1+' '+l).join('\n'));return o}
+function prog(vs,fs){const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);
+ if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p}
+const UL=(p,n)=>gl.getUniformLocation(p,n);
+const FSVS=`#version 300 es
+void main(){vec2 v=vec2(float(gl_VertexID<<1&2),float(gl_VertexID&2))*2.0-1.0;gl_Position=vec4(v,0.,1.);}`;
+/* ── 主渲染：逐像素 binet RK4 ── */
+const rayFS=`#version 300 es
+precision highp float;out vec4 O;
+uniform vec2 uRes;uniform vec3 uCam,uF,uR3,uU3;
+uniform float uT,uEx,uDop,uLens,uSpin,uDbg,uQual,uDphi;
+uint pcg(uint v){v=v*747796405u+2891336453u;uint w=((v>>((v>>28u)+4u))^v)*277803737u;return (w>>22u)^w;}
+float hu(uint v){return float(pcg(v))/4294967296.;}
+vec3 tempRGB(float T){T=clamp(T,700.,40000.);float t=T/100.;float r,g,b;
+ if(t<=66.){r=255.;g=99.47*log(t)-161.1;}else{r=329.7*pow(t-60.,-0.1332);g=288.1*pow(t-60.,-0.0755);}
+ if(t>=66.)b=255.;else if(t<=19.)b=0.;else b=138.5*log(t-10.)-305.;
+ return clamp(vec3(r,g,b)/255.,0.,1.);}
+/* 背景星空：3D cell hash + 银河带 */
+vec3 stars(vec3 d){
+ vec3 col=vec3(0.);
+ float N=42.;
+ vec3 cell=floor(d*N);
+ for(int i=0;i<1;i++){
+  uint h=uint(mod(cell.x+60.,120.))*7919u+uint(mod(cell.y+60.,120.))*104729u+uint(mod(cell.z+60.,120.))*13u;
+  if(hu(h)<.22){
+   vec3 sp=(cell+vec3(hu(h+1u),hu(h+2u),hu(h+3u)))/N;
+   float ang=distance(normalize(sp),d);
+   float br=pow(hu(h+4u),9.)*1.5+.012;
+   float sz=.0013+.0017*hu(h+5u);
+   col+=mix(vec3(1.,.92,.8),vec3(.75,.85,1.),hu(h+6u))*br*exp(-ang*ang/(sz*sz));}}
+ float gal=exp(-pow(dot(d,normalize(vec3(.25,.5,.83))),2.)*14.);
+ col+=vec3(.10,.11,.16)*gal*.08+vec3(.0035,.0035,.006);
+ return col;}
+/* 盘发射（含流纹差速） */
+vec3 diskEmit(float r,float az,float g){
+ float prof=pow(3./r,.75)*pow(max(1.-sqrt(3./r),1e-4),.25)/.488;      /* SS 剖面归一 */
+ float Om=sqrt(.5/(r*r*r));
+ float tex=1.;
+ if(uSpin>.5){
+  float w=az*26.-Om*uT*22.;
+  tex=.72+.22*sin(w+r*3.7)+.14*sin(w*2.3+r*9.1)+.10*sin(az*7.-Om*uT*22.+r*1.3);}
+ float Tem=7600.*pow(prof,1.5);
+ float Tobs=clamp(g,.25,3.)*Tem;
+ float I=prof*pow(clamp(g,.25,3.),4.)*tex*.62;
+ return tempRGB(Tobs)*I;}
+void main(){
+ vec2 uv=(gl_FragCoord.xy*2.-uRes)/uRes.y;
+ vec3 rd=normalize(uF+(uv.x*uR3+uv.y*uU3)*.62);
+ vec3 P0=uCam;
+ float r0=length(P0);
+ /* 直线对照模式 */
+ if(uLens<.5){
+  vec3 col;
+  float tz=-P0.z/rd.z;
+  bool hit=false;float hr=0.,haz=0.;
+  if(rd.z!=0.&&tz>0.){vec3 hp=P0+rd*tz;hr=length(hp.xy);
+   if(hr>=3.&&hr<=12.5){hit=true;haz=atan(hp.y,hp.x);}}
+  /* 直线模式黑洞=几何球剪影 */
+  float bLin=length(cross(P0,rd));
+  bool blocked=bLin<1.&&dot(P0,rd)<0.;
+  float tSph=dot(-P0,rd);
+  bool sphFirst=blocked&&(!hit||tSph<tz);
+  if(sphFirst)col=vec3(0.);
+  else if(hit){float g=uDop>.5?sqrt(1.-1.5/hr)/(1.-sqrt(.5/(hr*hr*hr))*cross(P0,rd).z):1.;
+   col=diskEmit(hr,haz,g);}
+  else col=stars(rd);
+  col=1.-exp(-col*uEx);
+  O=vec4(pow(col,vec3(.4545)),1.);return;}
+ /* 测地线 */
+ vec3 nv=cross(P0,rd);
+ float b=length(nv);
+ float Lz=nv.z;
+ vec3 col=vec3(0.);
+ if(b<1e-5){ col=dot(P0,rd)<0.?vec3(0.):stars(rd);
+  col=1.-exp(-col*uEx);O=vec4(pow(col,vec3(.4545)),1.);return;}
+ vec3 e1=P0/r0;
+ vec3 n=nv/b;
+ vec3 e2=cross(n,e1);
+ if(dot(rd,e2)>0.)e2=-e2;
+ float u=1./r0, du=sqrt(max(1./(b*b)-u*u+u*u*u,0.)), phi=0.;
+ float zPrev=e1.z,uPrev=u,phiPrev=0.;
+ float dphi=uDphi;
+ int hitType=3;float hr=0.,hphi=0.,haz=0.;
+ int NMAX=int(500.*uQual);
+ for(int i=0;i<620;i++){
+  if(i>=NMAX)break;
+  float k1u=du,k1d=-u+1.5*u*u;
+  float u2=u+.5*dphi*k1u;
+  float k2u=du+.5*dphi*k1d,k2d=-u2+1.5*u2*u2;
+  float u3=u+.5*dphi*k2u;
+  float k3u=du+.5*dphi*k2d,k3d=-u3+1.5*u3*u3;
+  float u4=u+dphi*k3u;
+  float k4u=du+dphi*k3d,k4d=-u4+1.5*u4*u4;
+  uPrev=u;phiPrev=phi;
+  u+=dphi/6.*(k1u+2.*k2u+2.*k3u+k4u);
+  du+=dphi/6.*(k1d+2.*k2d+2.*k3d+k4d);
+  phi+=dphi;
+  if(u>=1.){hitType=1;break;}
+  if(u<=.018&&du<0.){hitType=3;break;}
+  float zc=e1.z*cos(phi)+e2.z*sin(phi);
+  if(zc*zPrev<0.){
+   float f=zPrev/(zPrev-zc);
+   float uh=mix(uPrev,u,f);
+   float rr=1./uh;
+   if(rr>=3.&&rr<=12.5){
+    hitType=2;hr=rr;hphi=mix(phiPrev,phi,f);
+    float ce=cos(hphi),se=sin(hphi);
+    haz=atan((e1.y*ce+e2.y*se),(e1.x*ce+e2.x*se));
+    break;}}
+  zPrev=zc;}
+ if(uDbg>.5){ /* 对拍模式：type/r/φ 编码 */
+  O=vec4(float(hitType)/4.,hr/20.,hphi/12.,1.);return;}
+ if(hitType==2){
+  float g=uDop>.5?sqrt(1.-1.5/hr)/(1.-sqrt(.5/(hr*hr*hr))*Lz):1.;
+  col=diskEmit(hr,haz,g);
+  /* 内外缘软化 */
+  col*=smoothstep(3.,3.28,hr)*(1.-smoothstep(10.2,12.5,hr));
+ } else if(hitType==1)col=vec3(0.);
+ else {
+  /* 逃逸：轨道平面内渐近方向 dP/dλ ∝ tang·u − pos·du */
+  float ce=cos(phi),se=sin(phi);
+  vec3 pos=e1*ce+e2*se;
+  vec3 tang=-e1*se+e2*ce;
+  vec3 dir=tang*max(u,1e-4)-pos*du;
+  col=stars(normalize(dir));}
+ col=1.-exp(-col*uEx);
+ float l=dot(col,vec3(.299,.587,.114));col=mix(vec3(l),col,1.32);
+ col*=1.-.26*dot(uv,uv)*.16;
+ vec3 outc=pow(clamp(col,0.,1.),vec3(.4545));
+ outc+=(fract(sin(dot(gl_FragCoord.xy+uT,vec2(12.9898,78.233)))*43758.5453)-.5)*.010;
+ O=vec4(clamp(outc,0.,1.),1.);}`;
+const pRay=prog(FSVS,rayFS);
+let W=0,H=0,dpr=Math.min(devicePixelRatio||1,2),saveMode=false,RSCALE=0.75;
+function resize(){const d=dpr*(saveMode?0.5:RSCALE);
+ W=cv.width=innerWidth*d|0;H=cv.height=innerHeight*d|0;
+ cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px'}
+addEventListener('resize',resize);resize();
+
+/* ══════════ 相机/状态 ══════════ */
+let inc=87*Math.PI/180, yawAz=0, dist=25;
+let dopOn=1,lensOn=1,spinOn=1,EX=0.9,tGlob=0,uQual=1,DPHI=0.023;
+function camBasis(){ // 相机绕黑洞:极角 inc(离 z 轴),方位 yawAz;看向原点
+ const sp=Math.sin(inc),cp=Math.cos(inc);
+ const pos=[dist*sp*Math.cos(yawAz),dist*sp*Math.sin(yawAz),dist*cp];
+ const f=pos.map(v=>-v/dist);
+ let up0=[0,0,1];
+ const r=[f[1]*up0[2]-f[2]*up0[1],f[2]*up0[0]-f[0]*up0[2],f[0]*up0[1]-f[1]*up0[0]];
+ const rl=Math.hypot(...r),R=r.map(v=>v/rl);
+ const U=[R[1]*f[2]-R[2]*f[1],R[2]*f[0]-R[0]*f[2],R[0]*f[1]-R[1]*f[0]];
+ return {pos,f,r:R,u:U}}              /* U=R×f 已指向世界 +z 侧（屏幕上方=盘面上方） */
+function render(){
+ gl.viewport(0,0,W,H);
+ const c=camBasis();
+ gl.useProgram(pRay);
+ gl.uniform2f(UL(pRay,'uRes'),W,H);
+ gl.uniform3fv(UL(pRay,'uCam'),c.pos);
+ gl.uniform3fv(UL(pRay,'uF'),c.f);
+ gl.uniform3fv(UL(pRay,'uR3'),c.r);
+ gl.uniform3fv(UL(pRay,'uU3'),c.u);
+ gl.uniform1f(UL(pRay,'uT'),tGlob);
+ gl.uniform1f(UL(pRay,'uEx'),EX);
+ gl.uniform1f(UL(pRay,'uDop'),dopOn);
+ gl.uniform1f(UL(pRay,'uLens'),lensOn);
+ gl.uniform1f(UL(pRay,'uSpin'),spinOn);
+ gl.uniform1f(UL(pRay,'uDbg'),dbgMode);
+ gl.uniform1f(UL(pRay,'uQual'),uQual);
+ gl.uniform1f(UL(pRay,'uDphi'),DPHI);
+ gl.drawArrays(gl.TRIANGLES,0,3)}
+let dbgMode=0;
+
+/* ══════════ 图表 ══════════ */
+const ctx=$('#cv').getContext('2d');
+let chartTab='defl';
+$$('#chart .tabs .mbtn').forEach(b=>b.onclick=()=>{chartTab=b.dataset.c;
+ $$('#chart .tabs .mbtn').forEach(x=>x.classList.toggle('on',x===b));drawChart()});
+let DEFL=null;
+function chartDefl(){
+ const w=860,h=320;ctx.clearRect(0,0,w,h);
+ ctx.font='20px ui-monospace';ctx.fillStyle='#a8adbd';
+ ctx.fillText('光线偏转角 α(b)（页内真算）—— b→b_c 时发散(缠绕)',26,30);
+ const x0=80,x1=830,y0=54,y1=270,b0=2.4,b1=12;
+ if(!DEFL){DEFL=[];for(let b=b0+0.02;b<=b1;b+=0.06){const r=traceRayJS(b,300,0.004);
+  DEFL.push([b,r.cap?null:r.defl])}}
+ const X=b=>x0+(b-b0)/(b1-b0)*(x1-x0), Y=a=>y1-Math.min(a,3.4)/3.4*(y1-y0);
+ ctx.strokeStyle='rgba(168,173,189,.5)';ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0,y1);ctx.lineTo(x1,y1);ctx.stroke();
+ /* 弱场虚线 2/b */
+ ctx.strokeStyle='rgba(143,198,255,.5)';ctx.setLineDash([6,5]);ctx.beginPath();
+ for(let b=2.6;b<=b1;b+=0.1){const px=X(b),py=Y(2/b);b===2.6?ctx.moveTo(px,py):ctx.lineTo(px,py)}
+ ctx.stroke();ctx.setLineDash([]);
+ ctx.strokeStyle='#ffc987';ctx.lineWidth=2.5;ctx.beginPath();let pen=0;
+ for(const[b,a]of DEFL){if(a===null){pen=0;continue}
+  const px=X(b),py=Y(a);pen++?ctx.lineTo(px,py):ctx.moveTo(px,py)}
+ ctx.stroke();
+ ctx.strokeStyle='#ff8c7a';ctx.setLineDash([7,5]);ctx.beginPath();
+ ctx.moveTo(X(BC),y0);ctx.lineTo(X(BC),y1);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#ff8c7a';ctx.font='16px ui-monospace';
+ ctx.fillText('b_c=√27/2≈2.598 rs（影子边界）',X(BC)+8,y0+18);
+ ctx.fillStyle='#8fc6ff';ctx.fillText('弱场 α=2rs/b（爱因斯坦 1915）',X(6.5),Y(2/6.5)-12);
+ ctx.fillStyle='#8a8f9e';ctx.font='15px sans-serif';
+ ctx.fillText('b (冲击参数, rs) →',x1-160,y1+24);
+ ctx.fillText('临界处光线绕黑洞打转——一圈、两圈……贴影细环由此而来',x0,308)}
+function chartDisk(){
+ const w=860,h=320;ctx.clearRect(0,0,w,h);
+ ctx.font='20px ui-monospace';ctx.fillStyle='#a8adbd';
+ ctx.fillText('盘温度 T∝r^(-¾) 与多普勒 g 因子（同一半径,两侧对比）',26,30);
+ const x0=80,x1=830,y0=54,y1=270;
+ const X=r=>x0+(r-3)/(14-3)*(x1-x0);
+ ctx.strokeStyle='rgba(168,173,189,.5)';ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0,y1);ctx.lineTo(x1,y1);ctx.stroke();
+ /* T 剖面 */
+ ctx.strokeStyle='#ffc987';ctx.lineWidth=2.5;ctx.beginPath();let pen=0;
+ for(let r=3.02;r<=14;r+=0.05){const T=TprofJS(r)/0.488;
+  const py=y1-T*(y1-y0)*0.92;pen++?ctx.lineTo(X(r),py):ctx.moveTo(X(r),py)}
+ ctx.stroke();
+ /* g 两侧（近似取 |Lz|=b_eff=r/√(1−1.5/r)? 用切向发射的极端:观察者盘面内） */
+ ctx.lineWidth=2;
+ for(const s of[1,-1]){ctx.strokeStyle=s>0?'#8fe6a0':'#ff9e8a';ctx.beginPath();pen=0;
+  for(let r=3.2;r<=14;r+=0.1){
+   const g=gJS(r,s*0.8*r/Math.sqrt(Math.max(r-1.5,0.1)));   /* 典型切向视线 Lz≈±0.8·r/√(r−1.5) */
+   const py=y1-(clamp(g,0.3,1.6)-0.3)/1.3*(y1-y0);
+   pen++?ctx.lineTo(X(r),py):ctx.moveTo(X(r),py)}
+  ctx.stroke()}
+ ctx.fillStyle='#8fe6a0';ctx.font='15px sans-serif';ctx.fillText('接近侧 g>1（增亮 g⁴）',X(6),y0+30);
+ ctx.fillStyle='#ff9e8a';ctx.fillText('远离侧 g<1（变暗红移）',X(6),y1-16);
+ ctx.fillStyle='#8a8f9e';ctx.fillText('r (rs) →',x1-70,y1+24);
+ ctx.fillText('内缘 3rs=ISCO · 峰 4.08rs（涌现）· 电影级左右不对称=g⁴',x0,308)}
+function drawChart(){chartTab==='defl'?chartDefl():chartDisk()}
+
+/* ══════════ UI ══════════ */
+const story=$('#story'),dict=$('#dict');
+function setStory(t,b,c){story.querySelector('.st').textContent=t;story.querySelector('.sb').textContent=b;story.querySelector('.sc').textContent=c}
+const VIEWS={
+ film:{inc:87,dist:25,st:['电影机位 —— 贴着盘面 3°','你看到的一切都不是"画"出来的：每个像素发出一条光线，在史瓦西时空里数值积分测地线。上下两道光弧是盘远侧被引力弯过来的像；左亮右暗是 0.4c 转速的多普勒束流；贴着影子的细环，是绕行一圈以上的光。','影子边界 b=√27/2 rs 由光线捕获涌现;点击画面任意处看那里是什么。']},
+ high:{inc:55,dist:27,st:['俯瞰 —— 盘的真面目','从上往下看,盘就是一个环——但影子周围仍有一圈"重影":那是盘下表面的光绕过来的像。注意影子并不在盘中心:透镜把整个近侧放大了。','倾角滑杆可连续过渡到电影机位,看双弧如何"长"出来。']},
+ graze:{inc:89.3,dist:22,st:['贴盘掠面 —— 最戏剧的角度','几乎完全侧视:近侧盘压成一条线,而远侧被拉成一轮完整的"光环"竖在天上。这是引力透镜最疯狂的形态。','电影里 Cooper 坠入时就是这个视角。']},
+ far:{inc:80,dist:48,st:['远望 —— 一颗发光的眼睛','退远一点,Gargantua 变成星空中的一枚亮环。EHT 拍 M87* 就是这个构图——只是分辨率相当于从地球看月球上的甜甜圈。','背景恒星在影子附近被拉扯成弧:那是爱因斯坦环的雏形。']}};
+$$('#ctrl [data-v]').forEach(b=>b.onclick=()=>{const V=VIEWS[b.dataset.v];
+ $$('#ctrl [data-v]').forEach(x=>x.classList.toggle('on',x===b));
+ inc=V.inc*Math.PI/180;dist=V.dist;$('#sInc').value=V.inc;
+ setStory(...V.st)});
+$('#sInc').oninput=e=>{inc=(+e.target.value)*Math.PI/180};
+$('#sExp').oninput=e=>EX=+e.target.value;
+const tog=(el,fn)=>el.onclick=()=>{const on=el.classList.toggle('on');el.textContent=el.textContent.replace(/开|关/,on?'开':'关');fn(on?1:0)};
+tog($('#bDop'),v=>{dopOn=v;if(!v)setStory('对照实验 · 关掉多普勒','现在盘左右一样亮了——这才是"静止"吸积盘的样子。打开开关,0.4c 的转速立刻把冲向你的一侧增亮 g⁴ 倍。','g=√(1−1.5/r)/(1−Ω·L_z),页内逐像素真算。')});
+tog($('#bLens'),v=>{lensOn=v;if(!v)setStory('对照实验 · 关掉引力','光走直线的宇宙:吸积盘退化成一个平平无奇的"土星环",黑洞只是一个球形剪影。上下双弧、贴影细环、背景星拉弧——全部消失。这就是广义相对论"画"进画面里的东西。','直线模式=普通光线求交,同一盘、同一相机。')});
+tog($('#bSpin'),v=>spinOn=v);
+/* 点击拾取:像素→JS 测地线→词典 */
+cv.addEventListener('click',e=>{
+ const c=camBasis(),d=dpr*(saveMode?0.5:RSCALE);
+ const px=(e.clientX*d*2-W)/H,py=-(e.clientY*d*2-H)/H;
+ const rd=[c.f[0]+(px*c.r[0]+py*c.u[0])*.62,c.f[1]+(px*c.r[1]+py*c.u[1])*.62,c.f[2]+(px*c.r[2]+py*c.u[2])*.62];
+ const L=Math.hypot(...rd);
+ const h=traceDiskJS(c.pos,rd.map(v=>v/L),3,14,0.006,60);
+ let key;
+ if(h.type===1)key='影子与光子环';
+ else if(h.type===2){
+  if(h.phi>Math.PI*1.6)key='影子与光子环';
+  else if(Math.abs(h.az)>Math.PI/2)key='上下双弧';
+  else if(h.r<4.2)key='ISCO 内缘';
+  else key=(h.Lz>0)?'左右为何不一样亮':'为什么盘是热的';}
+ else key=(Math.random()<0.5)?'EHT 实拍':'电影与本页的差别';
+ showDict(key)});
+function showDict(key){const d=DICT[key];if(!d)return;
+ dict.querySelector('h3').textContent=key;
+ dict.querySelector('.rows').innerHTML=d[0].map(([k,v])=>`<div class="row"><span>${k}</span><b>${v}</b></div>`).join('');
+ dict.querySelector('.blurb').textContent=d[1];
+ dict.style.display='block'}
+let drag=null,autoOrbit=true;
+cv.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];autoOrbit=false});
+addEventListener('pointermove',e=>{if(!drag)return;
+ yawAz+=(e.clientX-drag[0])*0.004;
+ inc=clamp(inc+(e.clientY-drag[1])*0.003,40*Math.PI/180,89.7*Math.PI/180);
+ $('#sInc').value=inc*180/Math.PI;
+ drag=[e.clientX,e.clientY]});
+addEventListener('pointerup',()=>drag=null);
+cv.addEventListener('wheel',e=>{e.preventDefault();dist=clamp(dist*Math.exp(e.deltaY*0.001),14,70)},{passive:false});
+$('#notetxt').innerHTML=['<b style="color:#9fe6a0">真算</b>：每像素一条光线在史瓦西度规下 RK4 积分 binet 方程 u″=−u+3/2·rs·u²（GPU 内 ~500 步,与 Node 端 proto 逐字对拍 16/16）;影子边界 b_c=√27/2 rs、上下双弧、贴影高阶像、背景星透镜全部涌现非贴图;多普勒/引力 g=√(1−1.5/r)/(1−ΩL_z) 逐像素,亮度 I∝g⁴、色温 T_obs=g·T_em;盘温度 SS 剖面 T∝r^{-3/4}(1−√(r_in/r))^{1/4},峰 4.08 rs 涌现;盘转速=真开普勒 Ω=√(M/r³)(流纹差速可见)。',
+'<b style="color:#ff9e7a">示意/声明</b>：本页为无自旋史瓦西精确解;电影 Gargantua 为 Kerr a≈0.999(影子 D 形、盘内缘更深),见词典;盘温度定标 6400 K 为可见光化艺术选择(真实恒星级黑洞盘 ~10⁷ K,X 射线);盘面流纹为示意纹理(差速为真);薄盘不透明近似;逃逸光线用轨道面渐近方向查星空(有限截断 r=55 rs);星空为程序生成。',
+'<b style="color:#8fc6ff">对照开关</b>：关"引力弯曲"=光走直线的牛顿宇宙;关"多普勒"=静止盘。两个开关就是本页的全部论点。'].map(s=>`<div style="margin:4px 0">${s}</div>`).join('');
+$('#foot').onclick=()=>{const n=$('#note');n.style.display=n.style.display==='block'?'none':'block';
+ story.style.display=n.style.display==='block'?'none':'block'};
+
+/* ══════════ 主循环 ══════════ */
+let last=0,fps=[],hidden=false;
+document.addEventListener('visibilitychange',()=>hidden=document.hidden);
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){saveMode=true;resize()}
+function loop(ts){requestAnimationFrame(loop);
+ if(hidden)return;
+ const dt=Math.min((ts-last)/1000,0.1);
+ if(ts-last<1000/46)return;
+ fps.push(1/(dt||0.016));if(fps.length>60)fps.shift();
+ last=ts;tGlob+=dt;
+ if(!drag&&autoOrbit)yawAz+=dt*0.016;
+ render()}
+requestAnimationFrame(loop);
+setStory(...VIEWS.film.st);drawChart();
+
+/* ══════════ 验证钩子 ══════════ */
+window.__GG__={
+ traceDiskJS,traceRayJS,gJS,TprofJS,BC,
+ camBasis,
+ state(){return {inc:inc*180/Math.PI,yawAz,dist,dopOn,lensOn,fps:fps.length?fps.reduce((a,b)=>a+b)/fps.length:0}},
+ set(o){if(o.inc!==undefined)inc=o.inc*Math.PI/180;if(o.yawAz!==undefined)yawAz=o.yawAz;
+  if(o.dist!==undefined)dist=o.dist;if(o.dop!==undefined)dopOn=o.dop;
+  if(o.lens!==undefined)lensOn=o.lens;if(o.spin!==undefined)spinOn=o.spin;
+  if(o.ex!==undefined)EX=o.ex;if(o.qual!==undefined)uQual=o.qual;
+  if(o.dbg!==undefined)dbgMode=o.dbg;if(o.orbit!==undefined)autoOrbit=!!o.orbit;
+  if(o.rscale!==undefined){RSCALE=o.rscale;resize()}},
+ rayAt(nx,ny){ // 屏幕 NDC(-1..1,y 上正)→光线方向（与 shader 同式,供对拍）
+  const c=camBasis();
+  const px=nx*(W/H),py=ny;
+  const rd=[c.f[0]+(px*c.r[0]+py*c.u[0])*.62,c.f[1]+(px*c.r[1]+py*c.u[1])*.62,c.f[2]+(px*c.r[2]+py*c.u[2])*.62];
+  const L=Math.hypot(...rd);return {pos:c.pos,dir:rd.map(v=>v/L)}},
+ sample(){const px=new Uint8Array(W*H*4);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let sum=0,nb=0,mx=0,cf=0;const cx=W/2,cy=H/2,rad=Math.min(W,H)*0.25;
+  for(let i=0;i<W*H;i++){const l=(px[i*4]+px[i*4+1]+px[i*4+2])/3;
+   sum+=l;if(l>10)nb++;if(l>mx)mx=l;
+   const x=i%W,y=(i/W)|0;
+   if((x-cx)**2+(y-cy)**2<rad*rad&&l>10)cf++}
+  return {mean:sum/(W*H),nonblack:nb/(W*H),max:mx,centerFrac:cf/(Math.PI*rad*rad)}},
+ readRow(yFrac,n){ // 屏幕某行 n 个采样(RGB)
+  const px=new Uint8Array(W*H*4);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const y=Math.round(H*yFrac),out=[];
+  for(let k=0;k<n;k++){const x=Math.round((k+0.5)/n*(W-1));
+   const i=(y*W+x)*4;out.push([px[i],px[i+1],px[i+2]])}
+  return out},
+ readCol(xFrac,n){
+  const px=new Uint8Array(W*H*4);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const x=Math.round(W*xFrac),out=[];
+  for(let k=0;k<n;k++){const y=Math.round((k+0.5)/n*(H-1));
+   const i=(y*W+x)*4;out.push([px[i],px[i+1],px[i+2]])}
+  return out},
+ halves(){const px=new Uint8Array(W*H*4);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let l=0,r=0;
+  for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
+   const i=(y*W+x)*4,v=(px[i]+px[i+1]+px[i+2])/3;
+   (x<W/2?l+=v:r+=v)}
+  return {left:l,right:r}},
+ W:()=>W,H:()=>H,
+ openDict(k){showDict(k);return $('#dict h3').textContent}};
+</script>

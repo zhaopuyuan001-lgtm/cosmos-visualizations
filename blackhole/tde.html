@@ -1,0 +1,897 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>潮汐撕裂事件 · TDE 实时渲染</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --void:#060709; --panel:rgba(13,16,22,.80);
+    --ink:#E8E4DA; --dim:#9A9686; --faint:#6B685C; --accent:#E8A33D;
+    --line:rgba(232,228,218,.14); --line-soft:rgba(232,228,218,.07);
+    --serif:"Songti SC","STSong",Georgia,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  html,body{height:100%;margin:0;background:var(--void);}
+  #stage{position:fixed;inset:0;overflow:hidden;background:var(--void);
+    font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+  #cv.grabbing{cursor:grabbing;}
+  .fade{opacity:0;transition:opacity 1.1s ease .1s;}
+  #stage.ready .fade{opacity:1;}
+  .notrans .fade{transition:none;}
+  @media (prefers-reduced-motion: reduce){ .fade{transition:none;} }
+
+  .plate{position:absolute;top:22px;left:24px;pointer-events:none;-webkit-user-select:none;user-select:none;}
+  .plate .obj{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--faint);margin-bottom:8px;}
+  .plate h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.15;margin:0 0 7px;color:var(--ink);}
+  .plate .sub{font-size:12px;color:var(--dim);letter-spacing:.02em;}
+
+  .rbox{position:absolute;top:22px;right:20px;text-align:right;pointer-events:none;-webkit-user-select:none;user-select:none;}
+  #rstar{font-family:var(--mono);font-size:26px;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.1;}
+  #rstar .u{font-size:12px;color:var(--dim);margin-left:3px;}
+  #rsub{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.85;}
+  #phbadge{display:inline-block;margin-top:8px;padding:3px 9px;border:1px solid rgba(232,163,61,.55);
+    border-radius:5px;font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.1em;}
+  #lc{margin-top:10px;background:rgba(9,11,15,.55);border:1px solid var(--line-soft);border-radius:6px;}
+  #lclabel{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--faint);margin-top:4px;}
+
+  #cap{position:absolute;left:0;right:0;bottom:96px;text-align:center;font-family:var(--serif);
+    font-size:19px;color:var(--ink);opacity:0;pointer-events:none;
+    text-shadow:0 0 8px rgba(0,0,0,.9);}
+  .readout{position:absolute;left:24px;bottom:18px;font-family:var(--mono);font-size:11px;
+    color:var(--faint);letter-spacing:.04em;pointer-events:none;-webkit-user-select:none;user-select:none;
+    font-variant-numeric:tabular-nums;line-height:1.9;}
+
+  .panel{position:absolute;right:20px;bottom:18px;width:268px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    -webkit-backdrop-filter:blur(12px) saturate(1.15);backdrop-filter:blur(12px) saturate(1.15);}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;cursor:pointer;-webkit-user-select:none;user-select:none;}
+  .panel-head .t{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);}
+  .panel-head .caret{color:var(--faint);font-size:10px;transition:transform .25s;}
+  .panel.closed .caret{transform:rotate(-90deg);}
+  .panel-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px;
+    border-top:1px solid var(--line-soft);}
+  .panel.closed .panel-body{display:none;}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:11px;color:var(--dim);margin-bottom:6px;letter-spacing:.03em;}
+  .ctl label .v{font-family:var(--mono);font-size:10.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  .seg button{flex:1;background:none;border:none;color:var(--dim);font-family:var(--sans);
+    font-size:11px;padding:5px 0;cursor:pointer;border-right:1px solid var(--line-soft);}
+  .seg button:last-child{border-right:none;}
+  .seg button.on{background:rgba(232,163,61,.13);color:var(--accent);}
+  .seg button:focus-visible{outline:1px solid var(--accent);outline-offset:-1px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:none;margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:1px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;
+    border-radius:50%;background:var(--accent);margin-top:-4.5px;border:none;}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(232,163,61,.3);}
+  .tlrow{display:flex;align-items:center;gap:8px;}
+  .tlrow input[type=range]{flex:1;}
+  .iconbtn{background:none;border:1px solid var(--line);border-radius:6px;color:var(--accent);
+    font-family:var(--mono);font-size:12px;width:34px;height:26px;cursor:pointer;line-height:1;}
+  .iconbtn:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+  .switchrow{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--dim);}
+  .sw{position:relative;width:30px;height:16px;border-radius:9px;border:1px solid var(--line);
+    background:none;cursor:pointer;padding:0;}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;
+    background:var(--faint);transition:transform .18s,background .18s;}
+  .sw.on{border-color:rgba(232,163,61,.5);}
+  .sw.on::after{transform:translateX(14px);background:var(--accent);}
+  .sw:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+  .ghost{background:none;border:1px solid var(--line);border-radius:6px;color:var(--dim);
+    font-family:var(--sans);font-size:11px;padding:6px 0;cursor:pointer;letter-spacing:.05em;}
+  .ghost:hover{color:var(--ink);border-color:var(--dim);}
+  .ghost:focus-visible{outline:1px solid var(--accent);outline-offset:2px;}
+
+  #infoBtn{position:absolute;top:22px;right:20px;display:none;}
+  #infoBtn2{background:none;border:1px solid var(--line);border-radius:6px;color:var(--dim);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;padding:6px 0;cursor:pointer;}
+  #infoBtn2:hover{color:var(--accent);border-color:rgba(232,163,61,.4);}
+  .info{position:absolute;top:0;right:0;bottom:0;width:min(410px,92vw);
+    background:rgba(9,11,15,.93);border-left:1px solid var(--line);
+    -webkit-backdrop-filter:blur(18px) saturate(1.1);backdrop-filter:blur(18px) saturate(1.1);
+    transform:translateX(102%);transition:transform .32s cubic-bezier(.3,.9,.3,1);
+    overflow-y:auto;overscroll-behavior:contain;z-index:20;}
+  .info.open{transform:translateX(0);}
+  @media (prefers-reduced-motion: reduce){ .info{transition:none;} }
+  .info-inner{padding:26px 28px 40px;}
+  .info .obj{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--faint);}
+  .info h2{font-family:var(--serif);font-weight:400;font-size:22px;margin:8px 0 0;}
+  .info h3{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--accent);
+    margin:28px 0 10px;font-weight:400;}
+  .info p{font-size:13px;line-height:1.85;color:var(--dim);margin:0 0 10px;max-width:62ch;}
+  .info p strong{color:var(--ink);font-weight:500;}
+  .info ul{margin:0;padding-left:18px;font-size:13px;line-height:1.85;color:var(--dim);}
+  .info li{margin-bottom:7px;}
+  .info li strong{color:var(--ink);font-weight:500;}
+  .info .eq{font-family:var(--mono);font-size:11.5px;line-height:2.05;color:var(--dim);
+    border:1px solid var(--line-soft);border-radius:8px;padding:12px 14px;overflow-x:auto;
+    white-space:pre;margin:0 0 10px;}
+  .info .eq b{color:var(--ink);font-weight:400;}
+  #infoClose{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--faint);
+    font-size:20px;cursor:pointer;line-height:1;padding:6px;}
+  #infoClose:hover{color:var(--ink);}
+  #err{position:absolute;inset:auto 12px 12px 12px;max-height:45%;overflow:auto;z-index:50;
+    background:rgba(40,10,10,.92);border:1px solid rgba(255,120,100,.4);border-radius:8px;
+    color:#ffb0a0;font-family:var(--mono);font-size:11px;padding:12px;white-space:pre-wrap;}
+  #nogl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    text-align:center;color:var(--dim);font-size:14px;line-height:2;padding:30px;}
+  [hidden]{display:none !important;}
+  @media (max-width:720px){
+    .plate h1{font-size:22px;} .plate{top:16px;left:16px;}
+    .panel{right:12px;bottom:12px;width:240px;}
+    .readout{left:16px;bottom:12px;font-size:10px;}
+    .rbox{top:16px;right:12px;} #cap{font-size:15px;bottom:120px;}
+  }
+</style>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+
+  <header class="plate fade">
+    <div class="obj">TIDAL DISRUPTION EVENT · SMBH 10⁶ M☉ · NULL GEODESIC TRACER</div>
+    <h1>潮汐撕裂事件</h1>
+    <div class="sub">超大质量黑洞吞噬一颗年轻恒星 · 逐像素广义相对论渲染</div>
+  </header>
+
+  <div class="rbox fade">
+    <div id="rstar"></div>
+    <div id="rsub"></div>
+    <div id="phbadge"></div><br>
+    <canvas id="lc" width="340" height="96" style="width:170px;height:48px;"></canvas>
+    <div id="lclabel">光变曲线 · L ∝ t^(−5/3)</div>
+  </div>
+
+  <div id="cap"></div>
+  <div class="readout fade" id="readout"></div>
+
+  <aside class="panel fade" id="panel">
+    <div class="panel-head" id="panelHead" role="button" tabindex="0" aria-label="折叠控制面板">
+      <span class="t">INSTRUMENT</span><span class="caret">▾</span>
+    </div>
+    <div class="panel-body">
+      <div class="ctl">
+        <label>事件时间线 <span class="v" id="tlv">0%</span></label>
+        <div class="tlrow">
+          <button class="iconbtn" id="playBtn" aria-label="播放/暂停">⏸</button>
+          <input type="range" id="tl" min="0" max="1000" step="1" value="0" aria-label="时间线">
+        </div>
+      </div>
+      <div class="ctl">
+        <label>播放速度 <span class="v" id="spv">1×</span></label>
+        <div class="seg" id="spseg">
+          <button data-s="0.5">0.5×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>画质 <span class="v" id="qv">中</span></label>
+        <div class="seg" id="qseg">
+          <button data-q="low">低</button><button data-q="mid" class="on">中</button><button data-q="high">高</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>多普勒集束 g⁴ <span class="v" id="dopv">1.00 · 物理</span></label>
+        <input type="range" id="dop" min="0" max="1" step="0.01" value="1" aria-label="多普勒集束强度">
+      </div>
+      <div class="ctl">
+        <label>曝光 <span class="v" id="expv">1.0</span></label>
+        <input type="range" id="expo" min="0.3" max="3" step="0.05" value="1.0" aria-label="曝光">
+      </div>
+      <div class="switchrow">自动环绕
+        <button class="sw on" id="orbitSw" role="switch" aria-checked="true" aria-label="自动环绕"></button>
+      </div>
+      <button class="ghost" id="resetBtn">重置视角</button>
+      <button id="infoBtn2">物理说明</button>
+    </div>
+  </aside>
+
+  <aside class="info" id="info" aria-label="物理说明">
+    <div class="info-inner">
+      <button id="infoClose" aria-label="关闭">×</button>
+      <div class="obj">OBSERVATION NOTES · TDE</div>
+      <h2>一颗恒星的最后 90 秒*</h2>
+      <p style="margin-top:6px;font-size:11px;color:var(--faint);">*本页时间线；真实事件跨数日到数月，各相位压缩倍率见右上角标注</p>
+
+      <h3>三十秒版</h3>
+      <p>恒星不是被黑洞"吸"进去的——是被<strong>潮汐力撕开</strong>的。当它越过潮汐半径 r_t，头脚两端受到的引力差超过它自身的引力，恒星先被拉成<strong>面条</strong>，再被甩成一条环绕黑洞的碎片流。大约一半碎片逃逸，另一半回落；回落流<strong>自己撞上自己</strong>（因为强场里轨道拱线剧烈进动），在撞击点点亮热斑，随后铺成一个新生的吸积盘——这就是天文台看到的 TDE 耀发，光度按 t^(−5/3) 衰减。</p>
+
+      <h3>逐一辨认</h3>
+      <ul>
+        <li><strong>拉长的亮条</strong> — 面条化（spaghettification）：越过 r_t 后恒星沿轨道方向被拉伸、横向被压细；</li>
+        <li><strong>回卷的碎片流</strong> — 恒星走的是精确测地线，近心点 8 M 的强场拱线进动把尾迹甩成回卷；</li>
+        <li><strong>流上的白热亮点</strong> — 碎片流自相交处：循环化的起点，动能在此耗散为热；</li>
+        <li><strong>新生的蓝白吸积盘</strong> — 在约 2 r_p 处成环再铺开：TDE 盘比常规盘更热（紫外/软X射线），故偏蓝白；</li>
+        <li><strong>右上角光变曲线</strong> — TDE 的签名：耀发后按 t^(−5/3) 回落，黑洞重归沉寂。</li>
+      </ul>
+
+      <h3>物理实现</h3>
+      <div class="eq"><b>潮汐半径</b>
+r_t = R★ (M_BH/M★)^(1/3) ≈ 57.7 M   (≈28.9 rs)
+M_BH = 10⁶ M☉ ,  M★ = 1.5 M☉ ,  R★ = 1.4 R☉
+
+<b>恒星轨道（精确测地线）</b>
+E = 1（抛物线）, L = 4.62 M → r_p = 8 M
+穿透系数 β = r_t/r_p ≈ 7.2（深穿透）
+
+<b>光线与红移</b>
+逐像素零测地线 RK4（Kerr–Schild, a=0）
+g = 1/(p·u_em) 精确 · I_obs ∝ g⁴ · T_obs = g·T
+
+<b>耀发衰减</b>
+回落率 Ṁ ∝ t^(−5/3) → 光变曲线同律</div>
+
+      <h3>诚实声明 · 简化之处</h3>
+      <ul>
+        <li>恒星/碎片流/新生盘是<strong>发光玩具模型</strong>：几何与运动学取自精确测地线，但没有做流体与磁场（真实 TDE 需 GRMHD 模拟）；</li>
+        <li>碎片流速度取自由落体近似；恒星发光半径为可视性放大约 2 倍；</li>
+        <li>TDE 盘的真实辐射峰在紫外/软X射线，此处做了<strong>色温压缩映射</strong>到可见光；</li>
+        <li>各相位时间压缩倍率不同（接近段~数日、近心点~小时级、成盘~数周），右上角逐相位标注量级；</li>
+        <li>黑洞取无自旋 Schwarzschild；10⁶ M☉ 是经典 TDE 宿主质量（>10⁸ M☉ 时恒星会被整吞、无耀发）。</li>
+      </ul>
+    </div>
+  </aside>
+
+  <pre id="err" hidden></pre>
+  <div id="nogl" hidden>此设备/浏览器未启用 WebGL2，无法进行实时测地线渲染。<br>请换用桌面版 Chrome / Safari / Edge 再试。</div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const $=id=>document.getElementById(id);
+const Q=new URLSearchParams(location.search);
+const FREEZE=Q.get("t")!==null? Math.min(1,Math.max(0,+Q.get("t"))):null;
+const TEST=Q.get("test")!==null;
+const AS=Math.min(0.995,Math.max(0,+(Q.get("a")||0)));      /* BH spin */
+const KERR=AS>0.01;
+const VIDEO=Q.get("video")!==null;
+const VFPS=+(Q.get("fps")||60), VDUR=+(Q.get("dur")||72);
+const VW=+(Q.get("w")||0), VH=+(Q.get("h")||0);
+const RHOR=1+Math.sqrt(Math.max(0,1-AS*AS)), RMIN=1-Math.sqrt(Math.max(0,1-AS*AS));
+function iscoPro(a){if(a<=0)return 6;
+  const z1=1+Math.cbrt(1-a*a)*(Math.cbrt(1+a)+Math.cbrt(1-a));
+  const z2=Math.sqrt(3*a*a+z1*z1);return 3+z2-Math.sqrt((3-z1)*(3+z1+2*z2));}
+const RISCO=iscoPro(AS);
+if(TEST)document.documentElement.classList.add("notrans");
+const canvas=$("cv"), stage=$("stage");
+const errBox=$("err");
+function fail(m){errBox.hidden=false;errBox.textContent+=m+"\n";}
+window.addEventListener("error",e=>fail("JS: "+e.message+" @"+e.lineno));
+
+const gl=canvas.getContext("webgl2",{antialias:false,alpha:false,depth:false,stencil:false,powerPreference:"high-performance"});
+if(!gl){$("nogl").hidden=false;return;}
+if(KERR){
+  document.querySelector(".plate .obj").textContent=
+    "TIDAL DISRUPTION EVENT · KERR SMBH 10⁶ M☉ · a = 0.9 · PROGRADE";
+  document.querySelector(".plate .sub").textContent=
+    "自旋黑洞吞噬一颗年轻恒星 · Kerr a = 0.9 · 逐像素广义相对论渲染";}
+
+/* ═══════════ float64 Kerr–Schild toolkit (general a, M=1) ═══════════ */
+const RT=57.7, RP=8.0;
+function ksRad(x,y,z){const R2=x*x+y*y+z*z;const b=R2-AS*AS;
+  return Math.sqrt(0.5*(b+Math.sqrt(b*b+4*AS*AS*z*z)));}
+function ksHl(x,y,z){const r=ksRad(x,y,z),r2=r*r,d=r2+AS*AS;
+  return {r,H:(r*r2)/(r2*r2+AS*AS*z*z+1e-300),
+    l:[1,(r*x+AS*y)/d,(r*y-AS*x)/d,r>1e-12?z/r:0]};}
+function metric(x,y,z){const o=ksHl(x,y,z);
+  const g=[[-1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+  for(let i=0;i<4;i++)for(let j=0;j<4;j++)g[i][j]+=2*o.H*o.l[i]*o.l[j];return g;}
+function ginv(x,y,z){const o=ksHl(x,y,z);const lu=[-1,o.l[1],o.l[2],o.l[3]];
+  const gi=[[-1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+  for(let i=0;i<4;i++)for(let j=0;j<4;j++)gi[i][j]-=2*o.H*lu[i]*lu[j];return gi;}
+function mdot(g,u,v){let s=0;for(let i=0;i<4;i++)for(let j=0;j<4;j++)s+=g[i][j]*u[i]*v[j];return s;}
+function rhs(s,pt){const [x,y,z,px,py,pz]=s;
+  const Phi=(X,Y,Z)=>{const o=ksHl(X,Y,Z);
+    const lp=-pt+o.l[1]*px+o.l[2]*py+o.l[3]*pz;return o.H*lp*lp;};
+  const o=ksHl(x,y,z);const lp=-pt+o.l[1]*px+o.l[2]*py+o.l[3]*pz;
+  const dx=px-2*o.H*lp*o.l[1], dy=py-2*o.H*lp*o.l[2], dz=pz-2*o.H*lp*o.l[3];
+  const h=1e-6*Math.max(1,Math.hypot(x,y,z));
+  return [dx,dy,dz,
+   (Phi(x+h,y,z)-Phi(x-h,y,z))/(2*h),
+   (Phi(x,y+h,z)-Phi(x,y-h,z))/(2*h),
+   (Phi(x,y,z+h)-Phi(x,y,z-h))/(2*h)];}
+function rk4(s,pt,dl){const k1=rhs(s,pt);
+  const s2=s.map((v,i)=>v+.5*dl*k1[i]);const k2=rhs(s2,pt);
+  const s3=s.map((v,i)=>v+.5*dl*k2[i]);const k3=rhs(s3,pt);
+  const s4=s.map((v,i)=>v+dl*k3[i]);const k4=rhs(s4,pt);
+  return s.map((v,i)=>v+dl*(k1[i]+2*k2[i]+2*k3[i]+k4[i])/6);}
+function dtdl(s,pt){const o=ksHl(s[0],s[1],s[2]);
+  const lp=-pt+o.l[1]*s[3]+o.l[2]*s[4]+o.l[3]*s[5];return -pt+2*o.H*lp;}
+
+/* ── star geodesic: E=1, L=LSTAR, from r=130 in, whirl at 8M, out ── */
+function launch(L,fine){
+  const x0=-130,y0=0;const gi=ginv(x0,y0,0);
+  const pt=-1, py=-L/130;               /* L = x·py − y·px = −130·py */
+  const A=gi[1][1];
+  const B=2*(gi[0][1]*pt+gi[1][2]*py);
+  const C=gi[0][0]*pt*pt+2*gi[0][2]*pt*py+gi[2][2]*py*py+1;
+  const px=(-B+Math.sqrt(Math.max(0,B*B-4*A*C)))/(2*A);
+  let s=[x0,y0,0,px,py,0];let tau=0;
+  const out=fine?[{x:x0,y:y0,tau:0,r:130,px,py}]:null;
+  let minr=130;
+  const base=fine?0.004:0.02, capdl=fine?0.05:0.12;
+  for(let i=0;i<(fine?300000:80000);i++){
+    const r=ksRad(s[0],s[1],s[2]);
+    const dl=Math.min(capdl,Math.max(0.006,base*r));
+    s=rk4(s,pt,dl);tau+=dl;
+    const rn=ksRad(s[0],s[1],s[2]);
+    if(rn<minr)minr=rn;
+    if(out)out.push({x:s[0],y:s[1],tau,r:rn,px:s[3],py:s[4]});
+    if(rn>135&&i>2000)break;
+    if(rn<RHOR*1.05){minr=rn;break;}}
+  return {out,minr};}
+const LSTAR=(function(){
+  const L0=Math.sqrt(2*RP*RP/(RP-2));   /* a=0 exact for r_p=8M */
+  if(!KERR)return L0;
+  let lo=L0*0.55, hi=L0*1.3;            /* prograde dragging → smaller L works */
+  for(let i=0;i<22;i++){const mid=(lo+hi)/2;
+    if(launch(mid,false).minr<RP)lo=mid;else hi=mid;}
+  return (lo+hi)/2;})();
+const PATH=launch(LSTAR,true).out;
+/* rotate whole orbit in-plane so the approach leg sits in the default view
+   (free choice: a=0 is spherically symmetric) */
+(function(){const A=2.353,c=Math.cos(A),s=Math.sin(A);
+  for(const p of PATH){
+    const x=p.x*c-p.y*s, y=p.x*s+p.y*c;p.x=x;p.y=y;
+    if(p.px!==undefined){const px=p.px*c-p.py*s, py=p.px*s+p.py*c;p.px=px;p.py=py;}}})();
+function tauAtR(r,dir){ /* dir:+1 inbound(first), -1 outbound(last) */
+  if(dir>0){for(let i=1;i<PATH.length;i++)if(PATH[i].r<=r)return PATH[i].tau;}
+  else{for(let i=PATH.length-1;i>0;i--)if(PATH[i].r<=r)return PATH[i].tau;}
+  return PATH[PATH.length-1].tau;}
+const TAU_RT=tauAtR(RT,1), TAU_PERI=(function(){let m=1e9,t=0;
+  for(const p of PATH)if(p.r<m){m=p.r;t=p.tau;}return t;})();
+const TAU_END=PATH[PATH.length-1].tau;
+function sampleTau(tau){let lo=0,hi=PATH.length-1;
+  while(lo<hi){const m=(lo+hi)>>1;if(PATH[m].tau<tau)lo=m+1;else hi=m;}
+  const b=PATH[Math.max(1,lo)],a=PATH[Math.max(1,lo)-1];
+  const f=Math.min(1,Math.max(0,(tau-a.tau)/Math.max(1e-9,b.tau-a.tau)));
+  return {x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,r:a.r+(b.r-a.r)*f,
+          px:(a.px||0)+((b.px||0)-(a.px||0))*f,py:(a.py||0)+((b.py||0)-(a.py||0))*f};}
+/* stream self-intersection (first wrap) */
+const XPT=(function(){
+  const D=[];for(let i=0;i<PATH.length;i+=10)D.push(PATH[i]);
+  function seg(a,b,c,d){const d1=(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+    const d2=(b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x);
+    const d3=(d.x-c.x)*(a.y-c.y)-(d.y-c.y)*(a.x-c.x);
+    const d4=(d.x-c.x)*(b.y-c.y)-(d.y-c.y)*(b.x-c.x);
+    return d1*d2<0&&d3*d4<0;}
+  for(let i=0;i<D.length-1;i++)for(let j=i+40;j<D.length-1;j++)
+    if(seg(D[i],D[i+1],D[j],D[j+1]))
+      return {x:(D[i].x+D[j].x)/2,y:(D[i].y+D[j].y)/2};
+  return {x:-RP,y:-RP};})();
+
+/* ═══════════ timeline: u∈[0,1] → scene state ═══════════ */
+const PHASES=[
+  {u0:0.00,u1:0.22,name:"A · 接近",zh:"相位 A · 接近",speed:"快放 ~10⁴×"},
+  {u0:0.22,u1:0.40,name:"B · 撕裂",zh:"相位 B · 面条化",speed:"快放 ~10²×"},
+  {u0:0.40,u1:0.64,name:"C · 回卷",zh:"相位 C · 循环化",speed:"快放 ~10⁴×"},
+  {u0:0.64,u1:1.00,name:"D · 耀发",zh:"相位 D · 耀发衰减",speed:"快放 ~10⁵×"}];
+const CAPS=KERR?[
+  [0.02,0.20,"同一颗恒星——但这一次，黑洞在自转（a = 0.9）"],
+  [0.225,0.37,"越过 r_t：面条化开始 · 阴影已被拖成 D 形"],
+  [0.385,0.46,"近心点：顺行轨道乘着时空拖曳，回卷更紧"],
+  [0.47,0.58,"自交热斑点亮——循环化比无自旋时更快"],
+  [0.60,0.75,"新生盘深入 ISCO = 2.32 M · 更深、更热、更亮"],
+  [0.78,0.95,"同样的 t^(−5/3) 衰减——对黑洞只是一顿安静的午餐"]]:[
+  [0.02,0.20,"一颗年轻恒星，正滑向潮汐半径 r_t"],
+  [0.225,0.37,"越过 r_t：潮汐力超过自引力——面条化开始"],
+  [0.385,0.46,"近心点 8 M：强场拱线进动把碎片甩成回卷"],
+  [0.47,0.58,"碎片流自相交——循环化开始，热斑点亮"],
+  [0.60,0.75,"新生吸积盘成形 · 耀发抵达峰值"],
+  [0.78,0.95,"光度按 t^(−5/3) 衰减——黑洞恢复沉寂"]];
+function smooth(t){return t*t*(3-2*t);}
+function lerp(a,b,f){return a+(b-a)*f;}
+function headTau(u){
+  if(u<0.22)return lerp(tauAtR(120,1),TAU_RT,smooth(u/0.22));
+  if(u<0.40)return lerp(TAU_RT,TAU_PERI,(u-0.22)/0.18);
+  if(u<0.64)return lerp(TAU_PERI,Math.min(tauAtR(46,-1),TAU_END),(u-0.40)/0.24);
+  return Math.min(tauAtR(46,-1),TAU_END);}
+function flare(u){ /* normalized L(u): rise then t^-5/3 */
+  let L=0.015;
+  L+=0.10*Math.exp(-Math.pow((u-0.305)/0.018,2));         /* pericenter shock */
+  L+=0.16*smooth(Math.min(1,Math.max(0,(u-0.44)/0.14)));  /* circularization */
+  const rise=smooth(Math.min(1,Math.max(0,(u-0.60)/0.115)));
+  const dec=u>0.715? Math.pow((u-0.60)/0.115,-5/3):1;
+  L+=0.95*rise*dec;
+  return Math.min(1.2,L);}
+const NSEG=96;
+const pathBuf=new Float32Array(NSEG*4);
+/* cumulative arc length for even-in-space stream resampling */
+const ALEN=new Float64Array(PATH.length);
+for(let i=1;i<PATH.length;i++)
+  ALEN[i]=ALEN[i-1]+Math.hypot(PATH[i].x-PATH[i-1].x,PATH[i].y-PATH[i-1].y);
+function arcAtTau(tau){let lo=0,hi=PATH.length-1;
+  while(lo<hi){const m=(lo+hi)>>1;if(PATH[m].tau<tau)lo=m+1;else hi=m;}
+  return ALEN[lo];}
+function sampleArc(s){let lo=0,hi=ALEN.length-1;
+  while(lo<hi){const m=(lo+hi)>>1;if(ALEN[m]<s)lo=m+1;else hi=m;}
+  const i=Math.max(1,lo);
+  const f=Math.min(1,Math.max(0,(s-ALEN[i-1])/Math.max(1e-9,ALEN[i]-ALEN[i-1])));
+  const a=PATH[i-1],b=PATH[i];
+  return {x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,r:a.r+(b.r-a.r)*f,
+          tau:a.tau+(b.tau-a.tau)*f};}
+function sceneState(u){
+  const th=headTau(u);
+  const head=sampleTau(th);
+  /* star / remnant */
+  const disrupted=th>TAU_RT;
+  let stretch=1;
+  if(head.r<RT*1.35)stretch=Math.min(42,Math.pow(RT/head.r,1.6));
+  if(u>0.42)stretch=42;
+  const starFade=u<0.50?1:Math.max(0,1-(u-0.50)/0.12);
+  const starLum=(disrupted?1/Math.pow(stretch,0.35):1)*starFade;
+  /* velocity dir for stretch axis + emitter */
+  const d=rhs([head.x,head.y,0,head.px,head.py,0],-1);
+  const vlen=Math.hypot(d[0],d[1])||1;
+  const ut=dtdl([head.x,head.y,0,head.px,head.py,0],-1);
+  /* stream window: [TAU_RT, th] resampled to NSEG */
+  let nseg=0;
+  if(disrupted){
+    const s0a=arcAtTau(TAU_RT), s1a=arcAtTau(Math.max(th,TAU_RT+0.5));
+    const drain=u>0.64? (u-0.64)/0.36:0;
+    for(let i=0;i<NSEG;i++){
+      const f=i/(NSEG-1);
+      const p=sampleArc(lerp(s0a,s1a,f));
+      const age=Math.max(0,th-p.tau);
+      let w=0.18+1.1*Math.pow(Math.min(1,age/60),0.7)*Math.min(2.2,Math.pow(RT/Math.max(p.r,3),0.35));
+      w*=1+0.8*drain;
+      let b=(0.30+0.70*Math.exp(-age/45))*(f>0.93?lerp(1,2.0,(f-0.93)/0.07):1);
+      b*=Math.pow(Math.max(0.04,1-drain),1.5);
+      pathBuf[i*4]=p.x;pathBuf[i*4+1]=p.y;pathBuf[i*4+2]=Math.min(2.2,w);pathBuf[i*4+3]=b;}
+    nseg=NSEG;}
+  /* hotspot */
+  const xB=u<0.44?0:(u<0.58? smooth((u-0.44)/0.14):Math.max(0.15,1-(u-0.58)/0.30))*1.0;
+  /* disk */
+  const dRise=smooth(Math.min(1,Math.max(0,(u-0.58)/0.14)));
+  const dDecay=u>0.72? Math.max(0.12,Math.pow((u-0.60)/0.12,-5/3)):1;
+  const diskB=dRise*dDecay;
+  const spread=smooth(Math.min(1,Math.max(0,(u-0.62)/0.30)));
+  /* loop seam fade */
+  const seam=u>0.965? 1-(u-0.965)/0.035 : (u<0.015? u/0.015:1);
+  return {head,ut,u4x:d[0],u4y:d[1],vd:[d[0]/vlen,d[1]/vlen],stretch,starLum,nseg,
+          xB,diskB,spread,seam,LC:flare(u)};}
+
+/* ═══════════ WebGL ═══════════ */
+const VS=`#version 300 es
+void main(){vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));
+gl_Position=vec4(p*2.-1.,0.,1.);}`;
+const FS=`#version 300 es
+precision highp float;
+out vec4 O;
+uniform vec2 uRes;
+uniform vec3 uPos;uniform vec4 uU,uEf,uEu,uEr;
+uniform mat3 uLook;uniform float uFovT;
+uniform float uDoppler,uExpo,uKstep,uSeam;
+uniform int uMax;
+uniform vec4 uPath[${NSEG}];uniform int uNseg;
+uniform vec3 uStarPos;uniform vec2 uStretchDir;
+uniform float uStretch,uStarLum;uniform vec4 uStarU;
+uniform vec2 uXPos;uniform float uXB;
+uniform float uDiskB,uSpread,uDiskT;
+uniform float uA,uRh,uRm,uIsco;
+const float PI=3.141592653589793,TAU=6.283185307179586;
+float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
+float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453123);}
+float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}
+float fbm2(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*n2(p);p=p*2.03+17.31;a*=.5;}return s;}
+float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  float a=mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y);
+  float b=mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y);
+  return mix(a,b,f.z);}
+float fbm3(vec3 p){float s=0.,a=.5;for(int i=0;i<3;i++){s+=a*n3(p);p=p*2.11+31.7;a*=.5;}return s;}
+vec3 blackbody(float T){float t=clamp(T,1200.,14000.)*.01;
+  float r=(t<=66.)?1.:clamp(1.2929*pow(t-60.,-.1332),0.,1.);
+  float g=(t<=66.)?clamp(.3901*log(t)-.6318,0.,1.):clamp(1.1299*pow(t-60.,-.0755),0.,1.);
+  float b=(t>=66.)?1.:((t<=19.)?0.:clamp(.5432*log(t-10.)-1.1963,0.,1.));
+  return vec3(r,g,b);}
+/* a=0 Kerr–Schild pieces */
+float ksr(vec3 q){float R2=dot(q,q);float b=R2-uA*uA;
+  return sqrt(0.5*(b+sqrt(b*b+4.*uA*uA*q.z*q.z)));}
+void ksHL(vec3 q,out float Hks,out vec3 lv){
+  float r=ksr(q);float r2=r*r;float d=r2+uA*uA;
+  Hks=(r*r2)/(r2*r2+uA*uA*q.z*q.z+1e-20);
+  lv=vec3((r*q.x+uA*q.y)/d,(r*q.y-uA*q.x)/d,(r>1e-9)?q.z/r:0.);}
+float PhiF(vec3 q,float pt,vec3 pv){float Hks;vec3 lv;ksHL(q,Hks,lv);
+  float lp=-pt+dot(lv,pv);return Hks*lp*lp;}
+void deriv(vec3 q,float pt,vec3 pv,out vec3 dxd,out vec3 dpd){
+  float Hks;vec3 lv;ksHL(q,Hks,lv);
+  float lp=-pt+dot(lv,pv);
+  dxd=pv-2.*Hks*lp*lv;
+  float h=2e-3*max(1.,length(q)*.15);
+  dpd=vec3(
+   PhiF(q+vec3(h,0,0),pt,pv)-PhiF(q-vec3(h,0,0),pt,pv),
+   PhiF(q+vec3(0,h,0),pt,pv)-PhiF(q-vec3(0,h,0),pt,pv),
+   PhiF(q+vec3(0,0,h),pt,pv)-PhiF(q-vec3(0,0,h),pt,pv))/(2.*h);}
+vec3 starLayer(vec3 d,float S,float k,float amp,float dens,float gS){
+  vec3 gc=floor(d*S);float h=h31(gc);
+  if(h>dens)return vec3(0.);
+  vec3 j=vec3(h31(gc+11.1),h31(gc+27.3),h31(gc+51.7));
+  vec3 sd=normalize(gc+.5+(j-.5)*.75);
+  float a=dot(d,sd)-1.;
+  float T=mix(3400.,11500.,j.x)*clamp(gS,.35,2.5);
+  return blackbody(T)*amp*(.25+.75*j.y*j.y)*exp(a*k);}
+vec3 bgSky(vec3 d,float gS,float supp,float wdk){
+  vec3 st=vec3(0.);
+  st+=starLayer(d,41.,5.5e5,.85,.04,gS);
+  st+=starLayer(d,113.,2.6e6,.5,.07,gS);
+  vec3 nb=normalize(vec3(.19,1.,.11));
+  float band=exp(-pow(dot(d,nb)*3.4,2.));
+  float neb=fbm3(d*2.3+5.);
+  vec3 nbc=band*(.04*vec3(.70,.73,.86)*neb*neb+.02*vec3(.82,.62,.45)*pow(fbm3(d*5.1-2.),3.));
+  vec3 glow=vec3(.045,.05,.065)*(.6+.8*band);
+  float gpow=pow(clamp(gS,.3,2.2),3.);
+  return ((st+nbc)*(1.-supp)+glow*supp*1.4)*gpow*wdk;}
+/* p·u for emitter k=(1,v⃗) normalized: returns g=1/(p·u) */
+float gOf(vec3 q,vec3 pv,float pt,vec3 v3){
+  float Hks;vec3 lv;ksHL(q,Hks,lv);
+  vec4 k=vec4(1.,v3);
+  float lk=k.x+dot(lv,k.yzw);
+  float n2m=-(-k.x*k.x+dot(k.yzw,k.yzw)+2.*Hks*lk*lk);
+  if(n2m<1e-5)return 1.;
+  float N=inversesqrt(n2m);
+  float pu=N*(pt+dot(pv,v3));
+  return 1./max(abs(pu),1e-4);}
+/* equatorial-plane composite: forming disk + debris stream + hotspot */
+void planeField(vec3 qc,vec3 pv,float pt,float wk,inout vec3 col,inout float trans){
+  vec2 P=qc.xy;float rc=sqrt(max(0.,dot(P,P)-uA*uA));
+  if(rc<uRh*1.1||rc>46.)return;
+  vec3 E=vec3(0.);float A=0.;
+  /* — forming disk — */
+  if(uDiskB>0.003){
+    float rin=mix(13.5,uIsco+.3,uSpread),rout=mix(18.5,24.,uSpread);
+    if(rc>rin&&rc<rout){
+      float Om=1./(pow(rc,1.5)+uA);
+      float sh=smoothstep(rin,rin+1.2,rc)*smoothstep(rout,rout-2.,rc);
+      float phi=atan(P.y,P.x);
+      float p01=fract((phi-Om*uDiskT)/TAU)*TAU;
+      float L=log(rc)*6.5;
+      float nA=fbm2(vec2(L,p01*1.55)),nB=fbm2(vec2(L,(p01-TAU)*1.55));
+      float n=mix(nA,nB,p01/TAU);n=.5+.9*n;
+      float g=gOf(qc,pv,pt,vec3(-Om*P.y,Om*P.x,0.));
+      float gE=mix(1.,g,uDoppler);
+      float Td=15000.*pow(6.5/rc,.55);
+      vec3 bb=blackbody(Td*gE);
+      float e=uDiskB*sh*n*pow(clamp(gE,.05,2.),4.)*.85*wk;
+      E+=bb*e;A+=e*.4;}}
+  /* — debris stream (polyline field) — */
+  if(uNseg>1){
+    float md=1e9;int mi=0;float mt=0.;
+    for(int i=0;i<${NSEG-1};i++){
+      if(i>=uNseg-1)break;
+      vec2 a=uPath[i].xy,b=uPath[i+1].xy,ab=b-a;
+      float t=clamp(dot(P-a,ab)/max(dot(ab,ab),1e-6),0.,1.);
+      float d=length(P-a-ab*t);
+      if(d<md){md=d;mi=i;mt=t;}}
+    float w=mix(uPath[mi].z,uPath[mi+1].z,mt);
+    float br=mix(uPath[mi].w,uPath[mi+1].w,mt);
+    if(md<w*2.2){
+      vec2 tg=normalize(uPath[mi+1].xy-uPath[mi].xy+1e-6);
+      float sp=min(.92,sqrt(2./max(rc,2.4)));
+      float g=gOf(qc,pv,pt,vec3(tg*sp,0.));
+      float gE=mix(1.,g,uDoppler);
+      float gs=exp(-pow(md/w,2.));
+      float rough=.6+.7*fbm2(vec2(rc*.9,atan(P.y,P.x)*3.+uDiskT*.05));
+      float Ts=mix(4200.,8200.,clamp(br,0.,1.))*pow(clamp(gE,.4,1.8),1.);
+      float e=br*gs*rough*pow(clamp(gE,.05,2.),4.)*1.5*wk;
+      E+=blackbody(Ts)*e;A+=e*.4;}}
+  /* — self-intersection hotspot — */
+  if(uXB>0.004){
+    float d=length(P-uXPos);
+    float e=uXB*(1.6*exp(-pow(d/1.1,2.))+3.5*exp(-pow(d/.34,2.)))*wk;
+    E+=blackbody(13500.)*e;A+=e*.4;}
+  col+=trans*E;
+  trans*=(1.-clamp(A,0.,.85));}
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.-uRes)/uRes.y;
+  vec3 nl=normalize(uLook*normalize(vec3(uv.x*uFovT,uv.y*uFovT,1.)));
+  vec4 k4=-uU+nl.x*uEr+nl.y*uEu+nl.z*uEf;
+  float Hks0;vec3 lv0;ksHL(uPos,Hks0,lv0);
+  float rr0=ksr(uPos);vec3 rq0=normalize(uPos);
+  float lk=k4.x+dot(lv0,k4.yzw);
+  float pt=-k4.x+2.*Hks0*lk;
+  vec3 pv=k4.yzw+2.*Hks0*lv0*lk;
+  vec3 q=uPos;
+  vec3 col=vec3(0.);float trans=1.;
+  vec3 escD=vec3(0,0,1);bool esc=false,cap=false;
+  float rEnd=max(rr0*1.6,90.);
+  float wind=0.;vec3 qhPrev=rq0;
+  vec3 dxd,dpd;
+  /* exact a=0 sky/frozen-star classification (no chaos); Kerr uses trap decay */
+  float E0=pt;
+  vec3 Lv=cross(q,pv);float bImp=length(Lv)/max(abs(E0),1e-6);
+  deriv(q,pt,pv,dxd,dpd);
+  float s0=dot(rq0,dxd);
+  bool skyFam=(uA>=.01)||((E0>0.)&&((s0>0.&&(rr0>3.||bImp<5.19615))
+                       ||(s0<0.&&rr0>3.&&bImp>5.19615)));
+  float trap=0.;
+  /* star glow accumulators */
+  vec2 sdir=uStretchDir;
+  for(int i=0;i<1400;i++){
+    if(i>=uMax)break;
+    float r=ksr(q);
+    if(r<uRh*1.02){cap=true;break;}
+    if(r>rEnd){deriv(q,pt,pv,dxd,dpd);escD=normalize(dxd);esc=true;break;}
+    float dl=uKstep*clamp(.05*r,.012,.6);
+    dl=min(dl,uKstep*max(.006,.22*abs(r-uRh)+.01));
+    if(r<4.)trap+=dl;
+    vec3 q1=q;vec3 p1=pv;deriv(q1,pt,p1,dxd,dpd);vec3 k1x=dxd,k1p=dpd;
+    vec3 q2=q+.5*dl*k1x;vec3 p2=pv+.5*dl*k1p;deriv(q2,pt,p2,dxd,dpd);vec3 k2x=dxd,k2p=dpd;
+    vec3 q3=q+.5*dl*k2x;vec3 p3=pv+.5*dl*k2p;deriv(q3,pt,p3,dxd,dpd);vec3 k3x=dxd,k3p=dpd;
+    vec3 q4=q+dl*k3x;vec3 p4=pv+dl*k3p;deriv(q4,pt,p4,dxd,dpd);vec3 k4x=dxd,k4p=dpd;
+    vec3 qn=q+dl*(k1x+2.*k2x+2.*k3x+k4x)/6.;
+    vec3 pn=pv+dl*(k1p+2.*k2p+2.*k3p+k4p)/6.;
+    /* — volumetric young star / remnant — */
+    if(uStarLum>0.002){
+      vec3 dq=q-uStarPos;
+      float alng=dq.x*sdir.x+dq.y*sdir.y;
+      vec2 prp2=dq.xy-alng*sdir;
+      float prp=length(vec3(prp2,dq.z));
+      float Sg=min(uStretch,10.);
+      float ed=length(vec2(alng/Sg,prp*pow(Sg,.30)));
+      float gStar=1./max(abs(pt*uStarU.x+dot(pv,uStarU.yzw)),1e-4);
+      float gE=mix(1.,gStar,uDoppler);
+      float core=exp(-pow(ed/.55,2.));
+      float halo=.38*exp(-pow(ed/1.6,1.6));
+      float wide=.06*exp(-pow(ed/5.,1.4));
+      float e=(core*6.0+halo+wide)*uStarLum*pow(clamp(gE,.1,2.5),4.)*dl;
+      col+=trans*blackbody(9500.*clamp(gE,.5,1.9))*e;
+      trans*=(1.-clamp(e*.22,0.,.5));}
+    if(q.z*qn.z<0.){
+      float f=q.z/(q.z-qn.z);
+      float wkk=exp(-max(0.,wind-4.7));
+      planeField(mix(q,qn,f),mix(pv,pn,f),pt,wkk,col,trans);
+      if(trans<.02){q=qn;pv=pn;break;}}
+    vec3 qh=normalize(qn);
+    wind+=acos(clamp(dot(qh,qhPrev),-1.,1.));qhPrev=qh;
+    q=qn;pv=pn;}
+  float mfw=length(fwidth(escD));
+  float wdk=exp(-max(0.,wind-4.7));
+  float tdk=(uA<.01)?1.:exp(-max(0.,trap-14.)*.45);
+  float supp=max(smoothstep(.006,.05,mfw),smoothstep(4.7,9.4,wind));
+  bool darkA=(uA<.01)&&!skyFam;
+  if(esc&&!darkA){
+    float gS=1./max(abs(pt),1e-3);
+    col+=trans*bgSky(escD,gS,supp,wdk*tdk);}
+  else if(!esc&&!cap&&!darkA){
+    bool glowOK=(uA<.01)?skyFam:(ksr(q)>uRh*1.15);
+    if(glowOK){
+      float gS=1./max(abs(pt),1e-3);
+      col+=trans*vec3(.05,.055,.07)*pow(clamp(gS,.3,2.2),3.)*1.2*wdk*tdk;}}
+  col*=uExpo*uSeam;
+  col=clamp((col*(2.51*col+.03))/(col*(2.43*col+.59)+.14),0.,1.);
+  col=pow(col,vec3(1./2.2));
+  col+=(h21(gl_FragCoord.xy)-.5)/255.;
+  O=vec4(col,1.);}`;
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)){fail("shader:\n"+gl.getShaderInfoLog(o));throw 0;}
+  return o;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));
+gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){fail("link: "+gl.getProgramInfoLog(prog));return;}
+gl.useProgram(prog);gl.bindVertexArray(gl.createVertexArray());
+const U={};
+["uRes","uPos","uU","uEf","uEu","uEr","uLook","uFovT","uDoppler","uExpo","uKstep","uSeam",
+ "uMax","uPath","uNseg","uStarPos","uStretchDir","uStretch","uStarLum","uStarU",
+ "uXPos","uXB","uDiskB","uSpread","uDiskT","uA","uRh","uRm","uIsco"]
+ .forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+
+/* ═══════════ camera (static observer, GS tetrad in float64) ═══════════ */
+function tetrad(x,y,z,fg,ug){
+  const g=metric(x,y,z);
+  const u=[1/Math.sqrt(Math.max(1e-9,-g[0][0])),0,0,0];
+  const proj=(v,es)=>{let w=v.slice();
+    for(const o of es){const c=mdot(g,w,o.e)*o.s;for(let i=0;i<4;i++)w[i]-=c*o.e[i];}return w;};
+  const nrm=v=>{const n=Math.sqrt(Math.max(1e-15,mdot(g,v,v)));return v.map(q=>q/n);};
+  const es=[{e:u,s:-1}];
+  const ef=nrm(proj(fg,es));es.push({e:ef,s:1});
+  const eu=nrm(proj(ug,es));es.push({e:eu,s:1});
+  let best=null,bn=-1;
+  for(const c of [[0,1,0,0],[0,0,1,0],[0,0,0,1]]){
+    const w=proj(c,es);const n=mdot(g,w,w);if(n>bn){bn=n;best=w;}}
+  return {u,ef,eu,er:nrm(best)};}
+
+/* ═══════════ state & UI ═══════════ */
+const T_LOOP=76;
+const DEF={az:2.35,el:0.62,R:34};
+const st={az:DEF.az,el:DEF.el,R:DEF.R,quality:"mid",doppler:1,exposure:1.0,
+  orbit:!matchMedia("(prefers-reduced-motion: reduce)").matches,
+  u:FREEZE!==null?FREEZE:0.002,playing:FREEZE===null,speed:1};
+const QP={low:{scale:.5,steps:300,k:1.5},mid:{scale:.75,steps:480,k:1.0},high:{scale:1.0,steps:760,k:.7}};
+if(TEST)QP.mid={scale:.42,steps:280,k:1.3};
+
+function resize(){
+  if(VIDEO){
+    if(canvas.width!==(VW||3840))canvas.width=VW||3840;
+    if(canvas.height!==(VH||2160))canvas.height=VH||2160;
+    return;}
+  const q=QP[st.quality];
+  const dpr=Math.min(devicePixelRatio||1,2);
+  let w=Math.round(canvas.clientWidth*dpr*q.scale);
+  let h=Math.round(canvas.clientHeight*dpr*q.scale);
+  const cap2=Math.sqrt(2.3e6/Math.max(w*h,1));
+  if(cap2<1){w=Math.round(w*cap2);h=Math.round(h*cap2);}
+  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}}
+addEventListener("resize",resize);
+
+const ptrs=new Map();let lastPinch=0;
+canvas.addEventListener("pointerdown",e=>{canvas.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add("grabbing");});
+canvas.addEventListener("pointermove",e=>{
+  if(!ptrs.has(e.pointerId))return;
+  const p=ptrs.get(e.pointerId);
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size===1){st.az-=dx*0.0045;st.el=Math.max(-1.45,Math.min(1.45,st.el+dy*0.0045));}
+  else if(ptrs.size===2){const a=[...ptrs.values()];
+    const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(lastPinch>0)st.R=clampR(st.R*lastPinch/d);lastPinch=d;}});
+function endPtr(e){ptrs.delete(e.pointerId);lastPinch=0;canvas.classList.remove("grabbing");}
+canvas.addEventListener("pointerup",endPtr);
+canvas.addEventListener("pointercancel",endPtr);
+function clampR(r){return Math.max(14,Math.min(80,r));}
+canvas.addEventListener("wheel",e=>{e.preventDefault();
+  st.R=clampR(st.R*Math.exp(e.deltaY*0.0012));},{passive:false});
+addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT")return;
+  const s=0.06;
+  if(e.key==="ArrowLeft")st.az+=s;else if(e.key==="ArrowRight")st.az-=s;
+  else if(e.key==="ArrowUp")st.el=Math.min(1.45,st.el+s*.6);
+  else if(e.key==="ArrowDown")st.el=Math.max(-1.45,st.el-s*.6);
+  else if(e.key==="+"||e.key==="=")st.R=clampR(st.R*.93);
+  else if(e.key==="-")st.R=clampR(st.R*1.07);
+  else if(e.key===" "){e.preventDefault();togglePlay();}});
+
+const tl=$("tl");
+tl.value=Math.round(st.u*1000);
+function togglePlay(){st.playing=!st.playing;$("playBtn").textContent=st.playing?"⏸":"▶";}
+if(!st.playing)$("playBtn").textContent="▶";
+$("playBtn").addEventListener("click",togglePlay);
+tl.addEventListener("input",e=>{st.u=+e.target.value/1000;st.playing=false;
+  $("playBtn").textContent="▶";});
+$("spseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  st.speed=+b.dataset.s;
+  for(const x of $("spseg").children)x.classList.toggle("on",x===b);
+  $("spv").textContent=b.dataset.s+"×";});
+$("qseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  st.quality=b.dataset.q;
+  for(const x of $("qseg").children)x.classList.toggle("on",x===b);
+  $("qv").textContent=b.textContent;resize();});
+$("dop").addEventListener("input",e=>{st.doppler=+e.target.value;
+  $("dopv").textContent=st.doppler.toFixed(2)+(st.doppler>0.85?" · 物理":st.doppler<0.15?" · 电影":"");});
+$("expo").addEventListener("input",e=>{st.exposure=+e.target.value;
+  $("expv").textContent=st.exposure.toFixed(1);});
+(function(){const el2=$("orbitSw");
+  el2.classList.toggle("on",st.orbit);el2.setAttribute("aria-checked",String(st.orbit));
+  el2.addEventListener("click",()=>{st.orbit=!st.orbit;
+    el2.classList.toggle("on",st.orbit);el2.setAttribute("aria-checked",String(st.orbit));});})();
+$("resetBtn").addEventListener("click",()=>{st.az=DEF.az;st.el=DEF.el;st.R=DEF.R;});
+const panel=$("panel");
+function togglePanel(){panel.classList.toggle("closed");}
+$("panelHead").addEventListener("click",togglePanel);
+$("panelHead").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();togglePanel();}});
+if(innerWidth<720)panel.classList.add("closed");
+$("infoBtn2").addEventListener("click",()=>$("info").classList.add("open"));
+$("infoClose").addEventListener("click",()=>$("info").classList.remove("open"));
+addEventListener("keydown",e=>{if(e.key==="Escape")$("info").classList.remove("open");});
+
+/* ═══════════ light-curve sparkline ═══════════ */
+const lcv=$("lc"),lctx=lcv.getContext("2d");
+function drawLC(u){
+  const W2=lcv.width,H2=lcv.height;
+  lctx.clearRect(0,0,W2,H2);
+  lctx.strokeStyle="rgba(232,228,218,.10)";lctx.lineWidth=1;
+  for(const fy of [0.3,0.65]){lctx.beginPath();
+    lctx.moveTo(6,H2*fy);lctx.lineTo(W2-6,H2*fy);lctx.stroke();}
+  lctx.strokeStyle="rgba(232,163,61,.9)";lctx.lineWidth=2;lctx.beginPath();
+  for(let i=0;i<=160;i++){const uu=i/160;
+    const y=H2-8-Math.pow(flare(uu)/1.2,.5)*(H2-20);
+    const x=6+(W2-12)*uu;
+    if(i===0)lctx.moveTo(x,y);else lctx.lineTo(x,y);}
+  lctx.stroke();
+  const px=6+(W2-12)*u, py=H2-8-Math.pow(flare(u)/1.2,.5)*(H2-20);
+  lctx.fillStyle="#E8E4DA";lctx.beginPath();lctx.arc(px,py,4,0,7);lctx.fill();}
+
+/* ═══════════ render loop ═══════════ */
+const readout=$("readout");
+let last=performance.now(),fps=0,acc=0,first=true;
+function frame(now){
+  requestAnimationFrame(frame);
+  if(document.hidden)return;
+  const dt=Math.min((now-last)/1000,0.1);last=now;
+  fps=fps*.92+(dt>0?1/dt:0)*.08;
+  if(st.orbit)st.az+=dt*0.04;
+  if(st.playing&&FREEZE===null){st.u=(st.u+dt*st.speed/T_LOOP)%1;
+    tl.value=Math.round(st.u*1000);}
+  acc+=dt;
+  drawCore(FREEZE!==null);
+}
+function drawCore(forceHUD){
+  resize();
+  const S=sceneState(st.u);
+  const ce=Math.cos(st.el),se=Math.sin(st.el);
+  const cp=[st.R*ce*Math.cos(st.az),st.R*ce*Math.sin(st.az),st.R*se];
+  const rr=Math.hypot(cp[0],cp[1],cp[2]);
+  const T0=tetrad(cp[0],cp[1],cp[2],[0,-cp[0]/rr,-cp[1]/rr,-cp[2]/rr],[0,0,0,1]);
+  gl.viewport(0,0,canvas.width,canvas.height);
+  gl.uniform2f(U.uRes,canvas.width,canvas.height);
+  gl.uniform3fv(U.uPos,cp);
+  gl.uniform4fv(U.uU,T0.u);gl.uniform4fv(U.uEf,T0.ef);
+  gl.uniform4fv(U.uEu,T0.eu);gl.uniform4fv(U.uEr,T0.er);
+  gl.uniformMatrix3fv(U.uLook,false,[1,0,0, 0,1,0, 0,0,1]);
+  gl.uniform1f(U.uFovT,Math.tan(62*Math.PI/360));
+  gl.uniform1f(U.uDoppler,st.doppler);
+  gl.uniform1f(U.uExpo,st.exposure);
+  gl.uniform1f(U.uSeam,S.seam);
+  const q=QP[st.quality];
+  gl.uniform1f(U.uKstep,q.k);gl.uniform1i(U.uMax,q.steps);
+  gl.uniform4fv(U.uPath,pathBuf);gl.uniform1i(U.uNseg,S.nseg);
+  gl.uniform3f(U.uStarPos,S.head.x,S.head.y,0);
+  gl.uniform2f(U.uStretchDir,S.vd[0],S.vd[1]);
+  gl.uniform1f(U.uStretch,S.stretch);
+  gl.uniform1f(U.uStarLum,S.starLum*S.seam);
+  gl.uniform4f(U.uStarU,S.ut,S.u4x,S.u4y,0);
+  gl.uniform2f(U.uXPos,XPT.x,XPT.y);
+  gl.uniform1f(U.uXB,S.xB*S.seam);
+  gl.uniform1f(U.uDiskB,S.diskB*S.seam);
+  gl.uniform1f(U.uSpread,S.spread);
+  gl.uniform1f(U.uDiskT,st.u*140);
+  gl.uniform1f(U.uA,AS);gl.uniform1f(U.uRh,RHOR);
+  gl.uniform1f(U.uRm,RMIN);gl.uniform1f(U.uIsco,RISCO);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  if(first){first=false;stage.classList.add("ready");window.__ready=true;}
+  /* HUD */
+  if(acc>0.12||forceHUD){acc=0;
+    const ph=PHASES.find(p=>st.u>=p.u0&&st.u<p.u1)||PHASES[3];
+    if(S.starLum>0.05)
+      $("rstar").innerHTML="r<sub>★</sub> "+S.head.r.toFixed(1)+'<span class="u">M</span>';
+    else
+      $("rstar").innerHTML="L "+(flare(st.u)*100).toFixed(0)+'<span class="u">% peak</span>';
+    $("rsub").innerHTML=KERR?
+      "潮汐半径 r_t = 57.7 M · 近心点 8 M<br>视界 r₊ = "+RHOR.toFixed(2)+" M · ISCO = "+RISCO.toFixed(2)+" M":
+      "潮汐半径 r_t = 57.7 M · 近心点 8 M<br>视界 rs = 2 M · β ≈ 7.2";
+    $("phbadge").textContent=ph.zh+" · "+ph.speed;
+    let cap="",cop=0;const ts=st.u;
+    for(const c2 of CAPS)if(ts>=c2[0]&&ts<=c2[1]){cap=c2[2];
+      const fi=Math.min(1,(ts-c2[0])/0.012),fo=Math.min(1,(c2[1]-ts)/0.012);
+      cop=Math.max(0,Math.min(fi,fo));break;}
+    const C=$("cap");C.textContent=cap;C.style.opacity=cop;
+    $("tlv").textContent=Math.round(st.u*100)+"%";
+    readout.textContent="r_cam "+st.R.toFixed(0)+" M · "+Math.round(fps)+" fps · "
+      +canvas.width+"×"+canvas.height;
+    drawLC(st.u);}
+}
+/* ═══════════ video mode: deterministic frame API + scripted camera ═══════════ */
+function camKeys(ts){
+  const K=[[0,2.05,0.62,42],[14,2.30,0.55,34],[26,2.62,0.40,26],
+           [33,2.86,0.42,24],[46,3.14,0.52,30],[62,3.44,0.60,36],[72.01,3.62,0.62,38]];
+  let a=K[0],b=K[K.length-1];
+  for(let i=0;i<K.length-1;i++)if(ts>=K[i][0]&&ts<=K[i+1][0]){a=K[i];b=K[i+1];break;}
+  const f=smooth(Math.min(1,Math.max(0,(ts-a[0])/Math.max(1e-6,b[0]-a[0]))));
+  return {az:lerp(a[1],b[1],f),el:lerp(a[2],b[2],f),R:lerp(a[3],b[3],f)};}
+if(VIDEO){
+  document.documentElement.classList.add("notrans");
+  $("panel").style.display="none";
+  const Z=(VW||innerWidth)/1280;
+  for(const sel of[".plate",".rbox","#cap",".readout"]){
+    const el2=document.querySelector(sel);if(el2)el2.style.zoom=Z;}
+  st.orbit=false;st.playing=false;
+  if(!TEST)st.quality="high";
+  window.__nframes=Math.round(VFPS*VDUR);
+  window.__setFrame=f=>{window.__frameReady=false;
+    const ts=f/VFPS;st.u=Math.min(0.9999,ts/VDUR);
+    const c=camKeys(ts);st.az=c.az;st.el=c.el;st.R=c.R;
+    requestAnimationFrame(()=>{drawCore(true);gl.finish();window.__frameReady=true;});};
+  resize();
+  drawCore(true);
+  stage.classList.add("ready");window.__ready=true;
+}else{
+  resize();
+  requestAnimationFrame(frame);
+}
+})();
+</script>

@@ -1,0 +1,865 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>万物之砖 · 深入原子之心</title>
+<style>
+:root{--fg:#cfd8e6;--dim:#7c8798;--acc:#7fd4ff;--gold:#ffd27f;--bg:#04060a}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.panel{position:fixed;background:rgba(6,10,18,.78);border:1px solid rgba(127,212,255,.18);border-radius:10px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:10px 14px}
+#top{top:12px;left:12px;right:auto;max-width:min(460px,92vw)}
+#top h1{margin:0 0 2px;font-size:17px;color:#fff;font-weight:700;letter-spacing:.5px}
+#top .sub{color:var(--dim);font-size:12px}
+#modes{top:12px;right:12px;display:flex;gap:6px;padding:6px}
+.mbtn{background:rgba(127,212,255,.08);border:1px solid rgba(127,212,255,.25);color:var(--fg);border-radius:7px;padding:6px 12px;cursor:pointer;font-size:13px}
+.mbtn.on{background:rgba(127,212,255,.25);color:#fff;border-color:var(--acc)}
+.mbtn:hover{border-color:var(--acc)}
+#story{left:12px;bottom:86px;max-width:min(430px,90vw)}
+#story .st{color:var(--gold);font-weight:700;font-size:15px;margin-bottom:3px}
+#story .sb{font-size:13px;color:var(--fg)}
+#story .sc{font-size:11.5px;color:var(--dim);margin-top:5px;border-top:1px dashed rgba(124,135,152,.35);padding-top:4px}
+#bar{left:12px;right:12px;bottom:12px;display:flex;align-items:center;gap:12px}
+#bar input[type=range]{flex:1;accent-color:var(--acc);height:4px}
+#scale{font:600 13px ui-monospace,Menlo,monospace;color:var(--acc);min-width:120px;text-align:right}
+#cruise{white-space:nowrap}
+#orbs{display:none;gap:5px;flex-wrap:wrap;margin-top:8px}
+.ob{background:rgba(255,210,127,.08);border:1px solid rgba(255,210,127,.3);color:var(--gold);border-radius:6px;padding:3px 9px;cursor:pointer;font:12px ui-monospace,Menlo,monospace}
+.ob.on{background:rgba(255,210,127,.3);color:#fff}
+#chart{right:12px;bottom:12px;width:min(430px,92vw);padding:8px}
+#chart canvas{display:block;width:100%}
+#dict{right:12px;top:64px;width:min(340px,88vw);display:none;max-height:70vh;overflow:auto}
+#dict h3{margin:0 0 4px;color:var(--gold);font-size:15px}
+#dict .row{display:flex;justify-content:space-between;font-size:12.5px;padding:1.5px 0;border-bottom:1px dotted rgba(124,135,152,.2)}
+#dict .row b{color:var(--acc);font-weight:600;font-family:ui-monospace,Menlo,monospace}
+#dict .blurb{font-size:12.5px;color:var(--fg);margin-top:6px}
+#dict .x{float:right;cursor:pointer;color:var(--dim);font-size:16px;padding:0 4px}
+#lab{left:12px;top:102px;max-width:min(400px,90vw);display:none}
+#lab .tabs{display:flex;gap:5px;margin-bottom:8px}
+#lab .ctl{margin-top:8px;font-size:13px}
+#lab button{background:rgba(127,212,255,.12);border:1px solid rgba(127,212,255,.3);color:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;margin:2px 4px 2px 0}
+#lab button:hover{border-color:var(--acc)}
+#lab .slot{display:inline-block;width:52px;height:52px;border-radius:50%;border:2px solid rgba(255,255,255,.25);margin:4px 6px;text-align:center;line-height:48px;font:700 20px ui-monospace,monospace;cursor:pointer;-webkit-user-select:none;user-select:none}
+#lab .res{margin-top:6px;font-size:13px;min-height:40px}
+#lab .res b{color:var(--gold)}
+#ebar{height:10px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden;margin:6px 0}
+#ebar>div{height:100%;background:linear-gradient(90deg,#3fa9ff,#ffd27f,#ff6a5f);width:0%}
+#note{position:fixed;left:12px;bottom:86px;max-width:min(430px,90vw);display:none}
+#note h4{margin:0 0 4px;color:var(--acc);font-size:13px}
+#note div{font-size:11.5px;color:var(--dim)}
+#foot{position:fixed;right:14px;top:56px;font-size:11px;color:var(--dim);cursor:pointer;text-decoration:underline dotted}
+@media(max-width:700px){#chart{display:none}#story{bottom:74px}}
+</style>
+<canvas id="gl"></canvas>
+<div class="panel" id="top"><h1>万物之砖 · 深入原子之心</h1><div class="sub" id="subt">从一枚氢原子到夸克 —— 连续下潜 9 个数量级（尺度真比例）</div><div id="orbs"></div></div>
+<div class="panel" id="modes">
+  <button class="mbtn on" data-m="dive">尺度深潜</button><button class="mbtn" data-m="gallery">标准模型展馆</button><button class="mbtn" data-m="lab">实验室</button>
+</div>
+<div class="panel" id="story"><div class="st"></div><div class="sb"></div><div class="sc"></div></div>
+<div class="panel" id="bar">
+  <button class="mbtn" id="cruise">▶ 自动下潜</button>
+  <input type="range" id="sS" min="-18.5" max="-9.0" step="0.005" value="-10.05">
+  <div id="scale">10⁻¹⁰ m</div>
+</div>
+<div class="panel" id="chart"><canvas id="cv" width="860" height="340"></canvas></div>
+<div class="panel" id="dict"><span class="x" onclick="dict.style.display='none'">✕</span><h3></h3><div class="rows"></div><div class="blurb"></div></div>
+<div class="panel" id="lab">
+  <div class="tabs"><button class="mbtn on" data-l="confine">夸克禁闭</button><button class="mbtn" data-l="build">强子工坊</button><button class="mbtn" data-l="beta">β 衰变</button></div>
+  <div id="lbody"></div>
+</div>
+<div class="panel" id="note"><h4>诚实声明：哪些是真算、哪些是示意</h4><div id="notetxt"></div></div>
+<div id="foot">近似声明</div>
+<script>
+'use strict';
+/* ══════════════════ 万物之砖 —— 物理内核与渲染（与 proto.mjs 对拍） ══════════════════ */
+const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x)), lerp=(a,b,t)=>a+(b-a)*t;
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ───────── 1. 氢原子（a0=1；与 proto 同式） ───────── */
+const RAD={ '10':r=>2*Math.exp(-r), '20':r=>(1/(2*Math.sqrt(2)))*(2-r)*Math.exp(-r/2),
+ '21':r=>(1/(2*Math.sqrt(6)))*r*Math.exp(-r/2), '30':r=>(2/(81*Math.sqrt(3)))*(27-18*r+2*r*r)*Math.exp(-r/3),
+ '31':r=>(4/(81*Math.sqrt(6)))*r*(6-r)*Math.exp(-r/3), '32':r=>(4/(81*Math.sqrt(30)))*r*r*Math.exp(-r/3)};
+const SPH={ s:()=>0.28209479177387814, pz:(x,y,z,r)=>0.4886025119029199*z/r,
+ dz2:(x,y,z,r)=>0.31539156525252005*(3*z*z/(r*r)-1), dxy:(x,y,z,r)=>1.0925484305920792*x*y/(r*r)};
+const ORBS=[
+ {k:'1s',n:1,rad:'10',sph:'s',L:7,note:'基态。无节点，最概然半径恰为玻尔半径 a₀'},
+ {k:'2s',n:2,rad:'20',sph:'s',L:16,note:'一个径向节点：r=2a₀ 处概率为零 → 暗球壳'},
+ {k:'2p',n:2,rad:'21',sph:'pz',L:16,note:'哑铃形。赤道面是角节点（波函数变号处）'},
+ {k:'3s',n:3,rad:'30',sph:'s',L:30,note:'两个径向节点（1.9a₀ 与 7.1a₀ 两层暗壳）'},
+ {k:'3p',n:3,rad:'31',sph:'pz',L:30,note:'径向节点 r=6a₀ + 赤道角节点'},
+ {k:'3d',n:3,rad:'32',sph:'dz2',L:30,note:'z² 型：环带 + 双瓣，无径向节点'},
+ {k:'3dxy',n:3,rad:'32',sph:'dxy',L:30,note:'四叶苜蓿。两个正交角节面'}];
+const psiJS=(oi,x,y,z)=>{const o=ORBS[oi],r=Math.max(Math.hypot(x,y,z),1e-6);return RAD[o.rad](r)*SPH[o.sph](x,y,z,r)};
+const RyH=13.598434, HCnm=1239.8420, En=n=>-RyH/(n*n), lamNm=(n2,n1)=>HCnm/(En(n2)-En(n1));
+/* 各轨道 |ψ|² 峰值（验证钩子用） */
+const PSIMAX=ORBS.map((o,i)=>{let m=0;for(let k=0;k<40000;k++){const r=k/40000*o.L*.8+1e-4;
+ for(const ct of[0,.35,.7,1]){const st=Math.sqrt(1-ct*ct);const v=psiJS(i,r*st*.7,r*st*.7,r*ct)**2;if(v>m)m=v}}return m});
+/* 各轨道最亮弦柱密度 max∫ψ²dl（体渲染增益归一：不同轨道亮度一致） */
+const PSICOL=ORBS.map((o,i)=>{const rnd=mulberry32(7+i);let cmax=0;
+ for(let c=0;c<500;c++){ // 随机弦：方向+过近轴点
+  const th=Math.acos(rnd()*2-1),ph=rnd()*6.2832;
+  const d=[Math.sin(th)*Math.cos(ph),Math.sin(th)*Math.sin(ph),Math.cos(th)];
+  const o0=[(rnd()*2-1)*o.L*.3,(rnd()*2-1)*o.L*.3,(rnd()*2-1)*o.L*.3];
+  let s=0;const N=140,step=2*o.L/N;
+  for(let k=0;k<N;k++){const t=-o.L+k*step;
+   s+=psiJS(i,o0[0]+d[0]*t,o0[1]+d[1]*t,o0[2]+d[2]*t)**2*step}
+  if(s>cmax)cmax=s}
+ return cmax});
+/* 各轨道适配尺度（n² 定律：高轨道物理上更大，切换时自动调轴） */
+const ORBFIT=[-10.05,-9.55,-9.55,-9.18,-9.18,-9.18,-9.18];
+
+/* ───────── 2. Cornell 禁闭势（GeV, fm；与 proto 同式） ───────── */
+const AS=0.30,HBC=0.19733,KAP=0.9,R0Q=0.45,EBRK=0.66;
+const Vc=r=>-(4/3)*AS*HBC/r+KAP*r;
+const rBreak=(()=>{let lo=R0Q,hi=5;for(let k=0;k<60;k++){const m=(lo+hi)/2;(Vc(m)-Vc(R0Q)>EBRK?hi=m:lo=m)}return (lo+hi)/2})();
+
+/* ───────── 3. β 衰变谱（MeV；与 proto 同式） ───────── */
+const ME=0.51100,MN=939.56542,MP=938.27209,QB=MN-MP-ME;
+const fBeta=t=>{if(t<=0||t>=QB)return 0;const E=t+ME,p=Math.sqrt(t*(t+2*ME));return p*E*(QB-t)**2};
+let FBMAX=0,TPK=0;for(let i=1;i<4000;i++){const t=i/4000*QB,v=fBeta(t);if(v>FBMAX){FBMAX=v;TPK=t}}
+const betaRnd=mulberry32(20260715);
+function betaSample(){for(;;){const t=betaRnd()*QB,y=betaRnd()*FBMAX*1.02;if(y<fBeta(t))return t}}
+
+/* ───────── 4. SU(3) 色 ───────── */
+const CCOL={R:[1,.22,.25],G:[.25,1,.3],B:[.3,.5,1]};
+function colorSwapTest(n){let q=['R','G','B'];const rnd=mulberry32(99);
+ for(let k=0;k<n;k++){const i=rnd()*3|0;let j=rnd()*3|0;if(j===i)j=(i+1)%3;const t=q[i];q[i]=q[j];q[j]=t;
+  if([...q].sort().join('')!=='BGR')return false}return true}
+
+/* ───────── 5. 标准模型数据（PDG 2024） ───────── */
+const fm=m=>m>=1e6?(m/1e6).toFixed(m>=1e7?0:1)+' GeV':m>=1e3?(m/1e3).toFixed(2)+' GeV':m>=1?m.toFixed(m<10?2:1)+' MeV':m>0?'<0.8 eV':'0（严格无质量）';
+const SM=[
+ {id:'u',nm:'上夸克 u',m:2.16,Q:'+2/3',q:2/3,s:'1/2',col:1,life:'（禁闭在强子内）',disc:'1968 · SLAC 深度非弹性散射',b:'质子里住着两个。它的裸质量只占质子的 0.2%——你身体的质量几乎不是"东西"本身，而是禁闭它们的能量。',gen:1,row:0},
+ {id:'d',nm:'下夸克 d',m:4.70,Q:'−1/3',q:-1/3,s:'1/2',col:1,life:'（禁闭在强子内）',disc:'1968 · SLAC',b:'质子一个、中子两个。d 比 u 略重——正因如此中子会衰变成质子，而不是反过来。',gen:1,row:1},
+ {id:'c',nm:'粲夸克 c',m:1270,Q:'+2/3',q:2/3,s:'1/2',col:1,life:'~10⁻¹² s（弱衰变）',disc:'1974 · BNL+SLAC「十一月革命」',b:'J/ψ 粒子横空出世的那个月，粒子物理教科书连夜重写。',gen:2,row:0},
+ {id:'s',nm:'奇夸克 s',m:93.5,Q:'−1/3',q:-1/3,s:'1/2',col:1,life:'~10⁻¹⁰ s',disc:'1947 · 宇宙线 K 介子',b:'"奇异"是认真的物理名词：这种粒子产生得快、衰变得慢，当年怪到没人能解释。',gen:2,row:1},
+ {id:'t',nm:'顶夸克 t',m:172500,Q:'+2/3',q:2/3,s:'1/2',col:1,life:'5×10⁻²⁵ s',disc:'1995 · Fermilab Tevatron',b:'最重的基本粒子，一颗顶夸克≈整个金原子。它衰变太快，是唯一来不及组成强子的夸克。',gen:3,row:0},
+ {id:'b',nm:'底夸克 b',m:4180,Q:'−1/3',q:-1/3,s:'1/2',col:1,life:'~10⁻¹² s',disc:'1977 · Fermilab Υ 粒子',b:'B 介子工厂的主角——正反物质不对称（CP 破坏）研究的核心舞台。',gen:3,row:1},
+ {id:'e',nm:'电子 e⁻',m:0.511,Q:'−1',q:-1,s:'1/2',col:0,life:'稳定（>6.6×10²⁸ 年）',disc:'1897 · J.J. Thomson 阴极射线',b:'第一个被发现的基本粒子。整部化学、你此刻看到的屏幕光，都是电子的游戏。',gen:1,row:2},
+ {id:'mu',nm:'缪子 μ⁻',m:105.66,Q:'−1',q:-1,s:'1/2',col:0,life:'2.197 μs',disc:'1936 · Anderson 宇宙线',b:'放大 207 倍的电子。发现时 Rabi 质问："这是谁点的菜？"每分钟都有宇宙线缪子穿过你的头顶。',gen:2,row:2},
+ {id:'tau',nm:'陶子 τ⁻',m:1776.9,Q:'−1',q:-1,s:'1/2',col:0,life:'2.9×10⁻¹³ s',disc:'1975 · SLAC · M. Perl',b:'比质子还重的"电子"。第三代存在的第一个证据。',gen:3,row:2},
+ {id:'ve',nm:'电子中微子 νₑ',m:8e-7,Q:'0',q:0,s:'1/2',col:0,life:'稳定（会振荡变味）',disc:'1956 · Reines–Cowan 反应堆',b:'每秒约有 100 万亿颗太阳中微子穿过你的身体，一生大概只有一颗会被你"拦下"。',gen:1,row:3},
+ {id:'vmu',nm:'缪中微子 ν_μ',m:8e-7,Q:'0',q:0,s:'1/2',col:0,life:'稳定（振荡）',disc:'1962 · BNL',b:'中微子振荡（变味）证明它们有质量——标准模型之外的第一道裂缝，2015 诺奖。',gen:2,row:3},
+ {id:'vtau',nm:'陶中微子 ν_τ',m:8e-7,Q:'0',q:0,s:'1/2',col:0,life:'稳定（振荡）',disc:'2000 · Fermilab DONUT',b:'最后一个被直接看到的物质粒子（费米子）。全世界确认过的 ν_τ 事件只有几十个。',gen:3,row:3},
+ {id:'gamma',nm:'光子 γ',m:0,Q:'0',q:0,s:'1',col:0,life:'稳定',disc:'1905 理论 / 1923 康普顿实证',b:'电磁力的信使。你看见的一切、无线电、X 光——同一种粒子，不同的能量。',gen:0,row:0},
+ {id:'g',nm:'胶子 g',m:0,Q:'0',q:0,s:'1',col:2,life:'（禁闭）',disc:'1979 · DESY PETRA 三喷注',b:'强力的信使，共 8 种。它自己也带色荷、会互相纠缠——这就是夸克永远逃不出去的原因。',gen:0,row:1},
+ {id:'W',nm:'W 玻色子 W±',m:80369,Q:'±1',q:1,s:'1',col:0,life:'3×10⁻²⁵ s',disc:'1983 · CERN SPS',b:'弱力的信使，重如一颗溴原子。β 衰变、太阳点火，都靠它牵线。',gen:0,row:2},
+ {id:'Z',nm:'Z 玻色子 Z⁰',m:91188,Q:'0',q:0,s:'1',col:0,life:'3×10⁻²⁵ s',disc:'1983 · CERN',b:'弱力的中性信使。Z 的衰变宽度证明：轻中微子恰好只有三代。',gen:0,row:3},
+ {id:'H',nm:'希格斯玻色子 H',m:125200,Q:'0',q:0,s:'0',col:0,life:'1.6×10⁻²² s',disc:'2012 · CERN LHC',b:'基本粒子的质量之源。但注意：你体重的 99% 来自胶子场的能量，不是希格斯。',gen:0,row:4}];
+const SMIX=Object.fromEntries(SM.map((p,i)=>[p.id,i]));
+/* 强子表（工坊判定用；ΣQ 由 proto 全部核对） */
+const HADRONS={'d,u,u':['p 质子','938.27 MeV · 稳定(>3.6×10²⁹ 年)','宇宙里最可靠的东西。你身上约有 2×10²⁷ 个。'],
+ 'd,d,u':['n 中子','939.57 MeV · 自由态 878 s','单独放着约 15 分钟衰变；锁进原子核就能永生。'],
+ 'd,s,u':['Λ⁰ 超子','1115.7 MeV · 2.6×10⁻¹⁰ s','第一个"奇异"重子（1950）。'],
+ 's,u,u':['Σ⁺ 超子','1189.4 MeV · 8×10⁻¹¹ s','奇异三兄弟之一。'],
+ 'd,d,s':['Σ⁻ 超子','1197.4 MeV · 1.5×10⁻¹⁰ s','奇异三兄弟之一。'],
+ 's,s,u':['Ξ⁰ 超子','1314.9 MeV · 2.9×10⁻¹⁰ s','"级联"粒子——衰变要一层层来。'],
+ 'd,s,s':['Ξ⁻ 超子','1321.7 MeV · 1.6×10⁻¹⁰ s','"级联"粒子。'],
+ 's,s,s':['Ω⁻ 超子','1672.5 MeV · 8×10⁻¹¹ s','夸克模型 1962 年预言质量 ~1680，1964 年在 BNL 气泡室找到——理论的封神一战。'],
+ 'u,u,u':['Δ⁺⁺ 共振态','1232 MeV · 5.6×10⁻²⁴ s','三个同色态 u 夸克？正是它逼出了"色荷"这个概念。'],
+ 'd,d,d':['Δ⁻ 共振态','1232 MeV · 5.6×10⁻²⁴ s','Δ 四重态之一。'],
+ 'c,d,u':['Λc⁺ 粲重子','2286.5 MeV · 2×10⁻¹³ s','第一个粲重子。'],
+ 'b,d,u':['Λb⁰ 底重子','5619.6 MeV · 1.5×10⁻¹² s','LHC 的常客。'],
+ 'c,c,u':['Ξcc⁺⁺ 双粲重子','3621.6 MeV · 2.6×10⁻¹³ s','2017 年 LHCb 才找到的双重味重子。'],
+ 'd̄,u':['π⁺ 介子','139.57 MeV · 2.6×10⁻⁸ s','最轻的强子、核力的传递者（汤川 1935 预言）。'],
+ 'd,ū':['π⁻ 介子','139.57 MeV · 2.6×10⁻⁸ s','π⁺ 的反粒子。'],
+ 's̄,u':['K⁺ 介子','493.68 MeV · 1.2×10⁻⁸ s','1947 年宇宙线里的"怪粒子"，奇异数的起点。'],
+ 'd,s̄':['K⁰ 介子','497.6 MeV ·（K_S/K_L）','CP 破坏 1964 年在这里首次现身。'],
+ 'c,c̄':['J/ψ 粲偶素','3096.9 MeV · 7×10⁻²¹ s','1974"十一月革命"主角，两队同时发现，各起一名。'],
+ 'b,b̄':['Υ 底偶素','9460.4 MeV · 1.2×10⁻²⁰ s','1977 年宣告第三代夸克存在。'],
+ 'b̄,u':['B⁺ 介子','5279.4 MeV · 1.6×10⁻¹² s','CP 破坏精密测量的主战场。'],
+ 'c,d̄':['D⁺ 介子','1869.7 MeV · 1.0×10⁻¹² s','携带粲数的最轻介子之一。'],
+ 'c,s̄':['Ds⁺ 介子','1968.4 MeV · 5×10⁻¹³ s','粲+奇异。'],
+ 'b̄,c':['Bc⁺ 介子','6274.5 MeV · 5×10⁻¹³ s','两种重夸克抱团，1998 年才找到。']};
+const QQ={u:2/3,d:-1/3,s:-1/3,c:2/3,b:-1/3};
+function judgeHadron(list){ // list 如 ['u','u','d'] 或 ['u','d̄']
+ const Q=list.reduce((a,s)=>a+(s.includes('̄')?-QQ[s[0]]:QQ[s[0]]),0);
+ const key=[...list].sort().join(',');
+ const hit=HADRONS[key];
+ return {Q,key,hit:hit||null};}
+
+/* ───────── 尺度深潜章节 ───────── */
+const STATIONS=[
+ {s0:-9.0,s1:-11.5,t:'① 氢原子 —— 电子云',b:'你看到的雾不是轨道，是概率：电子波函数 |ψ|² 的真值体渲染（薛定谔方程的解析解，逐像素计算）。亮=容易找到电子，暗壳=概率恰好为零的节点面。',c:'真算：拉盖尔多项式 × 球谐函数；能级图由 −13.6eV/n² 生成，Lyman-α 121.57 nm 从能级差涌现。'},
+ {s0:-11.5,s1:-14.2,t:'② 穿过空旷',b:'原子内部几乎什么都没有。如果原子有足球场大，原子核只是场中心的一粒米——而你脚下的地板之所以硬，全靠电子云的量子规则（泡利不相容），不是"实体"在挡你。',c:'尺度真比例：原子半径/质子半径 ≈ 63000 倍，本页 zoom 未做压缩。'},
+ {s0:-14.2,s1:-15.35,t:'③ 质子 —— 一枚强子',b:'半径 0.84 飞米，由三个"价夸克"（uud）定义身份。但把三个夸克的裸质量加起来只有质子的 1%——其余 99% 全是胶子场与夸克动能：E=mc² 反过来用。',c:'质子电荷半径 0.8414 fm（PDG）；表面为示意（质子没有真正的"表面"）。'},
+ {s0:-15.35,s1:-16.55,t:'④ 质子内部 —— 夸克与胶子的风暴',b:'三个价夸克（红/绿/蓝三种"色荷"）由胶子流管拴着；胶子每次交换都让两个夸克互换颜色，但三色之和永远是白——这就是色守恒。背景里海夸克对不断生灭。',c:'色交换规则为真 SU(3) 代数（8 种胶子）；夸克运动轨迹与流管形状为艺术示意（真实为量子场，无经典轨道），节奏放慢约 10²³ 倍。'},
+ {s0:-16.55,s1:-18.5,t:'⑤ 尽头（暂时的）',b:'继续下潜，同伴夸克已经飞出视野——你锁定了其中一颗，再放大一百倍：它仍然是一个点。目前所有实验都说，如果夸克和电子有内部结构，也小于 10⁻¹⁹ 米。这里是人类显微镜的尽头，也是标准模型的地基。',c:'夸克/电子的"光点"大小为屏幕像素级示意；LHC 分辨率极限 ~10⁻¹⁹–10⁻²⁰ m。'}];
+
+/* ══════════════════ WebGL2 底座 ══════════════════ */
+const cv=$('#gl'), gl=cv.getContext('webgl2',{alpha:false,antialias:false,preserveDrawingBuffer:true});
+if(!gl){document.body.innerHTML='<p style="padding:40px">需要 WebGL2</p>';throw 0}
+gl.getExtension('EXT_color_buffer_float');
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+ if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o)+'\n'+s.split('\n').map((l,i)=>i+1+' '+l).join('\n'));return o}
+function prog(vs,fs){const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);
+ if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p}
+const U=(p,n)=>gl.getUniformLocation(p,n);
+const FSVS=`#version 300 es
+void main(){vec2 v=vec2(float(gl_VertexID<<1&2),float(gl_VertexID&2))*2.0-1.0;gl_Position=vec4(v,0.,1.);}`;
+/* 相机：z-up，绕原点 */
+let yaw=0.6,pitch=0.32,dist=3.0,autoRot=true;
+function camBasis(){const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const f=[cp*cy,cp*sy,sp], r=[-sy,cy,0], u=[-sp*cy,-sp*sy,cp];
+ return {pos:[-f[0]*dist,-f[1]*dist,-f[2]*dist],f,r,u}}
+/* ─ 体渲染（电子云）─ */
+const volFS=`#version 300 es
+precision highp float;out vec4 O;
+uniform vec2 uRes;uniform vec3 uCam,uF,uR,uU;uniform float uL,uGain,uT,uAlpha;uniform int uOrb;
+float psi(vec3 p){float r=max(length(p),1e-4);float R,Y;
+ if(uOrb==0){R=2.*exp(-r);Y=.2820948;}
+ else if(uOrb==1){R=(1./(2.*sqrt(2.)))*(2.-r)*exp(-r*.5);Y=.2820948;}
+ else if(uOrb==2){R=(1./(2.*sqrt(6.)))*r*exp(-r*.5);Y=.4886025*p.z/r;}
+ else if(uOrb==3){R=(2./(81.*sqrt(3.)))*(27.-18.*r+2.*r*r)*exp(-r/3.);Y=.2820948;}
+ else if(uOrb==4){R=(4./(81.*sqrt(6.)))*r*(6.-r)*exp(-r/3.);Y=.4886025*p.z/r;}
+ else if(uOrb==5){R=(4./(81.*sqrt(30.)))*r*r*exp(-r/3.);Y=.3153916*(3.*p.z*p.z/(r*r)-1.);}
+ else {R=(4./(81.*sqrt(30.)))*r*r*exp(-r/3.);Y=1.0925484*p.x*p.y/(r*r);}
+ return R*Y;}
+void main(){vec2 uv=(gl_FragCoord.xy*2.-uRes)/uRes.y;
+ vec3 rd=normalize(uF+uv.x*uR*.62+uv.y*uU*.62);
+ /* 盒求交 [-uL,uL]^3 */
+ vec3 inv=1./rd, t0=(vec3(-uL)-uCam)*inv, t1=(vec3(uL)-uCam)*inv;
+ vec3 tmin=min(t0,t1),tmax=max(t0,t1);
+ float ta=max(max(tmin.x,tmin.y),tmin.z), tb=min(min(tmax.x,tmax.y),tmax.z);
+ if(tb<=max(ta,0.)){O=vec4(0);return;}
+ ta=max(ta,0.);
+ const int N=88;float dt=(tb-ta)/float(N);
+ vec3 acc=vec3(0.);float seed=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453);
+ float t=ta+dt*seed;
+ for(int i=0;i<N;i++){vec3 p=uCam+rd*t;
+  float ps=psi(p);float d=ps*ps*uGain;
+  vec3 col=ps>0.?vec3(1.,.72,.38):vec3(.38,.72,1.);   /* 波函数符号：正=暖橙 负=青蓝 */
+  acc+=col*d*dt; t+=dt;}
+ O=vec4(acc*uAlpha,1.);}`;
+/* ─ 球（billboard raycast）─ */
+const sphVS=`#version 300 es
+uniform vec3 uC,uR3,uU3;uniform float uRad;uniform vec3 uCam,uF;uniform vec2 uRes;
+out vec2 vq;
+void main(){vec2 c=vec2(float(gl_VertexID&1),float(gl_VertexID>>1))*2.-1.;vq=c*1.9;
+ vec3 w=uC+(uR3*c.x+uU3*c.y)*uRad*1.9;
+ /* project: view coords */
+ vec3 rel=w-uCam;float z=dot(rel,uF);
+ if(z<.06){gl_Position=vec4(0.,0.,-3.,1.);return;}   /* 背后裁剪 */
+ vec3 rr=rel-uF*z;
+ vec2 xy=vec2(dot(rr,uR3),dot(rr,uU3));
+ gl_Position=vec4(xy.x/( .62*z)*(uRes.y/uRes.x),xy.y/(.62*z),0.,1.);}`;
+const sphFS=`#version 300 es
+precision highp float;in vec2 vq;out vec4 O;
+uniform vec3 uC,uCol;uniform float uRad,uGlow,uMode,uT;uniform vec3 uCam,uF,uR3,uU3;
+void main(){float q=length(vq);
+ if(uMode<0.5){ /* 实体球:raycast 法线光照+菲涅尔 */
+  if(q>1.){float h=exp(-(q-1.)*6.);O=vec4(uCol*uGlow*h*.6,1.);return;}
+  float z=sqrt(max(1.-q*q,0.));vec3 n=normalize(uR3*vq.x+uU3*vq.y-uF*z);
+  float lam=max(dot(n,normalize(vec3(.4,.3,.8))),0.)*.75+.25;
+  float fr=pow(1.-z,2.5);
+  O=vec4(uCol*uGlow*(lam+fr*1.4),1.);}
+ else{ /* 光晕点 */
+  float h=exp(-q*q*4.5)+.32*exp(-q*1.8);
+  h*=smoothstep(1.85,1.35,q);           /* quad 边缘软化 */
+  O=vec4(uCol*uGlow*h,1.);}}`;
+/* ─ 流管 ribbon ─ */
+const tubVS=`#version 300 es
+uniform vec3 uA,uB,uCam,uF,uR3,uU3;uniform float uW;uniform vec2 uRes;
+out vec2 vt;
+void main(){int i=gl_VertexID;float lt=float(i/2)/7.0;vec2 c=vec2(lt,float(i%2)*2.-1.);vt=c;
+ vec3 axis=uB-uA;vec3 mid=uA+axis*c.x;
+ vec3 vd=normalize(mid-uCam);vec3 side=normalize(cross(axis,vd));
+ vec3 w=mid+side*c.y*uW;
+ vec3 rel=w-uCam;float z=dot(rel,uF);vec3 rr=rel-uF*z;
+ gl_Position=vec4(dot(rr,uR3)/(.62*z)*(uRes.y/uRes.x),dot(rr,uU3)/(.62*z),0.,1.);}`;
+const tubFS=`#version 300 es
+precision highp float;in vec2 vt;out vec4 O;uniform vec3 uCol;uniform float uGlow,uT;
+void main(){float w=exp(-vt.y*vt.y*(3.6+.7*sin(vt.x*9.-uT*6.)));
+ float e=smoothstep(0.,.12,vt.x)*smoothstep(1.,.88,vt.x);
+ float fl=.85+.15*sin(vt.x*17.-uT*11.);
+ O=vec4(uCol*uGlow*w*e*fl,1.);}`;
+/* ─ 程序化粒子（海夸克/泡沫）─ */
+const pntVS=`#version 300 es
+uniform float uT,uN,uSpread,uSz,uMode;uniform vec3 uCam,uF,uR3,uU3;uniform vec2 uRes;
+out vec3 vc;out float va;
+vec3 h3(float n){return fract(sin(vec3(n*12.9898,n*78.233,n*37.719))*43758.5453)*2.-1.;}
+void main(){float id=float(gl_VertexID);
+ float T=1.6+fract(sin(id*91.7)*7.)*2.2;                  /* 生灭周期 */
+ float ph=fract(uT/T+fract(sin(id*3.1)*13.));
+ vec3 p=h3(id+floor(uT/T)*131.)*uSpread;
+ float pair=(mod(id,2.)-.5)*2.;                            /* 成对生灭 */
+ p+=uR3*pair*.06*uSpread*ph;
+ va=sin(3.14159*ph);
+ float cs=fract(sin(id*7.77)*5.);
+ vc=cs<.33?vec3(1.,.3,.3):cs<.66?vec3(.3,1.,.35):vec3(.35,.55,1.);
+ if(uMode>0.5){vc=vec3(.5,.7,1.);va*=.85;}                 /* 泡沫模式 */
+ vec3 rel=p-uCam;float z=dot(rel,uF);
+ if(z<.05){gl_Position=vec4(0,0,-3,1);gl_PointSize=0.;return;}
+ vec3 rr=rel-uF*z;
+ gl_Position=vec4(dot(rr,uR3)/(.62*z)*(uRes.y/uRes.x),dot(rr,uU3)/(.62*z),0.,1.);
+ gl_PointSize=uSz/z;}`;
+const pntFS=`#version 300 es
+precision highp float;in vec3 vc;in float va;out vec4 O;
+void main(){vec2 d=gl_PointCoord*2.-1.;float q=dot(d,d);if(q>1.)discard;
+ O=vec4(vc*exp(-q*3.)*va,1.);}`;
+/* ─ 后处理 ─ */
+const postFS=`#version 300 es
+precision highp float;out vec4 O;uniform sampler2D uTex;uniform vec2 uRes;uniform float uEx,uT;
+vec3 ash(vec3 x){return log(x+sqrt(x*x+1.));}
+vec3 aces(vec3 x){return clamp(x*(2.51*x+.03)/(x*(2.43*x+.59)+.14),0.,1.);}
+void main(){vec2 uv=gl_FragCoord.xy/uRes;vec3 c=texture(uTex,uv).rgb;
+ c=ash(c*uEx);c=aces(c*.62);
+ float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,1.12);
+ vec2 q=uv*2.-1.;c*=1.-.32*dot(q,q)*.55;
+ c+=(fract(sin(dot(gl_FragCoord.xy+uT,vec2(12.9898,78.233)))*43758.5453)-.5)*.012;
+ O=vec4(c,1.);}`;
+const pVol=prog(FSVS,volFS), pSph=prog(sphVS,sphFS), pTub=prog(tubVS,tubFS), pPnt=prog(pntVS,pntFS), pPost=prog(FSVS,postFS);
+/* HDR FBO */
+let W=0,H=0,fbo=null,tex=null,dpr=Math.min(devicePixelRatio||1,2);
+let saveMode=false;
+function resize(){const d=saveMode?dpr*0.62:dpr;W=cv.width=innerWidth*d|0;H=cv.height=innerHeight*d|0;
+ cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';
+ if(tex)gl.deleteTexture(tex);if(fbo)gl.deleteFramebuffer(fbo);
+ tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+ gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA16F,W,H);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+ fbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+ gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null);}
+addEventListener('resize',resize);resize();
+
+/* ══════════════════ 场景状态机 ══════════════════ */
+let mode='dive', labTab='confine', tGlob=0, EX=1.0;
+let S=-10.05, cruise=false, orbSel=0;
+/* 展馆布局（世界坐标） */
+const GAL=SM.map(p=>{let x,y;
+ if(p.gen>0){x=(p.gen-2)*0.78+0.15; y=(1.5-p.row)*0.56+0.06;}
+ else {x=-2.02; y=(2-p.row)*0.44+0.12;}
+ const sz=p.m>0? 0.082+0.075*clamp((Math.log10(p.m)+6.8)/12.2,0,1) : 0.1;
+ return {...p,x,y,z:0,sz}});
+/* 实验室状态 */
+const conf={r:R0Q, broken:0, brokeAt:0};      // 禁闭
+const build={mode:3, slots:['u','u','d']};     // 工坊
+const beta={fired:0, samples:[], anim:-1, cnt:0}; // β
+const QCYC=['u','d','s','c','b'], QBAR=['ū','d̄','s̄','c̄','b̄'];
+
+/* 深潜场景合成：s = log10(视野半宽/m) */
+function diveScene(s){
+ const w=Math.pow(10,s); // 视野半宽（米）
+ const A0=5.29177e-11, RP=0.8414e-15;
+ const o={cloudA:0, cloudL:ORBS[orbSel].L, nucGlow:0, nucR:0, protonA:0, inQ:0, endA:0, foam:0.3+0.45*sstep(-14,-17.5,s)};
+ const aScr=A0/w;                       // a0 的屏幕尺寸
+ o.a0scr=aScr;
+ o.cloudA=1-sstep(-11.2,-12.6,s);
+ o.cloudScale=aScr;                     // 世界单位/a0
+ const rpScr=RP/w;
+ o.nucR=rpScr;
+ o.nucGlow=sstep(-11.6,-13.8,s)*(1-sstep(-15.05,-15.5,s)); // 核光点→球
+ o.protonSolid=sstep(-14.3,-15.0,s)*(1-sstep(-15.35,-15.8,s)); // 实体感
+ o.inQ=sstep(-15.35,-15.75,s)*(1-sstep(-16.2,-16.9,s));   // 内部可见度（再深夸克飞出视野）
+ o.qSpread=Math.min(0.35e-15/w,1.7);    // 夸克离中心 ~0.35 fm（窗口内钳制）
+ o.endA=sstep(-16.6,-17.4,s);
+ return o;}
+/* 夸克位置（示意抖动,声明） */
+function quarkPos(i,t,spread){const r1=mulberry32(i*77+1);
+ const w1=0.9+0.5*r1(),w2=1.3+0.7*r1(),p1=r1()*6.28,p2=r1()*6.28;
+ const base=[[1,0,-0.5],[-0.5,0.87,-0.5],[-0.5,-0.87,-0.5]][i];
+ return [ (base[0]*0.8+0.3*Math.sin(w1*t+p1))*spread,
+          (base[1]*0.8+0.3*Math.sin(w2*t+p2))*spread,
+          (base[2]*0.5+0.55+0.3*Math.sin(w1*0.8*t+p2))*spread*0.9 ];}
+let qCols=['R','G','B'], lastSwap=0, gluon={fly:0,i:0,j:0,c1:'R',c2:'G'};
+function stepColorSwap(t){ if(t-lastSwap>1.35 && gluon.fly<=0){
+  const rnd=Math.random; const i=rnd()*3|0; let j=rnd()*3|0; if(j===i)j=(i+1)%3;
+  gluon={fly:1,i,j,c1:qCols[i],c2:qCols[j]};
+  const tmp=qCols[i];qCols[i]=qCols[j];qCols[j]=tmp; lastSwap=t;}
+ if(gluon.fly>0)gluon.fly-=0.033;}
+
+/* ══════════════════ 渲染 ══════════════════ */
+function setCam(p){const c=camBasis();
+ gl.uniform3fv(U(p,'uCam'),c.pos);gl.uniform3fv(U(p,'uF'),c.f);
+ gl.uniform3fv(U(p,'uR3')||U(p,'uR'),c.r);gl.uniform3fv(U(p,'uU3')||U(p,'uU'),c.u);
+ gl.uniform2f(U(p,'uRes'),W,H);return c}
+function drawSphere(c,pos,rad,col,glow,modeS){gl.useProgram(pSph);
+ gl.uniform3fv(U(pSph,'uCam'),c.pos);gl.uniform3fv(U(pSph,'uF'),c.f);
+ gl.uniform3fv(U(pSph,'uR3'),c.r);gl.uniform3fv(U(pSph,'uU3'),c.u);
+ gl.uniform2f(U(pSph,'uRes'),W,H);
+ gl.uniform3fv(U(pSph,'uC'),pos);gl.uniform1f(U(pSph,'uRad'),rad);
+ gl.uniform3fv(U(pSph,'uCol'),col);gl.uniform1f(U(pSph,'uGlow'),glow);
+ gl.uniform1f(U(pSph,'uMode'),modeS);gl.uniform1f(U(pSph,'uT'),tGlob);
+ gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
+function drawTube(c,a,b,wd,col,glow){gl.useProgram(pTub);
+ gl.uniform3fv(U(pTub,'uCam'),c.pos);gl.uniform3fv(U(pTub,'uF'),c.f);
+ gl.uniform3fv(U(pTub,'uR3'),c.r);gl.uniform3fv(U(pTub,'uU3'),c.u);
+ gl.uniform2f(U(pTub,'uRes'),W,H);
+ gl.uniform3fv(U(pTub,'uA'),a);gl.uniform3fv(U(pTub,'uB'),b);
+ gl.uniform1f(U(pTub,'uW'),wd);gl.uniform3fv(U(pTub,'uCol'),col);
+ gl.uniform1f(U(pTub,'uGlow'),glow);gl.uniform1f(U(pTub,'uT'),tGlob);
+ gl.drawArrays(gl.TRIANGLE_STRIP,0,16)}
+function drawPoints(c,n,spread,sz,pmode){gl.useProgram(pPnt);
+ gl.uniform3fv(U(pPnt,'uCam'),c.pos);gl.uniform3fv(U(pPnt,'uF'),c.f);
+ gl.uniform3fv(U(pPnt,'uR3'),c.r);gl.uniform3fv(U(pPnt,'uU3'),c.u);
+ gl.uniform2f(U(pPnt,'uRes'),W,H);
+ gl.uniform1f(U(pPnt,'uT'),tGlob);gl.uniform1f(U(pPnt,'uN'),n);
+ gl.uniform1f(U(pPnt,'uSpread'),spread);gl.uniform1f(U(pPnt,'uSz'),sz*H/900);
+ gl.uniform1f(U(pPnt,'uMode'),pmode);
+ gl.drawArrays(gl.POINTS,0,n)}
+const C3=id=>CCOL[id]||[1,1,1];
+function chargeCol(q){return q>0.01?[1,.78,.35]:q<-0.01?[.4,.75,1]:[.75,.8,.9]}
+
+function render(dt){
+ gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.viewport(0,0,W,H);
+ gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);
+ const c=camBasis();
+ if(mode==='dive'){
+  const o=diveScene(S);
+  if(o.foam>0.01)drawPoints(c,260,2.8,38*o.foam*2,1);
+  if(o.cloudA>0.003){ // 电子云体渲染
+   gl.useProgram(pVol);
+   const sc=o.cloudScale; // 世界单位/a0：把相机折算到 a0 坐标
+   gl.uniform3fv(U(pVol,'uCam'),c.pos.map(v=>v/sc));gl.uniform3fv(U(pVol,'uF'),c.f);
+   gl.uniform3fv(U(pVol,'uR'),c.r);gl.uniform3fv(U(pVol,'uU'),c.u);
+   gl.uniform2f(U(pVol,'uRes'),W,H);
+   gl.uniform1f(U(pVol,'uL'),ORBS[orbSel].L);
+   gl.uniform1f(U(pVol,'uGain'),3.0/PSICOL[orbSel]);
+   gl.uniform1f(U(pVol,'uT'),tGlob);gl.uniform1i(U(pVol,'uOrb'),orbSel);
+   gl.uniform1f(U(pVol,'uAlpha'),o.cloudA);
+   gl.drawArrays(gl.TRIANGLES,0,3);}
+  if(o.nucGlow>0.003){ // 核：远星式光点渐亮（光晕为显示需要，半径非真值）
+   const g=o.nucGlow*(6+140*clamp(o.nucR,0,0.02));
+   drawSphere(c,[0,0,0],Math.max(o.nucR,0.016),[1,.85,.5],g,1);}
+  if(o.protonSolid>0.003) drawSphere(c,[0,0,0],o.nucR,[1,.62,.3],o.protonSolid*1.15,0);
+  if(o.inQ>0.003){ // 内部：三夸克+流管+海夸克
+   stepColorSwap(tGlob);
+   const qp=[0,1,2].map(i=>quarkPos(i,tGlob*0.9,o.qSpread));
+   const cen=[0,0,0];
+   for(let i=0;i<3;i++)drawTube(c,qp[i],cen,o.qSpread*0.1,[.9,.75,1],o.inQ*0.9);
+   for(let i=0;i<3;i++){const fl=(gluon.fly>0&&(gluon.i===i||gluon.j===i))?1.8:1;
+    drawSphere(c,qp[i],o.qSpread*0.16,C3(qCols[i]),o.inQ*3.2*fl,1);}
+   if(gluon.fly>0){const a=qp[gluon.i],b=qp[gluon.j],tt=1-gluon.fly;
+    const gp=[lerp(a[0],b[0],tt),lerp(a[1],b[1],tt),lerp(a[2],b[2],tt)];
+    drawSphere(c,gp,o.qSpread*0.09,[1,1,.7],o.inQ*4,1);}
+   drawPoints(c,140,o.qSpread*2.4,30*o.inQ,0);}
+  if(o.endA>0.003){ // 尽头：锁定一颗夸克（点大小=像素级示意，声明）
+   const pl=1+0.12*Math.sin(tGlob*2.2);
+   drawSphere(c,[0,0,0],0.032*pl,[1,.38,.4],o.endA*8,1);
+   drawSphere(c,[0,0,0],0.34,[1,.45,.5],o.endA*0.55,1);
+   // 远去的同伴微光
+   drawSphere(c,[1.6,0.4,0.9],0.09,[.4,1,.5],o.endA*1.3,1);
+   drawSphere(c,[-1.4,-0.3,1.1],0.09,[.45,.6,1],o.endA*1.3,1);
+   drawPoints(c,420,2.2,30*o.endA,1);}
+ }
+ else if(mode==='gallery'){
+  drawPoints(c,200,3.4,16,1);
+  for(const p of GAL){
+   const pos=[p.x,0,p.y];
+   const col=p.id==='H'?[1,.9,.55]:p.id==='gamma'?[1,1,.85]:p.id==='g'?[.8,.6,1]:chargeCol(p.q);
+   const hot=dictSel===p.id?1.9:1;
+   if(p.m===0)drawSphere(c,pos,p.sz,col,2.0*hot,1);        // 无质量：纯光
+   else if(p.id.startsWith('v'))drawSphere(c,pos,p.sz*0.95,[.72,.82,1],1.4*hot,1); // 中微子：幽灵微光
+   else drawSphere(c,pos,p.sz,col,1.35*hot,0);
+   if(p.col===1)for(let k=0;k<3;k++){                      // 夸克色荷卫星
+    const a=tGlob*(1.1+0.13*k)+k*2.094;
+    drawSphere(c,[pos[0]+Math.cos(a)*p.sz*1.7,pos[1]+Math.sin(a)*p.sz*1.7*0.4,pos[2]+Math.sin(a)*p.sz*1.55],
+      p.sz*0.16,C3(['R','G','B'][k]),2.2,1);}
+   if(p.col===2)for(let k=0;k<2;k++){                      // 胶子:色-反色双点
+    const a=tGlob*1.6+k*3.1416;
+    drawSphere(c,[pos[0]+Math.cos(a)*p.sz*1.5,pos[1],pos[2]+Math.sin(a)*p.sz*1.5],
+      p.sz*0.17,k?[1,.3,.3]:[.3,1,.4],2.2,1);}}
+ }
+ else { // lab
+  if(labTab==='confine'){
+   const sep=conf.r*0.55; // fm → 世界
+   const A=[-sep,0,0],B=[sep,0,0];
+   if(!conf.broken){
+    drawTube(c,A,B,0.075+0.05*conf.r,[.9,.75,1],1.7+0.7*conf.r/2);
+    drawSphere(c,A,0.13,C3('R'),4.2,1);drawSphere(c,B,0.13,[.6,1,1],4.2,1); // q 红 / q̄ 反红(青)
+   } else {
+    const t=clamp((tGlob-conf.brokeAt)/1.2,0,1);
+    const off=0.35+t*0.8;
+    for(const sgn of[-1,1]){
+     const cx=sgn*(sep*0.5+off*0.35);
+     const a=[cx-0.16,0,0],b=[cx+0.16,0,0];
+     drawTube(c,a,b,0.065,[.9,.75,1],1.7);
+     drawSphere(c,a,0.11,C3('R'),4,1);        // 断点生成 R̄/R 对：两介子均为 红+反红
+     drawSphere(c,b,0.11,[.6,1,1],4,1);}
+    if(t<0.4)drawSphere(c,[0,0,0],0.2*(1-t*2),[1,1,.8],10*(1-t*2.2),1);}
+   drawPoints(c,90,1.8,20,1);}
+  else if(labTab==='build'){
+   const n=build.mode, R=0.5;
+   for(let i=0;i<n;i++){
+    const a=i/n*6.283+tGlob*0.25, pos=[Math.cos(a)*R,0,Math.sin(a)*R*0.7];
+    const q=build.slots[i], anti=q.includes('̄');
+    const cc=n===3?C3(['R','G','B'][i]):(i===0?C3('R'):[.6,1,1]);
+    drawSphere(c,pos,0.17,cc,3.6,1);
+    for(let j=0;j<n;j++)if(j>i){const b=j/n*6.283+tGlob*0.25;
+     drawTube(c,pos,[Math.cos(b)*R,0,Math.sin(b)*R*0.7],0.055,[.9,.75,1],1.1)}}
+   drawPoints(c,70,1.6,18,1);}
+  else { // beta
+   const t=beta.anim>=0?clamp((tGlob-beta.anim)/2.6,0,1):-1;
+   const spread=0.34;
+   const dU=t>=0&&t>0.18;
+   const qp=[0,1,2].map(i=>quarkPos(i,tGlob*0.7,spread));
+   for(let i=0;i<3;i++)drawTube(c,qp[i],[0,0,0],0.06,[.9,.75,1],1.3);
+   const cols=[C3('R'),C3('G'),C3('B')];
+   for(let i=0;i<3;i++){const isD=i===2;
+    drawSphere(c,qp[i],0.14,cols[i],3.8*(isD&&dU&&t<0.3?2.2:1),1);}
+   // 标签由 HUD 提供:u,d,d → 衰变后 u,d,u
+   if(t>=0){
+    if(t>0.18&&t<0.62){const tt=(t-0.18)/0.44;      // W⁻ 飞出
+     const wp=[qp[2][0]+tt*1.1,qp[2][1]-tt*0.3,qp[2][2]-tt*0.5];
+     drawSphere(c,wp,0.1*(1-tt*0.4),[1,.5,.9],5.5,1);}
+    if(t>=0.62){const tt=(t-0.62)/0.38;             // e⁻ + ν̄ 分飞
+     const org=[qp[2][0]+0.44*1.1,qp[2][1]-0.44*0.3,qp[2][2]-0.44*0.5];
+     drawSphere(c,[org[0]+tt*1.3,org[1]-tt*0.2,org[2]-tt*0.9],0.07,[.4,.8,1],5,1);
+     drawSphere(c,[org[0]+tt*0.9,org[1]+tt*0.6,org[2]+tt*0.8],0.055,[.7,.75,.85],1.6,1);}}
+   drawPoints(c,60,1.4,16,1);}
+ }
+ /* 后处理 */
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,H);
+ gl.disable(gl.BLEND);gl.useProgram(pPost);
+ gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);
+ gl.uniform1i(U(pPost,'uTex'),0);gl.uniform2f(U(pPost,'uRes'),W,H);
+ gl.uniform1f(U(pPost,'uEx'),EX);gl.uniform1f(U(pPost,'uT'),tGlob%97);
+ gl.drawArrays(gl.TRIANGLES,0,3);}
+
+/* ══════════════════ 图表（canvas2d） ══════════════════ */
+const ctx=$('#cv').getContext('2d');
+function axes(x0,y0,x1,y1){ctx.strokeStyle='rgba(160,175,195,.5)';ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0,y1);ctx.lineTo(x1,y1);ctx.stroke()}
+function chartLevels(){ // 氢能级阶梯
+ const w=860,h=340;ctx.clearRect(0,0,w,h);
+ ctx.font='22px ui-monospace';ctx.fillStyle='#9fb4cc';ctx.fillText('氢原子能级  Eₙ = −13.6 eV / n²   （谱线由能级差涌现）',30,34);
+ const x0=90,x1=820,y0=60,y1=300;
+ const Ey=E=>y1-(E-En(1))/(0-En(1))*(y1-y0);
+ axes(x0-20,y0-8,x0-20,y1+8);
+ for(let n=1;n<=6;n++){const y=Ey(En(n));
+  ctx.strokeStyle=n===1?'#ffd27f':'#7fd4ff';ctx.lineWidth=n===1?3:2;
+  ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1-160,y);ctx.stroke();
+  if(n<=3){ctx.fillStyle='#cfd8e6';ctx.font='19px ui-monospace';
+   ctx.fillText(`n=${n}  ${En(n).toFixed(2)} eV`,x1-150,y+6);}}
+ // Lyman-α / Balmer-α 跃迁箭头
+ const ar=(n2,n1,x,col)=>{const ya=Ey(En(n2)),yb=Ey(En(n1));
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(x,ya);ctx.lineTo(x,yb-10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,yb);ctx.lineTo(x-6,yb-12);ctx.lineTo(x+6,yb-12);ctx.fill();
+  ctx.font='18px ui-monospace';
+  ctx.fillText(`${lamNm(n2,n1).toFixed(1)} nm`,x+9,(ya+yb)/2)};
+ ar(2,1,150,'#b48cff');ar(3,2,320,'#ff8c7a');
+ ctx.fillStyle='#7c8798';ctx.font='17px sans-serif';
+ ctx.fillText('紫外 Lyman-α（121.57 nm 实测吻合）· 红色 Balmer-α（真空 656.5 nm）',150,318)}
+function chartRuler(){ // 对数尺度带
+ const w=860,h=340;ctx.clearRect(0,0,w,h);
+ ctx.font='22px ui-monospace';ctx.fillStyle='#9fb4cc';ctx.fillText('你在这里 —— 对数尺度带（每格 = 缩小 10 倍）',30,34);
+ const x0=60,x1=820,y=170,s0=0,s1=-19;
+ const X=s=>x0+(s-s0)/(s1-s0)*(x1-x0);
+ ctx.strokeStyle='rgba(160,175,195,.6)';ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
+ for(let s=0;s>=-19;s--){const x=X(s);ctx.strokeStyle='rgba(160,175,195,.35)';
+  ctx.beginPath();ctx.moveTo(x,y-8);ctx.lineTo(x,y+8);ctx.stroke();}
+ const marks=[[0,'人 1m',-40],[-5,'细胞',-40],[-9,'DNA 直径',-40],[-10,'原子',40],[-14,'原子核',-40],[-15,'质子',40],[-18,'夸克<10⁻¹⁸',40],[-19,'LHC 极限',-56]];
+ ctx.font='18px sans-serif';
+ for(const[s,t,dy]of marks){const x=X(s);
+  ctx.fillStyle='#8aa0bb';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();
+  ctx.fillText(t,x-ctx.measureText(t).width/2,y+dy+(dy>0?18:0));}
+ const xs=X(S);ctx.fillStyle='#ffd27f';
+ ctx.beginPath();ctx.moveTo(xs,y-16);ctx.lineTo(xs-8,y-30);ctx.lineTo(xs+8,y-30);ctx.fill();
+ ctx.font='20px ui-monospace';ctx.fillText('你',xs-10,y-38);
+ ctx.fillStyle='#7c8798';ctx.font='17px sans-serif';
+ ctx.fillText('原子→质子：63000 倍（真比例连续下潜）· 夸克至今测不出大小',60,318)}
+function chartMassTower(){ // 质量塔
+ const w=860,h=340;ctx.clearRect(0,0,w,h);
+ ctx.font='22px ui-monospace';ctx.fillStyle='#9fb4cc';ctx.fillText('17 块积木的质量塔（对数轴，跨 >11 个数量级）',30,34);
+ const x0=110,x1=820,y1=276,lg0=-7,lg1=5.5;   // log10(MeV)
+ const X=v=>x0+(Math.log10(v)-lg0)/(lg1-lg0)*(x1-x0);
+ ctx.strokeStyle='rgba(160,175,195,.5)';ctx.beginPath();ctx.moveTo(x0-30,y1);ctx.lineTo(x1,y1);ctx.stroke();
+ for(const e of[-6,-3,0,3,5]){const x=x0+(e-lg0)/(lg1-lg0)*(x1-x0);
+  ctx.strokeStyle='rgba(160,175,195,.25)';ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y1+6);ctx.stroke();
+  ctx.fillStyle='#7c8798';ctx.font='15px ui-monospace';
+  const lb=e===0?'1 MeV':e===3?'1 GeV':e===-3?'1 keV':e===-6?'1 eV':'100 GeV';
+  ctx.fillText(lb,x-26,y1+24)}
+ const rows={q:70,l:128,b:192};
+ ctx.font='16px sans-serif';ctx.fillStyle='#8aa0bb';
+ ctx.fillText('夸克',30,rows.q+5);ctx.fillText('轻子',30,rows.l+5);ctx.fillText('玻色子',22,rows.b+5);
+ for(const p of SM){
+  const y=rows[p.kind==='q'?'q':p.kind==='l'?'l':'b']+(p.row%2)*26;
+  const col=p.kind==='q'?'#ffd27f':p.kind==='l'?'#7fd4ff':'#ff9e7a';
+  if(p.m===0){ctx.fillStyle=col;ctx.font='20px ui-monospace';ctx.fillText(p.id==='gamma'?'γ':'g',x0-72+(p.id==='g'?26:0),y+6);
+   ctx.font='13px sans-serif';continue}
+  const x=p.m<1e-3?x0-40:X(p.m);
+  ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y1);ctx.stroke();
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();
+  ctx.font='17px ui-monospace';
+  const lb=p.id==='gamma'?'γ':p.id==='mu'?'μ':p.id==='tau'?'τ':p.id.startsWith('v')?'ν':p.id;
+  ctx.fillText(lb,x-6,y-9);
+  if(p.id==='ve'){ctx.font='14px sans-serif';ctx.fillStyle='#7c8798';ctx.fillText('←中微子(<0.8eV,未定)',x0-40,y+22)}}
+ ctx.fillStyle='#7c8798';ctx.font='16px sans-serif';
+ ctx.fillText('γ 与胶子严格零质量（轴外）· 顶夸克≈一整颗金原子 · 中微子只有上限',110,330)}
+function chartCornell(){ // Cornell 势
+ const w=860,h=340;ctx.clearRect(0,0,w,h);
+ ctx.font='22px ui-monospace';ctx.fillStyle='#9fb4cc';ctx.fillText('禁闭势 V(r) = −4αs·ħc/3r + κr   （κ=0.9 GeV/fm）',30,34);
+ const x0=90,x1=820,y0=64,y1=290,r0=0.08,r1=2.4,v0=-1.1,v1=2.2;
+ const X=r=>x0+(r-r0)/(r1-r0)*(x1-x0), Y=v=>y1-(v-v0)/(v1-v0)*(y1-y0);
+ axes(x0,y0,x0,y1);ctx.strokeStyle='rgba(160,175,195,.3)';
+ ctx.beginPath();ctx.moveTo(x0,Y(0));ctx.lineTo(x1,Y(0));ctx.stroke();
+ ctx.strokeStyle='#7fd4ff';ctx.lineWidth=3;ctx.beginPath();
+ for(let r=r0;r<=r1;r+=0.01){const p=[X(r),Y(clamp(Vc(r),v0,v1))];r===r0?ctx.moveTo(...p):ctx.lineTo(...p)}
+ ctx.stroke();
+ // 储能填充 r0..r
+ ctx.fillStyle='rgba(255,210,127,.22)';ctx.beginPath();ctx.moveTo(X(R0Q),Y(Vc(R0Q)));
+ for(let r=R0Q;r<=conf.r;r+=0.01)ctx.lineTo(X(r),Y(Vc(r)));
+ ctx.lineTo(X(conf.r),Y(Vc(R0Q)));ctx.closePath();ctx.fill();
+ // 断裂线
+ ctx.strokeStyle='#ff6a5f';ctx.setLineDash([7,5]);ctx.beginPath();
+ ctx.moveTo(X(rBreak),y0);ctx.lineTo(X(rBreak),y1);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#ff8c7a';ctx.font='18px ui-monospace';
+ ctx.fillText(`弦断裂 r≈${rBreak.toFixed(2)} fm`,X(rBreak)+8,y0+22);
+ // 游标
+ ctx.fillStyle='#ffd27f';ctx.beginPath();ctx.arc(X(conf.r),Y(Vc(conf.r)),7,0,7);ctx.fill();
+ ctx.font='18px ui-monospace';
+ ctx.fillText(`r=${conf.r.toFixed(2)} fm  储能 ${Math.max(0,Vc(conf.r)-Vc(R0Q)).toFixed(2)} GeV`,Math.min(X(conf.r)-60,x1-330),Y(Vc(conf.r))+36);
+ ctx.fillStyle='#7c8798';ctx.font='17px sans-serif';
+ ctx.fillText('拉得越远储能越多——够造一对新夸克时弦就断（所以永远抓不到单个夸克）',90,322);
+ ctx.fillText('r (fm) →',x1-80,y1+24)}
+function chartBeta(){ // β 谱
+ const w=860,h=340;ctx.clearRect(0,0,w,h);
+ ctx.font='22px ui-monospace';ctx.fillStyle='#9fb4cc';
+ ctx.fillText(`β 衰变电子能谱（已累积 ${beta.samples.length} 次衰变的蒙特卡洛）`,30,34);
+ const x0=90,x1=820,y0=64,y1=290;
+ const X=t=>x0+t/QB*(x1-x0);
+ axes(x0,y0,x0,y1);
+ // 直方图
+ const NB=46,hist=new Array(NB).fill(0);
+ for(const t of beta.samples)hist[Math.min(NB-1,t/QB*NB|0)]++;
+ const hm=Math.max(1,...hist);
+ ctx.fillStyle='rgba(127,212,255,.4)';
+ for(let i=0;i<NB;i++){const x=x0+i/NB*(x1-x0),bw=(x1-x0)/NB-2;
+  const y=y1-hist[i]/hm*(y1-y0-14);ctx.fillRect(x,y,bw,y1-y)}
+ // 解析曲线
+ ctx.strokeStyle='#ffd27f';ctx.lineWidth=3;ctx.beginPath();
+ for(let i=0;i<=300;i++){const t=i/300*QB,y=y1-fBeta(t)/FBMAX*(y1-y0-14);
+  i?ctx.lineTo(X(t),y):ctx.moveTo(X(t),y)}
+ ctx.stroke();
+ // 端点
+ ctx.strokeStyle='#ff6a5f';ctx.setLineDash([7,5]);
+ ctx.beginPath();ctx.moveTo(X(QB),y0);ctx.lineTo(X(QB),y1);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#ff8c7a';ctx.font='18px ui-monospace';
+ ctx.fillText(`端点 ${(QB*1000).toFixed(0)} keV`,X(QB)-150,y0+22);
+ if(beta.samples.length>2){const m=beta.samples.reduce((a,b)=>a+b,0)/beta.samples.length;
+  ctx.fillStyle='#9fe6a0';ctx.fillText(`样本均值 ${(m*1000).toFixed(0)} keV（理论 303）`,x0+18,y0+22);}
+ ctx.fillStyle='#7c8798';ctx.font='17px sans-serif';
+ ctx.fillText('横轴=电子动能 keV · 金线=相空间理论谱 · 连续谱当年逼出"中微子"假设（泡利 1930）',90,322)}
+function drawChart(){
+ if(mode==='dive'){ if(S>-11.5)chartLevels(); else chartRuler(); }
+ else if(mode==='gallery')chartMassTower();
+ else if(labTab==='confine')chartCornell();
+ else if(labTab==='beta')chartBeta();
+ else { // build:显示判定
+  const w=860,h=340;ctx.clearRect(0,0,w,h);
+  ctx.font='22px ui-monospace';ctx.fillStyle='#9fb4cc';ctx.fillText('组合判定（电荷实时加和；色必须成白）',30,34);
+  const j=judgeHadron(build.slots.slice(0,build.mode));
+  ctx.font='26px ui-monospace';ctx.fillStyle='#ffd27f';
+  const qs=j.Q>0?'+':'';const frac=Math.abs(Math.round(j.Q*3))%3;
+  ctx.fillText(`夸克：${build.slots.slice(0,build.mode).join(' ')}    总电荷 = ${qs}${frac===0?Math.round(j.Q):j.Q.toFixed(2)}`,60,100);
+  if(j.hit){ctx.fillStyle='#9fe6a0';ctx.font='30px sans-serif';ctx.fillText(`✔ ${j.hit[0]}`,60,160);
+   ctx.fillStyle='#cfd8e6';ctx.font='20px ui-monospace';ctx.fillText(j.hit[1],60,198);
+   ctx.font='19px sans-serif';wrapText(j.hit[2],60,236,740,26)}
+  else{ctx.fillStyle='#ff9e7a';ctx.font='24px sans-serif';
+   ctx.fillText('这个组合没有已确认的基态强子',60,160);
+   ctx.fillStyle='#7c8798';ctx.font='19px sans-serif';
+   ctx.fillText('（可能太重、瞬衰，或需要激发态——试试 uud / sss / c c̄）',60,196)}
+  ctx.fillStyle='#7c8798';ctx.font='17px sans-serif';
+  ctx.fillText('顶夸克不在转盘里：它 5×10⁻²⁵ 秒就衰变，来不及组成任何强子',60,322)}}
+function wrapText(s,x,y,mw,lh){let line='',yy=y;
+ for(const ch of s){if(ctx.measureText(line+ch).width>mw){ctx.fillText(line,x,yy);line=ch;yy+=lh}else line+=ch}
+ ctx.fillText(line,x,yy)}
+
+/* ══════════════════ UI ══════════════════ */
+const story=$('#story'),dict=$('#dict');
+let dictSel=null;
+function setStory(t,b,c){story.querySelector('.st').textContent=t;
+ story.querySelector('.sb').textContent=b;story.querySelector('.sc').textContent=c}
+function fmtScale(){const s=S;const mant=Math.pow(10,s-Math.floor(s)).toFixed(1);
+ const sup=String(Math.floor(s)).split('').map(ch=>'⁻⁰¹²³⁴⁵⁶⁷⁸⁹'['−0123456789'.indexOf(ch==='-'?'−':ch)]).join('');
+ return `${mant}×10${sup} m`}
+function updHUD(){
+ $('#scale').textContent=fmtScale();
+ if(mode==='dive'){const st=STATIONS.find(x=>S<=x.s0&&S>=x.s1)||STATIONS[0];
+  setStory(st.t,st.b,st.c);
+  $('#orbs').style.display=(S>-11.5)?'flex':'none';}
+ drawChart()}
+function showDict(id){const p=SM[SMIX[id]];if(!p)return;dictSel=id;
+ dict.querySelector('h3').textContent=p.nm;
+ const rows=[['质量',fm(p.m)],['电荷',p.Q+' e'],['自旋',p.s],['色荷',p.col===1?'红/绿/蓝三选一':p.col===2?'色+反色（8 种）':'无'],['寿命',p.life],['发现',p.disc]];
+ dict.querySelector('.rows').innerHTML=rows.map(([k,v])=>`<div class="row"><span>${k}</span><b>${v}</b></div>`).join('');
+ dict.querySelector('.blurb').textContent=p.b;
+ dict.style.display='block'}
+/* 模式切换 */
+$$('#modes .mbtn').forEach(b=>b.onclick=()=>{
+ $$('#modes .mbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+ mode=b.dataset.m;dictSel=null;dict.style.display='none';
+ $('#bar').style.display=mode==='dive'?'flex':'none';
+ $('#lab').style.display=mode==='lab'?'block':'none';
+ $('#orbs').style.display='none';
+ if(mode==='gallery'){yaw=-1.5708;pitch=0.12;dist=3.1;
+  setStory('标准模型 —— 已知宇宙的全部积木','12 种物质粒子（费米子）+ 4 种力的信使 + 1 个希格斯。点击任何一颗看它的档案。三代物质逐代变重——为什么恰好三代？没人知道。','数据：PDG 2024。球体大小 ∝ log 质量（示意，基本粒子无已知尺寸）。')}
+ if(mode==='lab')setLab(labTab);
+ if(mode==='dive'){yaw=0.6;pitch=0.32;dist=3.0;updHUD()}
+ drawChart()});
+/* 深潜滑杆/巡航 */
+$('#sS').oninput=e=>{S=+e.target.value;cruise=false;$('#cruise').textContent='▶ 自动下潜';updHUD()};
+$('#cruise').onclick=()=>{cruise=!cruise;
+ if(cruise&&S<-18.3)S=-10.05;
+ $('#cruise').textContent=cruise?'⏸ 暂停':'▶ 自动下潜'};
+/* 轨道按钮 */
+$('#orbs').innerHTML=ORBS.map((o,i)=>`<span class="ob${i===0?' on':''}" data-i="${i}">${o.k}</span>`).join('');
+$$('#orbs .ob').forEach(b=>b.onclick=()=>{orbSel=+b.dataset.i;
+ $$('#orbs .ob').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+ S=ORBFIT[orbSel];$('#sS').value=S;cruise=false;$('#scale').textContent=fmtScale();drawChart();
+ setStory('① 氢原子 —— '+ORBS[orbSel].k+' 轨道',ORBS[orbSel].note+'。橙=波函数为正，青=为负（符号不可观测，但决定化学键的一切）。注意 '+ORBS[orbSel].k[0]+' 壳层比 1s 大（半径 ∝ n²，已按真比例调轴）。',STATIONS[0].c)});
+/* 实验室 */
+function setLab(tab){labTab=tab;
+ $$('#lab .tabs .mbtn').forEach(x=>x.classList.toggle('on',x.dataset.l===tab));
+ const L=$('#lbody');
+ if(tab==='confine'){yaw=1.5708;pitch=0.1;dist=2.0;
+  L.innerHTML=`<div class="ctl">把介子里的正反夸克往两边拉：<br>
+   <input type="range" id="cR" min="${R0Q}" max="2.2" step="0.005" value="${conf.r}" style="width:100%;accent-color:#ffd27f">
+   <div id="ebar"><div></div></div><div id="cTxt"></div>
+   <button id="cReset">↺ 重新来一根弦</button></div>`;
+  $('#cR').oninput=e=>{if(conf.broken)return;conf.r=+e.target.value;
+   const E=Vc(conf.r)-Vc(R0Q);
+   $('#ebar>div').style.width=clamp(E/EBRK*100,0,100)+'%';
+   $('#cTxt').innerHTML=E<EBRK?`弦储能 <b style="color:#ffd27f">${E.toFixed(2)} / ${EBRK.toFixed(2)} GeV</b>（还差 ${(EBRK-E).toFixed(2)} 就够造一对新夸克）`:'';
+   if(E>=EBRK&&!conf.broken){conf.broken=1;conf.brokeAt=tGlob;
+    $('#cTxt').innerHTML='<b style="color:#ff8c7a">啪！</b>储能变成了一对新的正反夸克——你得到两个介子，还是没有自由夸克。'}
+   drawChart()};
+  $('#cReset').onclick=()=>{conf.broken=0;conf.r=R0Q;$('#cR').value=R0Q;
+   $('#ebar>div').style.width='0%';$('#cTxt').textContent='';drawChart()};
+  setStory('实验一 · 夸克禁闭','强力像一根橡皮筋：拉得越远拉力越不减。拉断的瞬间，储存的能量按 E=mc² 变成一对新的正反夸克——你手里变成两根更短的橡皮筋。','Cornell 势真算（αs=0.3, κ=0.9 GeV/fm）；断裂阈值取一对组分夸克 0.66 GeV（真实为概率性隧穿，Schwinger 机制）。')}
+ else if(tab==='build'){yaw=1.5708;pitch=0.5;dist=2.3;
+  L.innerHTML=`<div class="ctl">
+   <button id="bMode3">重子（3 夸克）</button><button id="bMode2">介子（夸克+反夸克）</button><br>
+   <span id="slots"></span><div class="res" id="bRes"></div></div>`;
+  const paint=()=>{const n=build.mode;
+   $('#slots').innerHTML=build.slots.slice(0,n).map((q,i)=>{
+    const cc=n===3?['#ff5a5f','#4fd66a','#5a8cff'][i]:(i===0?'#ff5a5f':'#6ee7e7');
+    return `<span class="slot" data-i="${i}" style="border-color:${cc};color:${cc}">${q}</span>`}).join('')
+    +`<span style="color:#7c8798;font-size:12px">（点小球换味）</span>`;
+   $$('#lab .slot').forEach(sl=>sl.onclick=()=>{const i=+sl.dataset.i;
+    const cyc=(build.mode===2&&i===1)?QBAR:QCYC;
+    const cur=cyc.indexOf(build.slots[i]);build.slots[i]=cyc[(cur+1)%cyc.length];paint()});
+   const j=judgeHadron(build.slots.slice(0,n));
+   $('#bRes').innerHTML=j.hit?`<b>✔ ${j.hit[0]}</b> · ${j.hit[1]}<br>${j.hit[2]}`
+    :`未命中已知基态强子（电荷 ${j.Q>0?'+':''}${(Math.round(j.Q*3)/3).toFixed(2).replace('.00','').replace('0.67','2/3').replace('0.33','1/3')}）`;
+   drawChart()};
+  $('#bMode3').onclick=()=>{build.mode=3;build.slots=['u','u','d'];paint()};
+  $('#bMode2').onclick=()=>{build.mode=2;build.slots=['u','d̄'];paint()};
+  paint();
+  setStory('实验二 · 强子工坊','用夸克拼出真实存在的粒子。规则只有两条：色必须配成白（三色各一，或色+反色）；电荷自动加和。拼出 sss 试试——那是夸克模型封神的 Ω⁻。','强子数据 PDG；电荷加和与色约束为真算（proto 16 条全核对）。')}
+ else{yaw=0.9;pitch=0.3;dist=2.2;
+  L.innerHTML=`<div class="ctl">
+   <button id="bFire">☢ 让中子衰变</button><button id="bF100">×100 快速累积</button><button id="bClr">清空能谱</button>
+   <div class="res" id="bTxt">自由中子平均寿命 878 秒。它体内一个 d 夸克会突然变成 u——经由一颗转瞬即逝的 W⁻。</div></div>`;
+  $('#bFire').onclick=()=>{beta.anim=tGlob;beta.samples.push(betaSample());beta.cnt++;
+   $('#bTxt').innerHTML=`第 <b>${beta.cnt}</b> 次衰变：n → p + e⁻ + ν̄ₑ。电子分走 <b>${(beta.samples[beta.samples.length-1]*1000).toFixed(0)} keV</b>（每次都不一样——三体分账，中微子拿走剩下的）`;
+   drawChart()};
+  $('#bF100').onclick=()=>{for(let i=0;i<100;i++)beta.samples.push(betaSample());beta.cnt+=100;drawChart()};
+  $('#bClr').onclick=()=>{beta.samples.length=0;beta.cnt=0;drawChart()};
+  setStory('实验三 · β 衰变','中子单独放 15 分钟就会散伙：udd 里的一个 d 变成 u。电子能谱是连续的——1930 年这吓坏了物理学家（能量不守恒？！），泡利被迫发明了中微子来"记账"。','谱形 = 相空间 p·E·(Q−T)² 真抽样；Q=0.782 MeV 由中子/质子/电子质量差涌现；忽略库仑修正（~几%）。')}
+ drawChart()}
+$('#lab').addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(b)setLab(b.dataset.l)});
+/* 展馆拾取 */
+cv.addEventListener('click',e=>{if(mode!=='gallery')return;
+ const c=camBasis();
+ const px=(e.clientX*(saveMode?dpr*0.62:dpr)*2-W)/H*1, py=-(e.clientY*(saveMode?dpr*0.62:dpr)*2-H)/H;
+ const rd=[c.f[0]+ (px*c.r[0]+py*c.u[0])*.62, c.f[1]+(px*c.r[1]+py*c.u[1])*.62, c.f[2]+(px*c.r[2]+py*c.u[2])*.62];
+ const L=Math.hypot(...rd);rd[0]/=L;rd[1]/=L;rd[2]/=L;
+ let best=null,bd=1e9;
+ for(const p of GAL){const oc=[p.x-c.pos[0],0-c.pos[1],p.y-c.pos[2]];
+  const tca=oc[0]*rd[0]+oc[1]*rd[1]+oc[2]*rd[2];if(tca<0)continue;
+  const d2=oc[0]**2+oc[1]**2+oc[2]**2-tca*tca;
+  if(d2<(p.sz*1.6)**2&&tca<bd){bd=tca;best=p}}
+ if(best)showDict(best.id)});
+/* 拖拽 */
+let drag=null;
+cv.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];autoRot=false});
+addEventListener('pointermove',e=>{if(!drag)return;
+ yaw+=(e.clientX-drag[0])*0.005;pitch=clamp(pitch+(e.clientY-drag[1])*0.005,-1.3,1.3);drag=[e.clientX,e.clientY]});
+addEventListener('pointerup',()=>drag=null);
+cv.addEventListener('wheel',e=>{e.preventDefault();
+ if(mode==='dive'){S=clamp(S-e.deltaY*0.0012,-18.5,-9.8);$('#sS').value=S;cruise=false;updHUD()}
+ else dist=clamp(dist*Math.exp(e.deltaY*0.001),1.4,6)},{passive:false});
+/* 近似声明 */
+$('#notetxt').innerHTML=['<b style="color:#9fe6a0">真算</b>：电子云=氢原子薛定谔方程解析解 |ψ|² 逐像素体渲染；能级/谱线由 −13.6eV/n² 涌现（Lyman-α 与实测吻合到 0.001 nm）；胶子交换=真 SU(3) 色守恒；禁闭=Cornell 势；β 谱=相空间蒙特卡洛真抽样（Q 值由质量差涌现）；全部粒子数据 PDG 2024。',
+'<b style="color:#ff9e7a">示意</b>：夸克运动轨迹/流管形状（真实为量子场无经典轨道，节奏放慢~10²³ 倍）；粒子"发光球"大小∝log质量（基本粒子无已知尺寸<10⁻¹⁹m）；W 玻色子飞行时间放大~10²⁵ 倍；β 谱忽略库仑修正（几%）；弦断裂取固定阈值（真实为概率性 Schwinger 隧穿）；海夸克密度/量子泡沫为艺术化。',
+'<b style="color:#7fd4ff">尺度</b>：深潜为对数真比例（原子/质子=63000 倍未压缩）；唯一例外是"点"粒子的像素级光晕。'].map(s=>`<div style="margin:4px 0">${s}</div>`).join('');
+$('#foot').onclick=()=>{const n=$('#note');n.style.display=n.style.display==='block'?'none':'block';
+ story.style.display=n.style.display==='block'?'none':'block'};
+
+/* ══════════════════ 主循环（45fps cap + 省电） ══════════════════ */
+let last=0,acc=0,fps=[],hidden=false;
+document.addEventListener('visibilitychange',()=>hidden=document.hidden);
+const battery=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(battery){saveMode=true;resize()}
+function loop(ts){requestAnimationFrame(loop);
+ if(hidden)return;
+ const dt=Math.min((ts-last)/1000,0.1);
+ if(ts-last<1000/46)return;
+ fps.push(1/(dt||0.016));if(fps.length>60)fps.shift();
+ last=ts;tGlob+=dt;
+ if(autoRot&&mode!=='gallery')yaw+=dt*0.05;
+ if(cruise&&mode==='dive'){S=Math.max(-18.5,S-dt*0.28);$('#sS').value=S;
+  if(S<=-18.5){cruise=false;$('#cruise').textContent='▶ 自动下潜'}
+  updHUD()}
+ if(mode==='lab'&&labTab==='beta'&&beta.anim>=0&&tGlob-beta.anim>3.2)beta.anim=-1;
+ render(dt)}
+requestAnimationFrame(loop);
+updHUD();drawChart();
+
+/* ══════════════════ 验证钩子 ══════════════════ */
+window.__PZ__={
+ // 数值
+ psiJS,RAD,SPH,ORBS,En,lamNm,Vc,rBreak,QB,fBeta,betaSample,judgeHadron,colorSwapTest,SM,HADRONS,PSIMAX,
+ radNorm(k){const f=RAD[k],n=24000,h=120/n;let s=0;
+  for(let i=0;i<=n;i++){const r=i*h||1e-12,w=i===0||i===n?1:i%2?4:2;s+=w*f(r)**2*r*r}return s*h/3},
+ betaMC(n){const arr=[];for(let i=0;i<n;i++)arr.push(betaSample());return arr},
+ // 状态控制
+ setMode(m){$$('#modes .mbtn').find(b=>b.dataset.m===m).click()},
+ setS(v){S=clamp(v,-18.5,-9.8);$('#sS').value=S;cruise=false;updHUD()},
+ setOrb(i){orbSel=i;$$('#orbs .ob').forEach((x,k)=>x.classList.toggle('on',k===i));
+  if(mode==='dive'){S=ORBFIT[i];$('#sS').value=S;cruise=false;updHUD()}},
+ setLabTab(t){setLab(t)},
+ setConf(r){conf.broken=0;conf.r=r;const E=Vc(r)-Vc(R0Q);if(E>=EBRK){conf.broken=1;conf.brokeAt=tGlob}
+  const el=$('#cR');if(el){el.value=r;const bar=$('#ebar>div');if(bar)bar.style.width=clamp(E/EBRK*100,0,100)+'%'}
+  drawChart()},
+ setBuild(slots){build.mode=slots.length;build.slots=[...slots];if(mode==='lab'&&labTab==='build')setLab('build');return judgeHadron(slots)},
+ fireBeta(n){for(let i=0;i<n;i++)beta.samples.push(betaSample());drawChart();return beta.samples.length},
+ state(){return {mode,labTab,S,orbSel,confR:conf.r,broken:conf.broken,
+  station:mode==='dive'?(STATIONS.find(x=>S<=x.s0&&S>=x.s1)||{t:'?'}).t:mode+'/'+labTab,
+  betaN:beta.samples.length,fps:fps.length?fps.reduce((a,b)=>a+b)/fps.length:0}},
+ setYawPitch(y,p){yaw=y;pitch=p;autoRot=false},
+ stopRot(){autoRot=false},
+ // 像素采样
+ sample(){const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let sum=0,nb=0,mx=0,cf=0;const cx=W/2,cy=H/2,rad=Math.min(W,H)*0.25;
+  for(let i=0;i<W*H;i++){const l=(px[i*4]+px[i*4+1]+px[i*4+2])/3;
+   sum+=l;if(l>10)nb++;if(l>mx)mx=l;
+   const x=i%W,y=(i/W)|0;
+   if((x-cx)**2+(y-cy)**2<rad*rad&&l>10)cf++}
+  return {mean:sum/(W*H),nonblack:nb/(W*H),max:mx,centerFrac:cf/(Math.PI*rad*rad)}},
+ sampleRadial(nb){ // 以屏心为圆心的径向亮度均值（体渲染节点检测用）
+  const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const cx=W/2,cy=H/2,rmax=Math.min(W,H)*0.48,bins=new Array(nb).fill(0),cnt=new Array(nb).fill(0);
+  for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){
+   const r=Math.hypot(x-cx,y-cy);if(r>=rmax)continue;
+   const i=(y*W+x)*4,l=(px[i]+px[i+1]+px[i+2])/3,b=Math.min(nb-1,r/rmax*nb|0);
+   bins[b]+=l;cnt[b]++}
+  return bins.map((v,i)=>v/Math.max(1,cnt[i]))},
+ sampleBands(n){ // 水平条带亮度（上→下），2pz 双瓣检测
+  const px=new Uint8Array(W*H*4);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  const bands=new Array(n).fill(0),cnt=new Array(n).fill(0);
+  const x0=W/2-H*0.3,x1=W/2+H*0.3;
+  for(let y=0;y<H;y+=2)for(let x=Math.max(0,x0|0);x<Math.min(W,x1);x+=2){
+   const i=(y*W+x)*4,l=(px[i]+px[i+1]+px[i+2])/3,b=Math.min(n-1,(H-1-y)/H*n|0);
+   bands[b]+=l;cnt[b]++}
+  return bands.map((v,i)=>v/Math.max(1,cnt[i]))},
+ setSave(v){saveMode=v;resize()},setExpo(v){EX=v}};
+</script>

@@ -1,0 +1,817 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>旅行者弹弓 · The Grand Tour</title>
+<style>
+:root{--bg:#04060c;--panel:rgba(13,18,30,.94);--line:rgba(120,150,200,.16);--gold:#ffd27a;--cyan:#6fd7ff;--teal:#37e0c8;--red:#ff6a5e;--vio:#b48bff;--tx:#d7e3f4;--dim:#8fa3c0}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font:14px/1.6 -apple-system,"PingFang SC","Noto Sans SC",sans-serif;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh}
+header{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line);background:var(--panel);z-index:6;flex-wrap:wrap}
+header h1{font-size:16px;color:var(--gold);font-weight:700;white-space:nowrap}
+header h1 small{color:var(--dim);font-weight:400;font-size:11px;margin-left:8px}
+.tabs{display:flex;gap:6px;margin-left:auto}
+.tab{padding:4px 11px;border:1px solid var(--line);border-radius:14px;cursor:pointer;color:var(--dim);font-size:12.5px;user-select:none;white-space:nowrap}
+.tab.on{color:#0a0e18;background:var(--gold);border-color:var(--gold);font-weight:600}
+.hbtn{padding:4px 10px;border:1px solid var(--line);border-radius:14px;cursor:pointer;color:var(--cyan);font-size:12.5px;user-select:none}
+.hbtn:hover{background:rgba(111,215,255,.1)}
+main{flex:1;position:relative;min-height:0}
+.act{position:absolute;inset:0;display:none}
+.act.on{display:flex}
+#act1{flex-direction:column}
+#a1main{flex:1;display:flex;min-height:0}
+#v3d{flex:1;position:relative;min-width:0}
+#gl{width:100%;height:100%;display:block;cursor:grab}
+#lbls div{position:absolute;font-size:10.5px;color:var(--dim);pointer-events:none;text-shadow:0 0 4px #000;white-space:nowrap;transform:translate(-50%,-150%)}
+#lbls .craft{color:var(--gold);font-weight:700;font-size:11.5px}
+#lbls .craft2{color:var(--teal);font-weight:600}
+#read{position:absolute;top:8px;left:10px;font-size:11.5px;background:rgba(5,8,14,.62);padding:7px 11px;border-radius:9px;line-height:1.85;pointer-events:none;color:var(--dim)}
+#read b{color:var(--gold);font-size:13px}#read i{color:var(--cyan);font-style:normal}
+#cinema{position:absolute;top:8px;right:10px;font-size:11px;color:var(--teal);background:rgba(5,8,14,.6);padding:3px 10px;border-radius:10px;display:none}
+#vecbox{position:absolute;right:10px;bottom:10px;width:250px;background:rgba(7,10,18,.93);border:1px solid var(--line);border-radius:11px;display:none}
+#vec{width:100%;height:190px;display:block}
+#vecbox p{font-size:10.5px;color:var(--dim);padding:0 10px 8px;line-height:1.6}
+#banner{position:absolute;left:50%;top:8px;transform:translateX(-50%);max-width:70%;font-size:13px;color:var(--gold);background:rgba(5,8,14,.72);border:1px solid rgba(255,210,122,.3);padding:6px 16px;border-radius:18px;transition:opacity .5s;pointer-events:none;text-align:center}
+aside{width:288px;border-left:1px solid var(--line);background:var(--panel);padding:10px 12px;overflow-y:auto;font-size:12.5px;flex-shrink:0}
+aside h3{font-size:12px;color:var(--gold);margin:10px 0 6px;letter-spacing:1px}
+aside h3:first-child{margin-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:3px 9px;border:1px solid var(--line);border-radius:11px;cursor:pointer;color:var(--tx);font-size:12px;user-select:none}
+.chip:hover{border-color:var(--cyan)}
+.chip.on{background:rgba(255,210,122,.16);border-color:var(--gold);color:var(--gold)}
+.row{display:flex;gap:6px;margin:6px 0}
+.abtn{flex:1;padding:6px 4px;border:1px solid var(--gold);border-radius:9px;background:rgba(255,210,122,.1);color:var(--gold);font-size:13px;cursor:pointer;text-align:center;user-select:none}
+.abtn.sec{border-color:var(--line);color:var(--cyan);background:transparent}
+.srow{display:flex;align-items:center;gap:8px;margin:6px 0}
+.srow label{width:74px;color:var(--dim);font-size:12px;flex-shrink:0}
+.srow input[type=range]{flex:1;accent-color:var(--gold);min-width:0}
+.srow output{width:70px;text-align:right;color:var(--cyan);font-size:11.5px;flex-shrink:0}
+.trow{display:flex;align-items:center;gap:6px;margin:4px 0;color:var(--dim);cursor:pointer;user-select:none;font-size:12px}
+.trow input{accent-color:var(--gold)}
+.note{color:var(--dim);font-size:11px;line-height:1.65;margin:5px 0}
+#tl{height:54px;border-top:1px solid var(--line);background:#070a12;position:relative;cursor:pointer;flex-shrink:0}
+#tlc{width:100%;height:100%;display:block}
+#chart{height:150px;border-top:1px solid var(--line);background:#070a12;flex-shrink:0}
+#vr{width:100%;height:100%;display:block}
+/* act2 lab */
+#act2{flex-direction:row}
+#labwrap{flex:1;position:relative;min-width:0}
+#lab{width:100%;height:100%;display:block}
+#labres{position:absolute;left:10px;bottom:10px;max-width:340px;background:rgba(7,10,18,.93);border:1px solid var(--gold);border-radius:11px;padding:10px 13px;font-size:12px;line-height:1.8;display:none}
+#labres b{color:var(--gold)}
+#labvecbox{position:absolute;right:10px;top:10px;width:240px;background:rgba(7,10,18,.9);border:1px solid var(--line);border-radius:11px}
+#labvec{width:100%;height:200px;display:block}
+/* act3 */
+#act3{flex-direction:row}
+#winwrap{flex:1;position:relative;min-width:0;background:#070a12}
+#win{width:100%;height:100%;display:block}
+canvas{display:block}
+#modal{position:fixed;inset:0;background:rgba(3,5,9,.8);display:none;z-index:40;align-items:center;justify-content:center}
+#mcard{width:min(640px,93vw);max-height:84vh;overflow-y:auto;background:#0b101c;border:1px solid rgba(255,210,122,.35);border-radius:14px;padding:20px 24px}
+#mcard h2{color:var(--gold);font-size:17px;margin-bottom:10px}
+#mcard .bd{font-size:13.5px;line-height:1.85}
+#mcard .bd em{color:var(--cyan);font-style:normal}
+#mcard .bd .fm{display:block;margin:8px 0;padding:7px 12px;background:rgba(111,215,255,.07);border-left:2px solid var(--cyan);color:var(--cyan);font-size:13px;border-radius:0 8px 8px 0}
+#mnav{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+#mx{float:right;cursor:pointer;color:var(--dim);font-size:18px;padding:0 4px}
+footer{display:flex;gap:14px;align-items:center;padding:4px 14px;border-top:1px solid var(--line);background:var(--panel);font-size:11px;color:var(--dim)}
+#fps{margin-left:auto}
+#toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:#0d1424;border:1px solid var(--gold);color:var(--gold);padding:8px 18px;border-radius:20px;font-size:13px;display:none;z-index:50;max-width:82vw;text-align:center;line-height:1.7}
+#splash{position:fixed;inset:0;background:#04060c;z-index:90;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#splash .t{color:var(--gold);font-size:18px;letter-spacing:2px}
+#splash .s{color:var(--dim);font-size:12.5px}
+</style>
+<div id="app">
+<header>
+  <h1>🛰️ 旅行者弹弓<small>THE GRAND TOUR · 宇宙可视化系列 · 第十五作</small></h1>
+  <div class="tabs">
+    <div class="tab on" data-act="1">① 1977 大巡游</div>
+    <div class="tab" data-act="2">② 弹弓实验室</div>
+    <div class="tab" data-act="3">③ 176 年窗口</div>
+  </div>
+  <div class="hbtn" id="dictBtn">词典</div>
+  <div class="hbtn" id="declBtn">声明</div>
+</header>
+<main>
+  <section class="act on" id="act1">
+    <div id="a1main">
+      <div id="v3d">
+        <canvas id="gl"></canvas><div id="lbls"></div>
+        <div id="banner"></div><div id="read"></div>
+        <div id="cinema">🎬 近飞自动慢放中</div>
+        <div id="vecbox"><canvas id="vec"></canvas><p>行星参考系里速度只转向不变长(弹性)。太阳系里 v=v行星+u——u 转个方向,整体就变长了。</p></div>
+      </div>
+      <aside>
+        <h3>任务控制</h3>
+        <div class="row"><div class="abtn" id="playBtn">▶ 发射</div><div class="abtn sec" id="resetBtn">⟲ 回 1977</div></div>
+        <div class="srow"><label>时间流速</label><input type="range" id="sSpd" min="0" max="2.75" step="0.05" value="1.75"><output id="oSpd"></output></div>
+        <h3>探测器</h3>
+        <div class="chips"><div class="chip on" id="cV2">旅行者 2 号(四连弹弓)</div><div class="chip" id="cV1">旅行者 1 号(换泰坦)</div></div>
+        <div class="note" id="craftNote"></div>
+        <h3>视角</h3>
+        <div class="chips" id="followChips">
+          <div class="chip on" data-f="mission">跟随任务</div><div class="chip" data-f="sys">全太阳系</div><div class="chip" data-f="free">自由</div>
+        </div>
+        <div class="trow"><input type="checkbox" id="tOrb" checked>行星轨道线</div>
+        <div class="trow"><input type="checkbox" id="tLab2" checked>标签</div>
+        <div class="trow"><input type="checkbox" id="tCin" checked>近飞自动慢放</div>
+        <h3>飞行日志</h3>
+        <div class="note" id="log" style="max-height:150px;overflow-y:auto"></div>
+        <div class="note">下方时间轴可点击/拖动跳转;速度-距离图上的每次跳升=一次弹弓。</div>
+      </aside>
+    </div>
+    <div id="tl"><canvas id="tlc"></canvas></div>
+    <div id="chart"><canvas id="vr"></canvas></div>
+  </section>
+  <section class="act" id="act2">
+    <div id="labwrap"><canvas id="lab"></canvas>
+      <div id="labres"></div>
+      <div id="labvecbox"><canvas id="labvec"></canvas></div>
+    </div>
+    <aside>
+      <h3>亲手打一发弹弓</h3>
+      <div class="note">木星以 13.1 km/s 在轨道上飞。你从左侧送出探测器,选好<b style="color:var(--gold)">从哪一侧、多近掠过</b>——看看能偷到多少速度。</div>
+      <div class="srow"><label>瞄准偏移 b</label><input type="range" id="sB" min="-40" max="40" step="1" value="-14"><output id="oB"></output></div>
+      <div class="srow"><label>进场速度</label><input type="range" id="sU" min="3" max="14" step="0.5" value="7"><output id="oU"></output></div>
+      <div class="row"><div class="abtn" id="fireBtn">🚀 发射</div><div class="abtn sec" id="labResetBtn">清空</div></div>
+      <h3>套路</h3>
+      <div class="chips">
+        <div class="chip" id="pAcc">尾随侧=加速</div>
+        <div class="chip" id="pDec">迎头侧=刹车</div>
+      </div>
+      <div class="note">尾随侧(木星身后)掠过→被它"拖"一把,加速;迎头侧掠过→交出动量,减速——信使号/帕克号就这样刹进内太阳系。</div>
+      <div class="note" id="labInfo"></div>
+    </aside>
+  </section>
+  <section class="act" id="act3">
+    <div id="winwrap"><canvas id="win"></canvas></div>
+    <aside>
+      <h3>为什么偏偏是 1977?</h3>
+      <div class="note">四颗巨行星要"依次领先"排成接力棒,飞船才能一棒接一棒。拖动年份看排队情况——曲线是四星相位与 1977 年构型的偏差。</div>
+      <div class="srow"><label>年份</label><input type="range" id="sYr" min="1950" max="2250" step="1" value="1977"><output id="oYr"></output></div>
+      <div class="note" id="winInfo"></div>
+      <div class="note">这套构型约 <b style="color:var(--gold)">176 年</b>一遇——上一班是拿破仑时代,下一班在 22 世纪中叶。NASA 1977 年抓住了它。</div>
+    </aside>
+  </section>
+</main>
+<footer>
+  <span>行星根数:JPL 近似平根数(1800–2050) · 飞行:N 体实时积分 · 设计:Lambert 拼接+打靶(见「声明」)</span>
+  <span id="fps"></span>
+</footer>
+</div>
+<div id="modal"><div id="mcard"><span id="mx">✕</span><h2 id="mh"></h2><div class="bd" id="mb"></div><div id="mnav"></div></div></div>
+<div id="toast"></div>
+<div id="splash"><div class="t">🛰️ 任务设计中…</div><div class="s" id="splashS">Lambert 拼接 · 打靶迭代 · N 体验证</div></div>
+<script>
+'use strict';
+/* ════════ 工具 ════════ */
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
+const D2R=Math.PI/180, KMS=1731.4568, MU=2.9591220828559115e-4, AUKM=1.495978707e8;
+
+/* ════════ 天体力学内核(与 proto.mjs 同式,19 项 Node 对拍通过) ════════ */
+const jdOf=(Y,M,D)=>367*Y-Math.floor(7*(Y+Math.floor((M+9)/12))/4)+Math.floor(275*M/9)+D+1721013.5;
+const J2000=2451545.0;
+const jd2cal=j=>{let l=Math.floor(j+0.5)+68569;const n=Math.floor(4*l/146097);l-=Math.floor((146097*n+3)/4);const i=Math.floor(4000*(l+1)/1461001);l-=Math.floor(1461*i/4)-31;const j2=Math.floor(80*l/2447);const D=l-Math.floor(2447*j2/80);l=Math.floor(j2/11);const M=j2+2-12*l;const Y=100*(n-49)+i+l;return`${Y}-${String(M).padStart(2,'0')}-${String(D).padStart(2,'0')}`;};
+const ELM={
+ mercury:[.38709927,.00000037,.20563593,.00001906,7.00497902,-.00594749,252.25032350,149472.67411175,77.45779628,.16047689,48.33076593,-.12534081],
+ venus:[.72333566,.0000039,.00677672,-.00004107,3.39467605,-.0007889,181.97909950,58517.81538729,131.60246718,.00268329,76.67984255,-.27769418],
+ earth:[1.00000261,.00000562,.01671123,-.00004392,-.00001531,-.01294668,100.46457166,35999.37244981,102.93768193,.32327364,0,0],
+ mars:[1.52371034,.00001847,.09339410,.00007882,1.84969142,-.00813131,-4.55343205,19140.30268499,-23.94362959,.44441088,49.55953891,-.29257343],
+ jupiter:[5.20288700,-.00011607,.04838624,-.00013253,1.30439695,-.00183714,34.39644051,3034.74612775,14.72847983,.21252668,100.47390909,.20469106],
+ saturn:[9.53667594,-.00125060,.05386179,-.00050991,2.48599187,.00193609,49.95424423,1222.49362201,92.59887831,-.41897216,113.66242448,-.28867794],
+ uranus:[19.18916464,-.00196176,.04725744,-.00004397,.77263783,-.00242939,313.23810451,428.48202785,170.95427630,.40805281,74.01692503,.04240589],
+ neptune:[30.06992276,.00026291,.00859048,.00005105,1.77004347,.00035372,-55.12002969,218.45945325,44.96476227,-.32241464,131.78422574,-.00508664]};
+const MASSR={earth:328900.56,jupiter:1047.3486,saturn:3497.898,uranus:22902.98,neptune:19412.24};
+const RADK={earth:6371,jupiter:71492,saturn:60268,uranus:25559,neptune:24764};
+const RAD={},MUP={};for(const k in RADK)RAD[k]=RADK[k]/AUKM;for(const k in MASSR)MUP[k]=MU/MASSR[k];
+const SOI={jupiter:.32,saturn:.365,uranus:.346,neptune:.578};
+const kepE=(M,e)=>{let E=M+e*Math.sin(M);for(let i=0;i<14;i++)E-=(E-e*Math.sin(E)-M)/(1-e*Math.cos(E));return E;};
+const pCache=new Map();
+const planetState=(name,jd)=>{
+ const key=name+((jd*16)|0);const hit=pCache.get(key);if(hit&&Math.abs(hit.jd-jd)<1e-9)return hit.s;
+ const T=(jd-J2000)/36525,el=ELM[name];
+ const a=el[0]+el[1]*T,e=el[2]+el[3]*T,I=(el[4]+el[5]*T)*D2R;
+ const L=(el[6]+el[7]*T)*D2R,w=(el[8]+el[9]*T)*D2R,O=(el[10]+el[11]*T)*D2R;
+ const om=w-O,M=(L-w)%(2*Math.PI),E=kepE(M,e),r=a*(1-e*Math.cos(E));
+ const xp=a*(Math.cos(E)-e),yp=a*Math.sqrt(1-e*e)*Math.sin(E);
+ const n=Math.sqrt(MU/(a*a*a)),vxp=-n*a*a/r*Math.sin(E),vyp=n*a*a/r*Math.sqrt(1-e*e)*Math.cos(E);
+ const co=Math.cos(om),so=Math.sin(om),cO=Math.cos(O),sO=Math.sin(O),ci=Math.cos(I),si=Math.sin(I);
+ const R=[[co*cO-so*sO*ci,-so*cO-co*sO*ci],[co*sO+so*cO*ci,-so*sO+co*cO*ci],[so*si,co*si]];
+ const s={r:[R[0][0]*xp+R[0][1]*yp,R[1][0]*xp+R[1][1]*yp,R[2][0]*xp+R[2][1]*yp],
+          v:[R[0][0]*vxp+R[0][1]*vyp,R[1][0]*vxp+R[1][1]*vyp,R[2][0]*vxp+R[2][1]*vyp]};
+ pCache.set(key,{jd,s});if(pCache.size>60000)pCache.clear();
+ return s;};
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const crs=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const nrm=a=>Math.hypot(a[0],a[1],a[2]),unit=a=>mul(a,1/nrm(a)),cl1=v=>v>1?1:v<-1?-1:v;
+const stC=z=>z>1e-8?(1-Math.cos(Math.sqrt(z)))/z:z<-1e-8?(Math.cosh(Math.sqrt(-z))-1)/(-z):.5-z/24;
+const stS=z=>z>1e-8?(Math.sqrt(z)-Math.sin(Math.sqrt(z)))/Math.pow(z,1.5):z<-1e-8?(Math.sinh(Math.sqrt(-z))-Math.sqrt(-z))/Math.pow(-z,1.5):1/6-z/120;
+const lambert=(r1v,r2v,dt)=>{
+ const r1=nrm(r1v),r2=nrm(r2v),cosd=cl1(dot(r1v,r2v)/(r1*r2)),cz=crs(r1v,r2v)[2];
+ let sind=Math.sqrt(1-cosd*cosd);if(cz<0)sind=-sind;
+ const A=sind*Math.sqrt(r1*r2/(1-cosd));if(Math.abs(A)<1e-12)return null;
+ let lo=-4*Math.PI*Math.PI,hi=4*Math.PI*Math.PI*.999,z=0;
+ const tof=z=>{const C=stC(z),S=stS(z),y=r1+r2+A*(z*S-1)/Math.sqrt(C);if(y<0)return null;
+  const chi=Math.sqrt(y/C);return{t:(chi*chi*chi*S+A*Math.sqrt(y))/Math.sqrt(MU),y};};
+ while(true){const f=tof(lo);if(f!==null)break;lo=lo/2+hi*1e-6;if(lo>-1e-8){lo=-1e-8;break;}}
+ for(let i=0;i<260;i++){z=(lo+hi)/2;const f=tof(z);if(f===null){lo=z;continue;}if(f.t<dt)lo=z;else hi=z;}
+ const f2=tof(z);if(!f2)return null;
+ const y=f2.y,f=1-y/r1,g=A*Math.sqrt(y/MU),gd=1-y/r2;
+ return{v1:mul(sub(r2v,mul(r1v,f)),1/g),v2:mul(sub(mul(r2v,gd),r1v),1/g)};};
+const BODIES=['earth','jupiter','saturn','uranus','neptune'];
+const acc=(r,t)=>{
+ const d3=Math.pow(nrm(r),3);let a=mul(r,-MU/d3);
+ for(const b of BODIES){const p=planetState(b,t).r,rel=sub(p,r),q=nrm(rel);
+  if(q<1e-6)continue;
+  a=add(a,add(mul(rel,MUP[b]/(q*q*q)),mul(p,-MUP[b]/Math.pow(nrm(p),3))));}
+ return a;};
+const stepRK4=(st,dt)=>{
+ const{r,v,t}=st;
+ const k1v=acc(r,t),k1r=v;
+ const k2v=acc(add(r,mul(k1r,dt/2)),t+dt/2),k2r=add(v,mul(k1v,dt/2));
+ const k3v=acc(add(r,mul(k2r,dt/2)),t+dt/2),k3r=add(v,mul(k2v,dt/2));
+ const k4v=acc(add(r,mul(k3r,dt)),t+dt),k4r=add(v,mul(k3v,dt));
+ st.r=add(r,mul(add(add(k1r,mul(add(k2r,k3r),2)),k4r),dt/6));
+ st.v=add(v,mul(add(add(k1v,mul(add(k2v,k3v),2)),k4v),dt/6));
+ st.t=t+dt;};
+const pickDt=(st,cap)=>{
+ let dn=1e9,vrel=.01;
+ for(const b of BODIES){const ps=planetState(b,st.t);const d=nrm(sub(st.r,ps.r));if(d<dn){dn=d;vrel=nrm(sub(st.v,ps.v));}}
+ return Math.min(Math.max(.08*dn/Math.max(vrel,1e-4),1e-4),cap);};
+const flyTo=(st,tEnd,watch)=>{
+ let last=null;
+ while(st.t<tEnd){
+  const dt=Math.min(pickDt(st,.7),tEnd-st.t);
+  stepRK4(st,dt);
+  if(watch){const d=nrm(sub(st.r,planetState(watch.name,st.t).r));
+   if(last!==null&&last.dd<0&&d-last.d>=0)watch.rec.push({t:last.t,d:last.d});
+   last={t:st.t,d,dd:last?d-last.d:0};}}
+ return st;};
+const hyperPatch=(p,vinf1,vinf2,rpOverride,southHat)=>{
+ const mu=MUP[p],u=nrm(vinf1),sHat=unit(vinf1);
+ let oHat,rp;
+ if(vinf2){oHat=unit(vinf2);const delta=Math.acos(cl1(dot(sHat,oHat)));rp=mu/(u*u)*(1/Math.sin(delta/2)-1);}
+ else{rp=rpOverride;const delta=2*Math.asin(1/(1+rp*u*u/mu));
+  const zdir=southHat||[0,0,-1];
+  const ph=unit(sub(zdir,mul(sHat,dot(sHat,zdir))));
+  oHat=sub(mul(sHat,Math.cos(delta)),mul(ph,Math.sin(delta)));}
+ const pHat=unit(sub(sHat,oHat)),qHat=unit(add(sHat,oHat));
+ const ah=-mu/(u*u),e=1-rp/ah,psemi=ah*(1-e*e),D=SOI[p];
+ const cosT=cl1((psemi/D-1)/e),th=-Math.acos(cosT);
+ const coshH=(e+cosT)/(1+e*cosT),H=Math.acosh(Math.max(1,coshH));
+ const tFall=(e*Math.sinh(H)-H)/Math.sqrt(mu/Math.pow(-ah,3));
+ const rvec=add(mul(pHat,D*cosT),mul(qHat,D*Math.sin(th)));
+ const vf=Math.sqrt(mu/psemi);
+ const vvec=add(mul(pHat,-vf*Math.sin(th)),mul(qHat,vf*(e+cosT)));
+ return{rvec,vvec,tFall,rp};};
+
+/* ════════ 任务设计(页内实时跑,与 proto 同算法) ════════ */
+const MISSIONS={
+ v2:{name:'旅行者 2 号',launch:jdOf(1977,8,20),seq:[['jupiter',jdOf(1979,7,9)],['saturn',jdOf(1981,8,26)],['uranus',jdOf(1986,1,24)],['neptune',jdOf(1989,8,25)]],
+     terminalRp:1.2,terminalDir:[0,0,-1],col:[1,.82,.45],note:'四连弹弓:木星→土星→天王星→海王星,交会日期贴史实。海王星段贴史实"向南出黄道"(为了特里同)。'},
+ v1:{name:'旅行者 1 号',launch:jdOf(1977,9,5),seq:[['jupiter',jdOf(1979,3,5)],['saturn',jdOf(1980,11,12)]],
+     terminalRp:3.1,terminalDir:[0,0,1],col:[.35,.9,.8],note:'两站后急转向北出黄道:真实任务用泰坦近飞(6,490 km)完成这一弯——本页无卫星,按真实出射方向(北向)设计等效弹弓,见声明。'}};
+const designMission=m=>{
+ // 1) Lambert 拼接圆锥
+ const legs=[];let from='earth',t1=m.launch;
+ for(const[to,t2]of m.seq){const L=lambert(planetState(from,t1).r,planetState(to,t2).r,t2-t1);legs.push({from,to,t1,t2,...L});from=to;t1=t2;}
+ const fly=[];
+ for(let i=0;i<m.seq.length;i++){const[p,tCA]=m.seq[i];const ps=planetState(p,tCA);
+  fly.push({p,tCA,vinf1:sub(legs[i].v2,ps.v),vinf2:i+1<legs.length?sub(legs[i+1].v1,ps.v):null});}
+ const vinfE=sub(legs[0].v1,planetState('earth',m.launch).v);
+ // 2) N 体打靶 + 解析双曲线拼接
+ const r0=add(planetState('earth',m.launch).r,mul(unit(vinfE),0.012));
+ let state={r:r0,v:legs[0].v1,t:m.launch};
+ const events=[{t:m.launch,type:'launch',r:r0,v:legs[0].v1,label:`发射!C3=${(nrm(vinfE)*KMS)**2<1e4?((nrm(vinfE)*KMS)**2).toFixed(1):''} km²/s²`}];
+ const encs=[];let tcm=0;
+ for(let i=0;i<fly.length;i++){
+  const f=fly[i],hp=hyperPatch(f.p,f.vinf1,f.vinf2,m.terminalRp*RAD[f.p],m.terminalDir);
+  const tPatch=f.tCA-hp.tFall;
+  const aimD=add(planetState(f.p,tPatch).r,hp.rvec);
+  let tgt=aimD,L=null,trial=null;
+  for(let it=0;it<7;it++){
+   L=lambert(state.r,tgt,tPatch-state.t);
+   trial=flyTo({r:state.r.slice(),v:L.v1.slice(),t:state.t},tPatch);
+   const miss=sub(trial.r,aimD);if(nrm(miss)<2e-6)break;tgt=sub(tgt,miss);}
+  const burn=i===0?0:nrm(sub(L.v1,state.v))*KMS;
+  if(i>0)events.push({t:state.t,type:'tcm',r:state.r.slice(),v:L.v1.slice(),label:`深空修正 ${burn.toFixed(2)} km/s`});
+  else events[0].v=L.v1.slice();
+  const vNeed=add(planetState(f.p,tPatch).v,hp.vvec);
+  const trim=nrm(sub(vNeed,trial.v))*KMS;
+  events.push({t:tPatch,type:'trim',r:trial.r.slice(),v:vNeed.slice(),label:`进场微调 ${trim.toFixed(2)} km/s`});
+  tcm+=burn+trim;
+  state={r:trial.r.slice(),v:vNeed.slice(),t:tPatch};
+  const w={name:f.p,rec:[]};
+  const vInHelio=nrm(state.v)*KMS;
+  state=flyTo(state,f.tCA+40,w);
+  const ca=w.rec.length?w.rec.sort((a,b)=>a.d-b.d)[0]:{t:f.tCA,d:hp.rp};
+  encs.push({p:f.p,t:ca.t,d:ca.d,rp:hp.rp,vIn:vInHelio,vOut:nrm(state.v)*KMS});
+ }
+ return{events,encs,tcm,launchState:{r:r0,v:events[0].v,t:m.launch},endState:state,C3:(nrm(vinfE)*KMS)**2};};
+
+/* ════════ 状态 ════════ */
+const S={act:1,play:false,speed:10**1.75,craft:'v2',follow:'mission',still:0,cinema:false,t:0,qLow:false};
+const SIM={};// per craft: {plan,state,trail:[],samples:[],vr:[],done,evIdx,enc live}
+const PLANETS=['mercury','venus','earth','mars','jupiter','saturn','uranus','neptune'];
+const PCOLS={mercury:[.7,.65,.6],venus:[.95,.85,.6],earth:[.4,.7,1],mars:[1,.55,.35],jupiter:[.95,.78,.55],saturn:[.95,.85,.55],uranus:[.5,.9,.95],neptune:[.4,.6,1]};
+const PSIZE={mercury:.05,venus:.07,earth:.075,mars:.06,jupiter:.16,saturn:.14,uranus:.1,neptune:.1};
+const PZH={mercury:'水星',venus:'金星',earth:'地球',mars:'火星',jupiter:'木星',saturn:'土星',uranus:'天王星',neptune:'海王星'};
+
+/* ════════ WebGL 引擎(系列款,预乘 alpha) ════════ */
+const cv=$('#gl'),gl=cv.getContext('webgl2',{antialias:true,preserveDrawingBuffer:true});
+const compile=(vs,fs)=>{const P=gl.createProgram();for(const[t,s]of[[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){const h=gl.createShader(t);gl.shaderSource(h,s);gl.compileShader(h);if(!gl.getShaderParameter(h,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(h));gl.attachShader(P,h);}gl.linkProgram(P);if(!gl.getProgramParameter(P,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(P));return P;};
+const progLine=compile(`#version 300 es
+layout(location=0) in vec3 aPos;layout(location=1) in vec4 aCol;
+uniform mat4 uVP,uM;out vec4 vC;
+void main(){vC=aCol;gl_Position=uVP*uM*vec4(aPos,1.);}`,`#version 300 es
+precision highp float;in vec4 vC;uniform float uFade;out vec4 O;
+void main(){float a=vC.a*uFade;O=vec4(vC.rgb*a,a);}`);
+const progPts=compile(`#version 300 es
+layout(location=0) in vec3 aPos;layout(location=1) in vec4 aCol;layout(location=2) in float aSz;
+uniform mat4 uVP,uM;uniform float uPx;out vec4 vC;
+void main(){vC=aCol;gl_Position=uVP*uM*vec4(aPos,1.);gl_PointSize=aSz*uPx;}`,`#version 300 es
+precision highp float;in vec4 vC;uniform float uFade;out vec4 O;
+void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,.08,d);O=vec4(vC.rgb*a*vC.a*uFade,1.);}`);
+const progBill=compile(`#version 300 es
+uniform mat4 uView,uProj;uniform vec3 uC,uR,uU;uniform float uSz;out vec2 q;
+void main(){q=vec2(float(gl_VertexID&1),float(gl_VertexID>>1))*2.-1.;
+vec3 wp=uC+(uR*q.x+uU*q.y)*uSz;vec4 vp=uView*vec4(wp,1.);
+if(vp.z>-.02){gl_Position=vec4(0.,0.,-3.,1.);return;}
+gl_Position=uProj*vp;}`,`#version 300 es
+precision highp float;in vec2 q;uniform vec3 uCol;uniform float uA;out vec4 O;
+void main(){float r2=dot(q,q);float g=exp(-r2*3.3);O=vec4(uCol*g*uA,1.);}`);
+const buf=()=>gl.createBuffer();
+const setVB=(b,arr)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.DYNAMIC_DRAW);};
+const M4={mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+r]*b[c*4+k];o[c*4+r]=s;}return o;},
+ ident:()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),
+ persp(f,asp,n,fr){const t=1/Math.tan(f/2);return new Float32Array([t/asp,0,0,0,0,t,0,0,0,0,(fr+n)/(n-fr),-1,0,0,2*fr*n/(n-fr),0]);},
+ look(e,c,u){const f=unit(sub(c,e)),s=unit(crs(f,u)),v=crs(s,f);
+  return new Float32Array([s[0],v[0],-f[0],0,s[1],v[1],-f[1],0,s[2],v[2],-f[2],0,-dot(s,e),-dot(v,e),dot(f,e),1]);}};
+/* 静态:星空+轨道线 */
+const RNG=s=>{let a=s>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};};
+const starB=buf(),starN=1600;{
+ const rnd=RNG(15),a=new Float32Array(starN*8);
+ for(let i=0;i<starN;i++){const u=rnd()*2-1,ph=rnd()*2*Math.PI,r=300+rnd()*260,s=Math.sqrt(1-u*u);
+  a[i*8]=r*s*Math.cos(ph);a[i*8+1]=r*s*Math.sin(ph);a[i*8+2]=r*u;
+  const br=.1+.4*Math.pow(rnd(),3);a[i*8+3]=br;a[i*8+4]=br;a[i*8+5]=br*1.1;a[i*8+6]=1;a[i*8+7]=1+1.6*rnd();}
+ setVB(starB,a);}
+const orbB=buf();let orbN=0;{
+ const v=[];
+ for(const p of PLANETS){
+  const el=ELM[p],T=(jdOf(1983,1,1)-J2000)/36525,a0=el[0]+el[1]*T;
+  const period=365.25*Math.pow(a0,1.5),c=PCOLS[p],al=['jupiter','saturn','uranus','neptune'].includes(p)?.3:.16;
+  let prev=null;
+  for(let i=0;i<=200;i++){const s=planetState(p,jdOf(1983,1,1)+i/200*period);
+   if(prev)v.push(...prev,...c,al,...s.r,...c,al);prev=s.r;}}
+ orbN=v.length/7;setVB(orbB,new Float32Array(v));}
+const trailB=buf(),trail2B=buf(),dynB=buf();
+
+/* 相机 */
+const cam={az:-.9,el:1.05,dist:14,tgt:[0,0,0],drag:0,lx:0,ly:0,dScale:1};
+cv.addEventListener('pointerdown',e=>{cam.drag=1;cam.lx=e.clientX;cam.ly=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{if(!cam.drag)return;cam.az-=(e.clientX-cam.lx)*.006;cam.el=clamp(cam.el+(e.clientY-cam.ly)*.006,.06,1.5);cam.lx=e.clientX;cam.ly=e.clientY;S.follow='free';syncFollow();});
+addEventListener('pointerup',()=>cam.drag=0);
+cv.addEventListener('wheel',e=>{e.preventDefault();cam.dScale=clamp(cam.dScale*(1+e.deltaY*.001),.25,4);},{passive:false});
+const syncFollow=()=>document.querySelectorAll('#followChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.f===S.follow));
+document.querySelectorAll('#followChips .chip').forEach(c=>c.onclick=()=>{S.follow=c.dataset.f;cam.dScale=1;syncFollow();});
+
+let lastVP=null;
+const draw3D=()=>{
+ const w=cv.width,h=cv.height;gl.viewport(0,0,w,h);
+ gl.clearColor(.014,.02,.042,1);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.disable(gl.DEPTH_TEST);gl.enable(gl.BLEND);
+ const sim=SIM[S.craft],t=S.t;
+ // 相机目标/距离
+ let tgtP=[0,0,0],dist=26;
+ if(S.follow==='mission'&&sim){const r=nrm(sim.state.r);tgtP=mul(sim.state.r,.55);dist=Math.max(3.2,r*1.35);
+  if(S.cinemaP){tgtP=planetState(S.cinemaP,t).r.slice();dist=Math.max(.35,S.cinemaD*9);}}
+ else if(S.follow==='sys'){tgtP=[0,0,0];dist=68;}
+ else{tgtP=cam.tgt;dist=cam.freeD||26;}
+ cam.tgt=tgtP.map((v,i)=>lerp(cam.tgt[i],v,.06));
+ cam.smoothD=lerp(cam.smoothD||dist,dist*cam.dScale,.06);
+ const eye=[cam.tgt[0]+cam.smoothD*Math.cos(cam.el)*Math.cos(cam.az),cam.tgt[1]+cam.smoothD*Math.cos(cam.el)*Math.sin(cam.az),cam.tgt[2]+cam.smoothD*Math.sin(cam.el)];
+ const view=M4.look(eye,cam.tgt,[0,0,1]),proj=M4.persp(.8,w/h,.01,1500),vp=M4.mul(proj,view);lastVP=vp;
+ const R=[view[0],view[4],view[8]],U=[view[1],view[5],view[9]];
+ const useLine=m=>{gl.useProgram(progLine);gl.uniformMatrix4fv(gl.getUniformLocation(progLine,'uVP'),false,vp);gl.uniformMatrix4fv(gl.getUniformLocation(progLine,'uM'),false,m);gl.uniform1f(gl.getUniformLocation(progLine,'uFade'),1);};
+ const bindL=b=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,28,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,28,12);gl.disableVertexAttribArray(2);};
+ const bill=(c,sz,col,a)=>{gl.useProgram(progBill);
+  gl.disableVertexAttribArray(0);gl.disableVertexAttribArray(1);gl.disableVertexAttribArray(2);
+  gl.uniformMatrix4fv(gl.getUniformLocation(progBill,'uView'),false,view);gl.uniformMatrix4fv(gl.getUniformLocation(progBill,'uProj'),false,proj);
+  gl.uniform3fv(gl.getUniformLocation(progBill,'uC'),c);gl.uniform3fv(gl.getUniformLocation(progBill,'uR'),R);gl.uniform3fv(gl.getUniformLocation(progBill,'uU'),U);
+  gl.uniform1f(gl.getUniformLocation(progBill,'uSz'),sz);gl.uniform3fv(gl.getUniformLocation(progBill,'uCol'),col);gl.uniform1f(gl.getUniformLocation(progBill,'uA'),a);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);};
+ gl.blendFunc(gl.ONE,gl.ONE);
+ gl.useProgram(progPts);gl.uniformMatrix4fv(gl.getUniformLocation(progPts,'uVP'),false,vp);gl.uniformMatrix4fv(gl.getUniformLocation(progPts,'uM'),false,M4.ident());gl.uniform1f(gl.getUniformLocation(progPts,'uPx'),h/760);gl.uniform1f(gl.getUniformLocation(progPts,'uFade'),1);
+ gl.bindBuffer(gl.ARRAY_BUFFER,starB);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,32,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,32,28);
+ gl.drawArrays(gl.POINTS,0,starN);
+ gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+ if($('#tOrb').checked){useLine(M4.ident());bindL(orbB);gl.drawArrays(gl.LINES,0,orbN);}
+ // 轨迹(两船)
+ gl.blendFunc(gl.ONE,gl.ONE);
+ for(const[key,tb]of[['v2',trailB],['v1',trail2B]]){
+  const s2=SIM[key];if(!s2||s2.trail.length<2)continue;
+  const col=MISSIONS[key].col,n=s2.trail.length,a=new Float32Array((n-1)*14);
+  for(let i=0;i<n-1;i++){const f=.12+.75*(i/n);
+   a.set([...s2.trail[i],col[0],col[1],col[2],f*.5,...s2.trail[i+1],col[0],col[1],col[2],f*.5],i*14);}
+  setVB(tb,a);useLine(M4.ident());bindL(tb);gl.drawArrays(gl.LINES,0,(n-1)*2);}
+ // 太阳/行星(近观时尺寸随相机距离钳制,防光晕吞屏)
+ const sunSz=Math.min(1.15,Math.max(.03,cam.smoothD*.05));
+ bill([0,0,0],sunSz,[1,.85,.5],1.1);bill([0,0,0],sunSz*.26,[1,.95,.85],2);
+ for(const p of PLANETS){const ps=planetState(p,t);
+  const sz=Math.min(PSIZE[p],Math.max((RAD[p]||1e-4)*30,cam.smoothD*.028)); // 近观时按距离钳制,防光晕吞屏
+  bill(ps.r,sz*2.6,PCOLS[p],.35);
+  bill(ps.r,sz,PCOLS[p],1.4);}
+ // 探测器(尺寸随相机距离钳制)
+ for(const key of['v2','v1']){const s2=SIM[key];if(!s2)continue;
+  const col=MISSIONS[key].col;
+  const cs=Math.min(key===S.craft?.34:.22,Math.max(.0035,cam.smoothD*(key===S.craft?.026:.018)));
+  bill(s2.state.r,cs,col,key===S.craft?1.6:1);}
+ gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+ updateLabels(vp,t);
+};
+const lblBox=$('#lbls');let lblEls={};
+const ensureLbl=(id,cls)=>{if(lblEls[id])return lblEls[id];const d=document.createElement('div');d.className=cls;lblBox.appendChild(d);lblEls[id]=d;return d;};
+const proj2=(vp,p)=>{const x=vp[0]*p[0]+vp[4]*p[1]+vp[8]*p[2]+vp[12],y=vp[1]*p[0]+vp[5]*p[1]+vp[9]*p[2]+vp[13],w=vp[3]*p[0]+vp[7]*p[1]+vp[11]*p[2]+vp[15];
+ return w<0.02?null:[(x/w*.5+.5)*100,(1-(y/w*.5+.5))*100];};
+const updateLabels=(vp,t)=>{
+ for(const k in lblEls)lblEls[k]._u=false;
+ const show=(id,cls,p,txt)=>{const el=ensureLbl(id,cls);el._u=true;
+  const s=proj2(vp,p);
+  if(!s||!$('#tLab2').checked){el.style.display='none';return;}
+  el.style.display='block';el.style.left=s[0]+'%';el.style.top=s[1]+'%';el.textContent=txt;};
+ for(const p of PLANETS)show(p,'',planetState(p,t).r,PZH[p]);
+ for(const key of['v2','v1']){const s2=SIM[key];if(s2)show(key,key==='v2'?'craft':'craft2',s2.state.r,MISSIONS[key].name);}
+ for(const k in lblEls)if(!lblEls[k]._u)lblEls[k].style.display='none';
+};
+
+/* ════════ 图表:时间轴 + 速度-距离 ════════ */
+const tlc=$('#tlc'),tlx=tlc.getContext('2d');
+const TL0=jdOf(1977,6,1),TL1=jdOf(1990,6,1);
+const drawTL=()=>{
+ const W=tlc.width,H=tlc.height,dp=devicePixelRatio;tlx.clearRect(0,0,W,H);
+ const X=t=>(t-TL0)/(TL1-TL0)*(W-30)+15;
+ tlx.strokeStyle='rgba(120,150,200,.3)';tlx.beginPath();tlx.moveTo(15,H*.62);tlx.lineTo(W-15,H*.62);tlx.stroke();
+ tlx.fillStyle='#8fa3c0';tlx.font=`${10*dp}px sans-serif`;
+ for(let y=1978;y<=1990;y+=2){const x=X(jdOf(y,1,1));tlx.fillText(y,x-12,H*.62+16*dp);
+  tlx.fillRect(x,H*.62-3,1,6);}
+ const m=MISSIONS[S.craft];
+ const flags=[[m.launch,'发射','#fff']].concat(m.seq.map(([p,t])=>[t,PZH[p],'#ffd27a']));
+ for(const[t,txt,c]of flags){const x=X(t);
+  tlx.fillStyle=c;tlx.beginPath();tlx.moveTo(x,H*.62);tlx.lineTo(x-4*dp,H*.32);tlx.lineTo(x+4*dp,H*.32);tlx.closePath();tlx.fill();
+  tlx.fillText(txt,x-11*dp,H*.24);}
+ const x=X(S.t);
+ tlx.fillStyle='#6fd7ff';tlx.fillRect(x-1.2*dp,H*.15,2.4*dp,H*.7);
+ tlx.fillText(jd2cal(S.t),Math.min(x+6,W-90*dp),H*.5);
+};
+$('#tl').addEventListener('pointerdown',e=>{tlScrub(e);const mv=ev=>tlScrub(ev),up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);};addEventListener('pointermove',mv);addEventListener('pointerup',up);});
+const tlScrub=e=>{const r=$('#tl').getBoundingClientRect();const f=clamp((e.clientX-r.left-8)/(r.width-16),0,1);jumpTo(TL0+f*(TL1-TL0));};
+const vrc=$('#vr'),vrx=vrc.getContext('2d');
+const drawVR=()=>{
+ const W=vrc.width,H=vrc.height,dp=devicePixelRatio;vrx.clearRect(0,0,W,H);
+ const L=48*dp,R2=W-14,T=16*dp,B=H-24*dp;
+ const X=r=>L+(Math.log10(clamp(r,.6,130))-Math.log10(.6))/(Math.log10(130)-Math.log10(.6))*(R2-L);
+ const Y=v=>B-clamp(v,0,42)/42*(B-T);
+ vrx.strokeStyle='rgba(120,150,200,.2)';vrx.beginPath();vrx.moveTo(L,T);vrx.lineTo(L,B);vrx.lineTo(R2,B);vrx.stroke();
+ vrx.fillStyle='#8fa3c0';vrx.font=`${10*dp}px sans-serif`;
+ for(const r of[1,5.2,9.5,19.2,30,100]){vrx.fillText(r,X(r)-8,B+14*dp);vrx.strokeStyle='rgba(120,150,200,.06)';vrx.beginPath();vrx.moveTo(X(r),T);vrx.lineTo(X(r),B);vrx.stroke();}
+ vrx.fillText('日心距离(AU,对数)',W/2-40,H-3);
+ vrx.save();vrx.translate(11*dp,H/2+40);vrx.rotate(-Math.PI/2);vrx.fillText('速度(km/s)',0,0);vrx.restore();
+ for(const v of[10,20,30,40])vrx.fillText(v,L-22*dp,Y(v)+4);
+ // 逃逸速度曲线
+ vrx.strokeStyle='rgba(255,106,94,.6)';vrx.setLineDash([5*dp,4*dp]);vrx.beginPath();
+ for(let lr=Math.log10(.6);lr<=Math.log10(130);lr+=.02){const r=10**lr;const ve=Math.sqrt(2*MU/r)*KMS;
+  lr===Math.log10(.6)?vrx.moveTo(X(r),Y(ve)):vrx.lineTo(X(r),Y(ve));}
+ vrx.stroke();vrx.setLineDash([]);
+ vrx.fillStyle='rgba(255,106,94,.8)';vrx.fillText('太阳逃逸速度 √(2μ/r) —— 在上方=永别太阳',X(3),Y(Math.sqrt(2*MU/3)*KMS)-6*dp);
+ for(const key of['v1','v2']){const s2=SIM[key];if(!s2||s2.vr.length<2)continue;
+  const c=key==='v2'?'#ffd27a':'#37e0c8';
+  vrx.strokeStyle=c;vrx.lineWidth=(key===S.craft?2:1.1)*dp;vrx.globalAlpha=key===S.craft?1:.5;
+  vrx.beginPath();s2.vr.forEach((s,i)=>{i?vrx.lineTo(X(s[0]),Y(s[1])):vrx.moveTo(X(s[0]),Y(s[1]));});vrx.stroke();
+  vrx.globalAlpha=1;vrx.lineWidth=1;}
+ const sim=SIM[S.craft];
+ if(sim){const r=nrm(sim.state.r),v=nrm(sim.state.v)*KMS;
+  vrx.fillStyle='#fff';vrx.beginPath();vrx.arc(X(r),Y(v),3.5*dp,0,7);vrx.fill();}
+ const m=MISSIONS[S.craft];
+ vrx.fillStyle='#66779a';
+ for(const[p]of m.seq){const rr=nrm(planetState(p,jdOf(1984,1,1)).r);vrx.fillText(PZH[p],X(rr)-10,T+10*dp);}
+};
+
+/* ════════ 主叙事横幅 ════════ */
+const BANNERS=['1977 年,四颗巨行星 176 年一遇地排成接力棒——两艘 800 公斤的小船要借它们的力跑遍外太阳系。','弹弓不烧燃料:从行星的公转动量里"偷"一点点。行星慢了 10⁻²¹ m/s,飞船快了几公里每秒。','每次近飞,行星参考系里速度只转向、不变长——太阳看来却实实在在变快了。','木星之后,它的速度就再没低于过太阳逃逸速度——1979 年起,回不来了,也不打算回。'];
+let bIdx=0,bTimer=0;
+const sayBanner=i=>{const b=$('#banner');b.style.opacity=0;setTimeout(()=>{b.textContent=BANNERS[i];b.style.opacity=1;},400);bIdx=i;bTimer=0;};
+
+/* ════════ 飞行引擎(实时) ════════ */
+const initCraft=key=>{
+ const plan=designMission(MISSIONS[key]);
+ SIM[key]={plan,state:{r:plan.launchState.r.slice(),v:plan.launchState.v.slice(),t:plan.launchState.t},
+  trail:[plan.launchState.r.slice()],vr:[],evIdx:1,encSt:{},log:[]};
+ logAdd(key,jd2cal(plan.launchState.t)+' '+plan.events[0].label);
+ return plan;};
+const logAdd=(key,msg)=>{const s2=SIM[key];s2.log.unshift(msg);if(s2.log.length>14)s2.log.pop();
+ if(key===S.craft)$('#log').innerHTML=s2.log.map(x=>'· '+x).join('<br>');};
+const advanceCraft=(key,tTo,budget)=>{ // 实时积分至 tTo(受每帧步数预算限制)
+ const s2=SIM[key];if(!s2)return;
+ const st=s2.state;let steps=0;
+ while(st.t<tTo&&steps<budget){
+  // 机动事件:对齐存档(防跨会话漂移,<数百公里,见声明)
+  const ev=s2.plan.events[s2.evIdx];
+  if(ev&&st.t>=ev.t-1e-9){st.r=ev.r.slice();st.v=ev.v.slice();st.t=ev.t;s2.evIdx++;
+   logAdd(key,jd2cal(ev.t)+' '+ev.label);continue;}
+  const dtCap=ev?Math.min(.7,ev.t-st.t):.7;
+  if(dtCap<=0){s2.evIdx++;continue;}
+  const dt=Math.min(pickDt(st,.7),dtCap,tTo-st.t);
+  stepRK4(st,dt);steps++;
+  // 交会检测/影院/账本
+  let dn=1e9,pn=null;
+  for(const[p]of MISSIONS[key].seq){const d=nrm(sub(st.r,planetState(p,st.t).r));if(d<dn){dn=d;pn=p;}}
+  if(key===S.craft){S.cinemaP=($('#tCin').checked&&dn<SOI[pn]*.9)?pn:null;S.cinemaD=dn;}
+  const es=s2.encSt;
+  if(dn<SOI[pn]&&!es[pn]){es[pn]={vIn:nrm(st.v)*KMS,minD:dn,uIn:sub(st.v,planetState(pn,st.t).v)};}
+  if(es[pn]&&!es[pn].done){es[pn].minD=Math.min(es[pn].minD,dn);
+   if(dn>SOI[pn]){es[pn].done=true;const vOut=nrm(st.v)*KMS;
+    const gain=vOut-es[pn].vIn;
+    logAdd(key,`${jd2cal(st.t)} ${PZH[pn]}弹弓:${es[pn].vIn.toFixed(1)}→${vOut.toFixed(1)} km/s(${gain>=0?'+':''}${gain.toFixed(1)}),掠过 ${(es[pn].minD/RAD[pn]).toFixed(1)} 行星半径`);
+    if(key===S.craft){toast(`${PZH[pn]}弹弓完成:${gain>=0?'偷到':'交出'} ${Math.abs(gain).toFixed(1)} km/s——${PZH[pn]}因此${gain>=0?'慢':'快'}了约 ${(825*Math.abs(gain)*1e3*(MU/MUP[pn])/1.989e30).toExponential(1)} m/s,它不会注意到的`);
+     sayBanner(pn==='jupiter'?3:2);}}}
+  // 采样
+  if(!s2.lastSamp||st.t-s2.lastSamp>2){s2.lastSamp=st.t;
+   s2.trail.push(st.r.slice());if(s2.trail.length>2600)s2.trail.splice(0,2);
+   s2.vr.push([nrm(st.r),nrm(st.v)*KMS]);if(s2.vr.length>3200)s2.vr.splice(0,2);}
+ }
+ return steps;};
+const jumpTo=t=>{
+ t=clamp(t,MISSIONS.v2.launch,TL1);
+ for(const key of['v2','v1']){const s2=SIM[key];if(!s2)continue;
+  const m=MISSIONS[key];
+  if(t<=m.launch){SIM[key]=null;initCraft(key);continue;}
+  // 从最近的既往存档(发射或机动点)重放到 t —— 仍是真积分,只是快进
+  const base=s2.plan.events[0],idx=1; // 一律从发射重放(全程<0.3s,轨迹/速度曲线保留全程)
+  s2.state={r:base.r.slice(),v:base.v.slice(),t:base.t};s2.evIdx=idx;
+  s2.trail=[base.r.slice()];s2.vr=[];s2.encSt={};s2.lastSamp=0;s2.log=[];
+  advanceCraft(key,t,1e9);}
+ S.t=t;};
+
+/* ════════ Act2 弹弓实验室 ════════ */
+const lab={shots:[],running:null,t:0};
+const labC=$('#lab'),labX=labC.getContext('2d'),lvC=$('#labvec'),lvX=lvC.getContext('2d');
+const LABW=.62; // 视窗半宽 AU
+const labFire=()=>{
+ const b=+$('#sB').value*1e-3,u=+$('#sU').value/KMS; // b:毫AU
+ lab.running={rel:[-.55,b,0],vrel:[u,0,0],trail:[],t:0,u0:u,b,done:false,minD:9,uSeries:[]};
+ $('#labres').style.display='none';};
+$('#fireBtn').onclick=labFire;
+$('#labResetBtn').onclick=()=>{lab.shots=[];lab.running=null;$('#labres').style.display='none';};
+$('#pAcc').onclick=()=>{$('#sB').value=-14;$('#sU').value=7;syncLab();labFire();};
+$('#pDec').onclick=()=>{$('#sB').value=14;$('#sU').value=7;syncLab();labFire();};
+const JUPV=13.06/KMS;
+const labStep=dtReal=>{
+ const r=lab.running;if(!r||r.done)return;
+ // 木星系内二体(声明:窗口内忽略太阳差异引力,<0.5%)
+ let n=0;
+ while(n++<4000&&!r.done){
+  const d=nrm(r.rel);
+  const dt=Math.min(.05,Math.max(2e-5,.04*d/Math.max(nrm(r.vrel),1e-5)));
+  const a2=rr=>mul(rr,-MUP.jupiter/Math.pow(nrm(rr),3));
+  const k1v=a2(r.rel),k1r=r.vrel;
+  const k2v=a2(add(r.rel,mul(k1r,dt/2))),k2r=add(r.vrel,mul(k1v,dt/2));
+  const k3v=a2(add(r.rel,mul(k2r,dt/2))),k3r=add(r.vrel,mul(k2v,dt/2));
+  const k4v=a2(add(r.rel,mul(k3r,dt))),k4r=add(r.vrel,mul(k3v,dt));
+  r.rel=add(r.rel,mul(add(add(k1r,mul(add(k2r,k3r),2)),k4r),dt/6));
+  r.vrel=add(r.vrel,mul(add(add(k1v,mul(add(k2v,k3v),2)),k4v),dt/6));
+  r.t+=dt;r.minD=Math.min(r.minD,nrm(r.rel));
+  if(r.trail.length===0||r.t-r.lastT>0.35){r.lastT=r.t;r.trail.push(r.rel.slice());}
+  if(nrm(r.rel)<RAD.jupiter){r.done='crash';break;}
+  if(r.rel[0]>.58||Math.abs(r.rel[1])>LABW*1.4){r.done='exit';break;}
+  if(r.t>2600){r.done='exit';break;}
+ }
+ if(r.done){
+  r.trail.push(r.rel.slice());
+  const uOut=nrm(r.vrel);
+  const E0=.5*r.u0*r.u0-MUP.jupiter/nrm([-.55,r.b,0].map(x=>x)),E1=.5*uOut*uOut-MUP.jupiter/nrm(r.rel);
+  const vSunIn=nrm(add([r.u0,0,0],[0,JUPV,0]))*KMS,vSunOut=nrm(add(r.vrel,[0,JUPV,0]))*KMS;
+  const dv=vSunOut-vSunIn;
+  if(r.done==='crash'){$('#labres').style.display='block';$('#labres').innerHTML='💥 <b>撞上木星了。</b>瞄准偏移太小——真实任务的近飞距离都经过精确设计(旅2掠木星 10.1 个木星半径)。';}
+  else{$('#labres').style.display='block';
+   $('#labres').innerHTML=`<b>弹弓结算</b>(掠过 ${(r.minD/RAD.jupiter).toFixed(1)} 个木星半径)<br>
+木星参考系:|u| ${(r.u0*KMS).toFixed(2)}→${(uOut*KMS).toFixed(2)} km/s——<b>没变</b>(弹性,能量差 ${(Math.abs((E1-E0)/E0)).toExponential(1)})<br>
+太阳参考系:${vSunIn.toFixed(2)}→${vSunOut.toFixed(2)} km/s(<b style="color:${dv>=0?'#37e0c8':'#ff6a5e'}">${dv>=0?'+':''}${dv.toFixed(2)} km/s</b>)<br>
+${dv>=0?'从木星公转动量里偷来的':'交还给了木星公转'}:约 ${(825*Math.abs(dv)*1e3*12740).toExponential(2)} 焦耳<br>
+木星因此${dv>=0?'慢':'快'}了 ${(825*Math.abs(dv)*1e3/1.898e27).toExponential(1)} m/s`;}
+  lab.shots.push(r);lab.running=null;}
+};
+const drawLab=()=>{
+ const W=labC.width,H=labC.height,dp=devicePixelRatio;
+ labX.fillStyle='#04060c';labX.fillRect(0,0,W,H);
+ const X=x=>W/2+x/LABW*W*.42,Y=y=>H/2-y/LABW*W*.42;
+ // 木星轨道方向指示
+ labX.strokeStyle='rgba(150,170,205,.15)';labX.setLineDash([6*dp,5*dp]);
+ labX.beginPath();labX.moveTo(X(0),Y(-LABW));labX.lineTo(X(0),Y(LABW));labX.stroke();labX.setLineDash([]);
+ labX.fillStyle='#8fa3c0';labX.font=`${11*dp}px sans-serif`;
+ labX.fillText('↑ 木星公转方向 13.1 km/s',X(0)+8*dp,Y(LABW*.86));
+ labX.fillText('☀ 太阳在左下方 5.2 AU 外(本窗口忽略其差异引力,见声明)',12*dp,H-10*dp);
+ // 木星
+ const jr=Math.max(RAD.jupiter/LABW*W*.42,7*dp);
+ const grd=labX.createRadialGradient(X(0),Y(0),jr*.2,X(0),Y(0),jr*3);
+ grd.addColorStop(0,'rgba(255,200,140,.9)');grd.addColorStop(.4,'rgba(220,150,90,.35)');grd.addColorStop(1,'rgba(220,150,90,0)');
+ labX.fillStyle=grd;labX.beginPath();labX.arc(X(0),Y(0),jr*3,0,7);labX.fill();
+ labX.fillStyle='#e8b98a';labX.beginPath();labX.arc(X(0),Y(0),jr,0,7);labX.fill();
+ // 历史弹
+ for(const s of lab.shots){labX.strokeStyle='rgba(150,170,205,.3)';labX.beginPath();
+  s.trail.forEach((p,i)=>{i?labX.lineTo(X(p[0]),Y(p[1])):labX.moveTo(X(p[0]),Y(p[1]));});labX.stroke();}
+ // 当前弹
+ const r=lab.running;
+ if(r){labX.strokeStyle='#ffd27a';labX.lineWidth=1.6*dp;labX.beginPath();
+  r.trail.concat([r.rel]).forEach((p,i)=>{i?labX.lineTo(X(p[0]),Y(p[1])):labX.moveTo(X(p[0]),Y(p[1]));});labX.stroke();labX.lineWidth=1;
+  labX.fillStyle='#fff';labX.beginPath();labX.arc(X(r.rel[0]),Y(r.rel[1]),3.5*dp,0,7);labX.fill();}
+ // 发射预览线
+ const b=+$('#sB').value*1e-3;
+ labX.strokeStyle='rgba(111,215,255,.35)';labX.setLineDash([3*dp,4*dp]);
+ labX.beginPath();labX.moveTo(X(-.55),Y(b));labX.lineTo(X(-.1),Y(b));labX.stroke();labX.setLineDash([]);
+ labX.fillStyle='#6fd7ff';labX.fillText('进场 →',X(-.53),Y(b)-6*dp);
+ // 向量图
+ const LW=lvC.width,LH=lvC.height;lvX.clearRect(0,0,LW,LH);
+ lvX.fillStyle='#8fa3c0';lvX.font=`${10*dp}px sans-serif`;lvX.fillText('速度矢量(太阳系)',10*dp,14*dp);
+ const cx=LW/2,cy=LH*.62,sc=LW*.3/(20/KMS);
+ const arrow=(v,col,lab2)=>{lvX.strokeStyle=col;lvX.fillStyle=col;lvX.lineWidth=1.6*dp;
+  lvX.beginPath();lvX.moveTo(cx,cy);const ex=cx+v[0]*sc,ey=cy-v[1]*sc;lvX.lineTo(ex,ey);lvX.stroke();
+  lvX.beginPath();lvX.arc(ex,ey,2.5*dp,0,7);lvX.fill();if(lab2)lvX.fillText(lab2,ex+4,ey-4);lvX.lineWidth=1;};
+ arrow([0,JUPV,0],'#e8b98a','v木星');
+ if(r){arrow(add(r.vrel,[0,JUPV,0]),'#ffd27a','v飞船');arrow(r.vrel,'#6fd7ff','u(木星系)');}
+ else if(lab.shots.length){const s=lab.shots[lab.shots.length-1];
+  arrow(add(s.vrel,[0,JUPV,0]),'#ffd27a','v出');arrow(s.vrel,'#6fd7ff','u出');}
+ $('#labInfo').textContent=`当前设置:b=${(+$('#sB').value*1e-3*AUKM/1e4).toFixed(0)} 万 km(${+$('#sB').value<0?'尾随侧,加速':+$('#sB').value>0?'迎头侧,减速':'正对!'}) · 进场 ${(+$('#sU').value)} km/s`;
+};
+const syncLab=()=>{$('#oB').textContent=(+$('#sB').value*1e-3*AUKM/1e4).toFixed(0)+' 万km';$('#oU').textContent=(+$('#sU').value).toFixed(1)+' km/s';};
+$('#sB').addEventListener('input',syncLab);$('#sU').addEventListener('input',syncLab);
+
+/* ════════ Act3 176 年窗口 ════════ */
+const winC=$('#win'),winX=winC.getContext('2d');
+const lonOf=(p,t)=>{const r=planetState(p,t).r;return Math.atan2(r[1],r[0]);};
+const REF77={};{const t77=jdOf(1977,8,20);for(const p of['saturn','uranus','neptune'])REF77[p]=lonOf(p,t77)-lonOf('jupiter',t77);}
+const alignMetric=y=>{const t=jdOf(y,8,20);let s=0;
+ for(const p of['saturn','uranus','neptune']){let d=(lonOf(p,t)-lonOf('jupiter',t))-REF77[p];d=Math.atan2(Math.sin(d),Math.cos(d));s+=d*d;}
+ return Math.sqrt(s/3)/D2R;};
+let metricCache=null;
+const drawWin=()=>{
+ const W=winC.width,H=winC.height,dp=devicePixelRatio;
+ winX.fillStyle='#070a12';winX.fillRect(0,0,W,H);
+ const y=+$('#sYr').value,t=jdOf(y,8,20);
+ // 上半:太阳系俯视
+ const cx=W/2,cy=H*.32,sc=H*.27/31;
+ winX.fillStyle='#ffd27a';winX.beginPath();winX.arc(cx,cy,4*dp,0,7);winX.fill();
+ for(const p of['jupiter','saturn','uranus','neptune']){
+  const el=ELM[p],a=el[0];
+  winX.strokeStyle='rgba(120,150,200,.12)';winX.beginPath();winX.arc(cx,cy,a*sc,0,7);winX.stroke();
+  const ps=planetState(p,t);
+  const px=cx+ps.r[0]*sc,py=cy-ps.r[1]*sc;
+  const c=PCOLS[p];winX.fillStyle=`rgb(${c[0]*255},${c[1]*255},${c[2]*255})`;
+  winX.beginPath();winX.arc(px,py,4.5*dp,0,7);winX.fill();
+  winX.fillStyle='#8fa3c0';winX.font=`${10.5*dp}px sans-serif`;winX.fillText(PZH[p],px+6*dp,py-4);}
+ winX.fillStyle='#d7e3f4';winX.font=`${13*dp}px sans-serif`;
+ winX.fillText(`${y} 年 8 月`,20*dp,26*dp);
+ const M=alignMetric(y);
+ winX.fillStyle=M<25?'#37e0c8':'#8fa3c0';
+ winX.fillText(`与 1977 构型的相位差:${M.toFixed(0)}°${M<25?' —— 接力棒排好了!':''}`,20*dp,46*dp);
+ // 下半:相位差曲线
+ if(!metricCache){metricCache=[];for(let yy=1950;yy<=2250;yy++)metricCache.push([yy,alignMetric(yy)]);}
+ const L=50*dp,R2=W-20,T2=H*.62,B=H-30*dp;
+ const Xf=yy=>L+(yy-1950)/300*(R2-L),Yf=v=>B-clamp(v,0,130)/130*(B-T2);
+ winX.strokeStyle='rgba(120,150,200,.2)';winX.beginPath();winX.moveTo(L,T2);winX.lineTo(L,B);winX.lineTo(R2,B);winX.stroke();
+ winX.strokeStyle='#6fd7ff';winX.beginPath();
+ metricCache.forEach(([yy,v],i)=>{i?winX.lineTo(Xf(yy),Yf(v)):winX.moveTo(Xf(yy),Yf(v));});winX.stroke();
+ winX.fillStyle='#8fa3c0';winX.font=`${10*dp}px sans-serif`;
+ for(const yy of[1950,2000,2050,2100,2150,2200,2250])winX.fillText(yy,Xf(yy)-14,B+16*dp);
+ winX.fillText('四星相位与 1977 年构型的偏差(°)',L,T2-8*dp);
+ for(const[yy,txt]of[[1977,'1977 大巡游'],[2156,'下一班:~2156']]){
+  winX.fillStyle='#ffd27a';winX.fillRect(Xf(yy)-1,T2,2,B-T2);
+  winX.fillText(txt,Xf(yy)-30*dp,T2+14*dp);}
+ winX.fillStyle='#ffd27a';winX.beginPath();winX.arc(Xf(y),Yf(alignMetric(y)),4*dp,0,7);winX.fill();
+ $('#winInfo').textContent=`${y} 年:相位差 ${M.toFixed(0)}°。${M<25?'可以发射!':M<60?'勉强,但要烧更多燃料/绕更远。':'排不成——一棒接不上下一棒。'}`;
+};
+$('#sYr').addEventListener('input',()=>{$('#oYr').textContent=$('#sYr').value+' 年';drawWin();});
+
+/* ════════ 词典/声明 ════════ */
+const DICT=[
+['弹弓从哪里偷能量','飞船绕过行星,把行星的一点点公转动量抢到自己身上。账本永远平衡:旅行者每快 1 km/s,木星就慢 4×10⁻²¹ m/s——木星质量是它的 2×10²⁴ 倍。<span class="fm">动量守恒:m·Δv(船)=−M·ΔV(行星)。四十亿年后木星也感觉不到。</span>'],
+['为什么行星参考系里速度不变','在木星看来,飞船来了又走,像一颗弹回的橡皮球:双曲线轨道进出对称,同距离同速率——<em>弹性碰撞</em>。但木星自己在以 13.1 km/s 公转:速度矢量转个方向,再切回太阳视角,大小就变了。<span class="fm">v(太阳系)=v(行星)+u。u 只转不缩,v 却能长大:|Δv|=2u·sin(δ/2)。</span>'],
+['尾随侧加速·迎头侧减速','从行星"身后"绕过(尾随侧),出来时 u 转向行星运动方向→+v;从"前面"横过(迎头侧)→−v。<span class="fm">信使号(水星)、帕克号(太阳)用金星反复"刹车弹弓"跌进内太阳系——弹弓不只能加速。②实验室两种都能试。</span>'],
+['TCM:太空中的方向盘微调','行星根数有误差、发动机有残差,真实任务每隔几个月做一次"轨道修正机动"(TCM),每次零点几 m/s 到几 m/s。<span class="fm">本页同款流程:Lambert 设计+打靶迭代+N 体飞行,四段共花 ~2.5 km/s(比真实多,因为我们锁死了史实日期且用近似根数——见声明)。</span>'],
+['176 年的窗口','木星 11.9 年一圈、土星 29.5、天王星 84、海王星 165——四星"依次领先"的接力构型约 176 年重现一次。<span class="fm">③里能亲手扫:上一班是 1801 年前后(拿破仑时代),1977 抓住了,下一班 ~2156。</span>NASA 为此在 1977 年 16 天内连发两船。'],
+['旅行者 1 号为什么放弃大巡游','V1 本可继续飞天王星——但土卫六泰坦有浓厚大气,科学家选择让 V1 低掠泰坦(6,490 km)。这一弯把它甩出黄道面 35°,大巡游后半程就此让给 V2。<span class="fm">本页 V1 出土星后的北折按真实出射方向设计(未建模泰坦本体,见声明)。</span>值得吗?泰坦后来被证明有甲烷海洋和"水循环"。'],
+['金唱片','两船各带一张镀金铜唱片:55 种语言问候、90 分钟音乐(含《流水》古琴曲)、115 幅图像,和一幅用 14 颗脉冲星标出太阳位置的地图——正是第十三作《脉冲星灯塔》里那种灯塔。<span class="fm">设计寿命 10 亿年。它大概率会比地球上所有人类作品都活得久。</span>'],
+['它们现在在哪','真实数据(2026):V1 距太阳约 168 AU、17.0 km/s;V2 约 140 AU、15.4 km/s——都已穿过日球层顶,泡在星际介质里。<span class="fm">本页链路按史实日期+近似根数复刻,末端 v∞≈17.9 km/s,外推 2026 位置比真实偏远约两成——差异全部来自海王星段几何,声明里有交代。</span>核电池约 2030 年前后耗尽,之后它们将安静地滑行 —— 4 万年后 V1 才"路过"下一颗恒星(1.6 光年外)。'],
+['再也不回来:逃逸速度','速度-距离图上那条红虚线是太阳逃逸速度 √(2μ/r)。木星弹弓把 V2 抬到线上方之后,它与太阳的故事就只剩告别。<span class="fm">图中每次台阶式跳升=一次弹弓;台阶之间缓慢下滑=爬太阳引力势的代价。</span>']];
+const DECL=`<b style="color:#ffd27a">真算(可对拍,Node 19 项全绿)</b><br>· 行星位置:JPL 近似平根数(Standish,1800-2050,角分级),2020 木土大合实测 0.17°<br>· 任务设计:Lambert 通用变量解+解析双曲线拼接+打靶迭代——页面加载时现场设计,C3=104.7 km²/s²(真实 101.7)<br>· 飞行:全程 N 体(太阳+地木土天海,含间接项)RK4 自适应实时积分——你看到的每一帧都是现算的<br>· 四次交会日期距史实 0.0–0.3 天;近拱距 12.0/2.5/4.7/1.3 行星半径(真实 10.1/2.67/4.19/1.2)<br>· 弹弓物理:行星系弹性(能量守恒 <1e-5)、转角=解析式、|Δv|=2u·sin(δ/2)、176 年窗口扫描全部验证<br><br><b style="color:#6fd7ff">示意/近似(为可视化与诚实让步)</b><br>· 非 JPL 星历复刻:固定史实日期+近似根数,TCM 预算 ~2.5 km/s(真实 ~0.2,人家优化过日期);末端 v∞ 17.9 vs 真实 15.4 km/s<br>· V1 出土星的北折真实靠泰坦(6,490 km 近飞)完成;本页无卫星,按真实出射方向做了等效弹弓<br>· 行星/太阳图标放大 ~10³ 倍;轨迹在机动点与设计存档对齐(<数百公里)防跨帧漂移<br>· ②实验室窗口内忽略太阳差异引力(约 <0.5%);忽略行星卫星、辐射压、相对论修正<br>· 忽略水金火对飞行的引力(<10⁻⁶);时间加速 10⁵–10⁷ 倍,光速未参与(非相对论问题)`;
+const openModal=(kind,i)=>{
+ $('#modal').style.display='flex';$('#mnav').innerHTML='';
+ if(kind==='dict'){$('#mh').textContent=DICT[i][0];$('#mb').innerHTML=DICT[i][1];
+  DICT.forEach((d,k)=>{const c=document.createElement('div');c.className='chip'+(k===i?' on':'');c.textContent=k+1;c.title=d[0];c.onclick=()=>openModal('dict',k);$('#mnav').appendChild(c);});}
+ else{$('#mh').textContent='声明:哪些真算,哪些示意';$('#mb').innerHTML=DECL;}};
+$('#dictBtn').onclick=()=>openModal('dict',0);
+$('#declBtn').onclick=()=>openModal('decl');
+$('#mx').onclick=()=>$('#modal').style.display='none';
+$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').style.display='none';};
+
+/* ════════ 控件 ════════ */
+$('#playBtn').onclick=()=>{S.play=!S.play;$('#playBtn').textContent=S.play?'⏸ 暂停':'▶ 继续';if(S.play&&bIdx===0)sayBanner(1);};
+$('#resetBtn').onclick=()=>{jumpTo(MISSIONS.v2.launch);S.play=false;$('#playBtn').textContent='▶ 发射';sayBanner(0);};
+$('#sSpd').addEventListener('input',()=>{S.speed=10**+$('#sSpd').value;$('#oSpd').textContent=S.speed<3?S.speed.toFixed(1)+' 天/秒':Math.round(S.speed)+' 天/秒';});
+$('#cV2').onclick=()=>{S.craft='v2';$('#cV2').classList.add('on');$('#cV1').classList.remove('on');$('#craftNote').textContent=MISSIONS.v2.note;$('#log').innerHTML=SIM.v2.log.map(x=>'· '+x).join('<br>');};
+$('#cV1').onclick=()=>{S.craft='v1';$('#cV1').classList.add('on');$('#cV2').classList.remove('on');$('#craftNote').textContent=MISSIONS.v1.note;$('#log').innerHTML=SIM.v1.log.map(x=>'· '+x).join('<br>');};
+document.querySelectorAll('.tab').forEach(tb=>tb.onclick=()=>{
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));tb.classList.add('on');
+ S.act=+tb.dataset.act;
+ document.querySelectorAll('.act').forEach((a,i)=>a.classList.toggle('on',i+1===S.act));
+ resize();if(S.act===3){$('#oYr').textContent=$('#sYr').value+' 年';drawWin();}if(S.act===2)syncLab();});
+let toastT=0;const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>t.style.display='none',5200);};
+
+/* ════════ 主循环 ════════ */
+let lastT=0,fpsE=0,hidden=false;
+document.addEventListener('visibilitychange',()=>{hidden=document.hidden;if(!hidden){lastT=0;requestAnimationFrame(tick);}});
+const tick=t=>{
+ if(hidden)return;
+ requestAnimationFrame(tick);
+ if(t-lastT<21)return;
+ const dt=lastT?Math.min((t-lastT)/1000,.1):.016;lastT=t;
+ const fps=1/dt;fpsE=fpsE?fpsE*.95+fps*.05:fps;
+ $('#fps').textContent=fpsE.toFixed(0)+' fps';
+ if(S.act===1){
+  if(S.play&&!S.still){
+   let sp=S.speed;
+   if(S.cinemaP&&$('#tCin').checked)sp=Math.max(1.5,S.speed*Math.pow(clamp(S.cinemaD/(SOI[S.cinemaP]*.9),0,1),1.4));
+   $('#cinema').style.display=S.cinemaP?'block':'none';
+   const tTo=Math.min(S.t+sp*dt,TL1);
+   for(const key of['v2','v1'])advanceCraft(key,tTo,2600);
+   S.t=tTo;
+   if(S.t>=TL1){S.play=false;$('#playBtn').textContent='▶ 继续';toast('1990:大巡游结束。两船继续滑向星际空间——词典卡「它们现在在哪」');}
+  }else $('#cinema').style.display='none';
+  const sim=SIM[S.craft];
+  if(sim){const r=nrm(sim.state.r),v=nrm(sim.state.v)*KMS,ve=Math.sqrt(2*MU/r)*KMS;
+   $('#read').innerHTML=`<b>${MISSIONS[S.craft].name}</b> · ${jd2cal(S.t)}<br>日心距 <i>${r.toFixed(2)} AU</i> · 速度 <i>${v.toFixed(1)} km/s</i><br>此处逃逸速度 ${ve.toFixed(1)} km/s ${v>ve?'<span style="color:#37e0c8">——已永别太阳</span>':''}<br>累计修正 ${sim.plan.tcm.toFixed(2)} km/s`;}
+  draw3D();drawTL();drawVR();
+  bTimer+=dt;if(bTimer>16)sayBanner((bIdx+1)%BANNERS.length);
+ }else if(S.act===2){labStep(dt);drawLab();}
+};
+
+/* ════════ 校验钩子 ════════ */
+window.__VG__={
+ kernel:{jdOf,jd2cal,planetState,lambert,hyperPatch,alignMetric,MU,KMS,MUP,RAD,SOI},
+ designMission,MISSIONS,
+ plan:k=>SIM[k]&&SIM[k].plan,
+ state:()=>({t:S.t,act:S.act,play:S.play,craft:S.craft,fps:fpsE,cinema:!!S.cinemaP}),
+ craftState:k=>{const s2=SIM[k];return s2?{r:s2.state.r,v:s2.state.v,t:s2.state.t,trailN:s2.trail.length,vrN:s2.vr.length}:null;},
+ jumpTo,set(o){if(o.t!==undefined)jumpTo(o.t);if(o.play!==undefined){S.play=o.play;}
+  if(o.act!==undefined)document.querySelectorAll('.tab')[o.act-1].click();
+  if(o.craft!==undefined)(o.craft==='v1'?$('#cV1'):$('#cV2')).click();
+  if(o.still!==undefined)S.still=o.still;if(o.speed!==undefined)S.speed=o.speed;},
+ advance:(days,budget)=>{const tTo=S.t+days;for(const key of['v2','v1'])advanceCraft(key,tTo,budget||1e9);S.t=tTo;return S.t;},
+ labRun(b,u){$('#sB').value=b;$('#sU').value=u;syncLab();labFire();
+  while(lab.running&&!lab.running.done)labStep(1);
+  const s=lab.shots[lab.shots.length-1];
+  const uOut=nrm(s.vrel),vSunIn=nrm(add([s.u0,0,0],[0,JUPV,0]))*KMS,vSunOut=nrm(add(s.vrel,[0,JUPV,0]))*KMS;
+  const E0=.5*s.u0*s.u0-MUP.jupiter/Math.hypot(.55,s.b),E1=.5*uOut*uOut-MUP.jupiter/nrm(s.rel);
+  const vinfIn=Math.sqrt(Math.max(0,2*E0))*KMS,vinfOut=Math.sqrt(Math.max(0,2*E1))*KMS;
+  return{u0:s.u0*KMS,uOut:uOut*KMS,vinfIn,vinfOut,dv:vSunOut-vSunIn,minD:s.minD/RAD.jupiter,done:s.done};},
+ encLog:k=>SIM[k]?SIM[k].log.slice():[],
+ W:()=>cv.width,H:()=>cv.height,
+ sample(){const W=cv.width,H=cv.height,px=new Uint8Array(W*H*4);gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let nb=0,mx=0,sum=0;for(let i=0;i<W*H;i++){const v=(px[i*4]+px[i*4+1]+px[i*4+2])/3;sum+=v;if(v>10)nb++;if(v>mx)mx=v;}
+  return{nonblack:nb/(W*H),max:mx,mean:sum/(W*H)};},
+ chartPix(which){const c=which==='tl'?tlc:which==='win'?winC:which==='lab'?labC:vrc;
+  const x=c.getContext('2d');const d=x.getImageData(0,0,c.width,c.height).data;
+  let gold=0,cyan=0,nb=0;for(let i=0;i<d.length;i+=4){if(d[i+3]<10)continue;nb++;
+   if(d[i]>190&&d[i+1]>150&&d[i+2]<160)gold++;if(d[i]<160&&d[i+1]>150&&d[i+2]>190)cyan++;}
+  return{nonblank:nb,gold,cyan};},
+ openDict(i){openModal('dict',i);return $('#mh').textContent;},
+ drawNow(){draw3D();drawTL();drawVR();},
+ toastText:()=>$('#toast').textContent,
+};
+
+/* ════════ 启动:任务设计(页内现场跑) ════════ */
+const resize=()=>{
+ const dp=Math.min(devicePixelRatio,S.qLow?1.2:1.6);
+ for(const[c,host]of[[cv,'#v3d'],[tlc,'#tl'],[vrc,'#chart'],[labC,'#labwrap'],[winC,'#winwrap']]){
+  const r=$(host).getBoundingClientRect();c.width=Math.max(60,r.width)*dp;c.height=Math.max(40,r.height)*dp;}
+ lvC.width=lvC.clientWidth*devicePixelRatio;lvC.height=200*devicePixelRatio;
+ const vc=$('#vec');vc.width=vc.clientWidth*devicePixelRatio;vc.height=190*devicePixelRatio;
+};
+addEventListener('resize',resize);
+setTimeout(()=>{
+ const t0=performance.now();
+ $('#splashS').textContent='旅行者 2 号:Lambert 拼接 + 4 段打靶…';
+ initCraft('v2');
+ $('#splashS').textContent='旅行者 1 号:Lambert 拼接 + 2 段打靶…';
+ initCraft('v1');
+ S.t=MISSIONS.v2.launch;
+ $('#craftNote').textContent=MISSIONS.v2.note;
+ $('#oSpd').textContent=Math.round(S.speed)+' 天/秒';
+ syncLab();$('#oYr').textContent='1977 年';
+ sayBanner(0);
+ resize();
+ $('#splash').style.display='none';
+ console.log('任务设计耗时',((performance.now()-t0)/1000).toFixed(1),'s;TCM v2=',SIM.v2.plan.tcm.toFixed(2),'km/s');
+ requestAnimationFrame(tick);
+},60);
+</script>

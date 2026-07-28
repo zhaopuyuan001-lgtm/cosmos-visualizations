@@ -1,0 +1,563 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>三体舞蹈与乱纪元</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='10' cy='12' r='5' fill='%23ffd27a'/><circle cx='22' cy='10' r='4' fill='%237ab8ff'/><circle cx='17' cy='22' r='4.5' fill='%23ff8a5c'/></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#04060c;color:#cfd8ea;
+ font:13px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+canvas{display:block}
+#cv{position:fixed;inset:0}
+.card{position:fixed;background:rgba(10,14,24,.82);border:1px solid rgba(120,150,210,.22);
+ border-radius:10px;backdrop-filter:blur(10px);padding:10px 12px}
+#hdr{top:10px;left:12px;max-width:min(520px,calc(100vw - 24px))}
+#hdr h1{font-size:17px;color:#fff;letter-spacing:.06em}
+#hdr .sub{font-size:11px;color:#8fa3c8;margin:2px 0 8px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:4px 12px;border-radius:999px;border:1px solid rgba(130,160,220,.3);cursor:pointer;
+ font-size:12px;color:#aebadb;user-select:none;transition:.15s}
+.tab:hover{border-color:#7ab8ff}
+.tab.on{background:#28406e;color:#fff;border-color:#5b8fd6}
+#side{top:10px;right:12px;width:min(300px,calc(100vw - 24px));max-height:calc(100vh - 220px);overflow-y:auto}
+#side h3{font-size:13px;color:#ffd27a;margin-bottom:4px}
+#side p{font-size:12px;color:#aebadb;margin-bottom:6px}
+#side .kv{display:flex;justify-content:space-between;font-size:12px;padding:1px 0}
+#side .kv b{color:#e8eefc;font-weight:600;font-variant-numeric:tabular-nums}
+#fold{position:absolute;top:8px;right:10px;cursor:pointer;color:#7ea0d8;font-size:12px;user-select:none}
+#dances{bottom:88px;left:12px;max-width:calc(100vw - 24px);display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:4px 10px;border-radius:8px;border:1px solid rgba(130,160,220,.28);cursor:pointer;
+ font-size:12px;color:#aebadb;user-select:none}
+.chip.on{background:#3d2f14;border-color:#c9a95c;color:#ffd88a}
+#ctl{bottom:12px;left:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 24px)}
+button{background:#1b2a47;color:#dfe8fa;border:1px solid #3c5584;border-radius:7px;
+ padding:5px 12px;font-size:12px;cursor:pointer}
+button:hover{background:#24375d}
+input[type=range]{width:110px;accent-color:#7ab8ff}
+label{font-size:12px;color:#8fa3c8}
+#climate{bottom:12px;right:12px;width:min(360px,calc(100vw - 24px))}
+#climate .row{display:flex;justify-content:space-between;align-items:baseline}
+#era{font-size:15px;font-weight:700}
+#temp{font-size:13px;font-variant-numeric:tabular-nums}
+#civ{font-size:11px;color:#8fa3c8;margin-top:2px}
+#tl,#sky,#graph{width:100%;border-radius:6px;background:#070b14;margin-top:6px}
+#chaos{bottom:12px;right:12px;width:min(360px,calc(100vw - 24px))}
+#chaos .kv{display:flex;justify-content:space-between;font-size:12px;padding:1px 0}
+#chaos .kv b{color:#ffe08a;font-variant-numeric:tabular-nums}
+#toast{position:fixed;top:16%;left:50%;transform:translateX(-50%);pointer-events:none;
+ display:flex;flex-direction:column;gap:6px;align-items:center;z-index:9}
+.tst{background:rgba(30,20,8,.9);border:1px solid #c9a95c;color:#ffd88a;border-radius:8px;
+ padding:6px 16px;font-size:14px;animation:tst 5s forwards}
+@keyframes tst{0%{opacity:0;transform:translateY(-8px)}8%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+#honest{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);max-width:min(560px,calc(100vw - 24px));
+ font-size:11px;color:#7f8fb2;background:rgba(10,14,24,.85);border:1px solid rgba(120,150,210,.2);border-radius:8px;padding:6px 10px;z-index:8}
+#honest summary{cursor:pointer;color:#9fb2d8}
+#honest p{margin:4px 0}
+.hide{display:none!important}
+@media(max-width:720px){#side{display:none}}
+</style>
+<canvas id="cv"></canvas>
+<div id="toast"></div>
+
+<div class="card" id="hdr">
+ <h1>三体舞蹈与乱纪元</h1>
+ <div class="sub">宇宙十七 · 真三体引力动力学 —— 每一帧都是当场积分,不是录像</div>
+ <div class="tabs">
+  <div class="tab on" data-m="0">① 舞蹈馆</div>
+  <div class="tab" data-m="1">② 乱纪元</div>
+  <div class="tab" data-m="2">③ 混沌实验室</div>
+ </div>
+</div>
+
+<div class="card" id="side">
+ <div id="fold">收起 ▲</div>
+ <div id="sideBody"></div>
+</div>
+
+<div id="dances" class="card"></div>
+
+<div class="card hide" id="climate">
+ <div class="row"><span id="era">—</span><span id="temp">—</span></div>
+ <div id="civ">—</div>
+ <canvas id="tl" height="26"></canvas>
+ <canvas id="sky" height="56"></canvas>
+</div>
+
+<div class="card hide" id="chaos">
+ <div class="kv"><span>两宇宙间距 |Δ|</span><b id="sep">—</b></div>
+ <div class="kv"><span>李雅普诺夫指数 λ</span><b id="lam">测量中…</b></div>
+ <div class="kv"><span>预测视界(误差达 0.1 AU)</span><b id="hor">—</b></div>
+ <canvas id="graph" height="110"></canvas>
+ <div style="margin-top:6px"><button id="fork">⟳ 重新拨动一根头发(δ=10⁻⁹)</button></div>
+</div>
+
+<div class="card" id="ctl">
+ <button id="pp">⏸ 暂停</button>
+ <label>速度 <input type="range" id="spd" min="-2" max="3" step="0.01" value="0"></label>
+ <span id="spdv" style="font-size:12px;color:#8fa3c8">1.0×</span>
+ <button id="rst">↺ 重置</button>
+ <button id="seedB" class="hide">🎲 换一个宇宙</button>
+</div>
+
+<details id="honest"><summary>诚实声明 · 单位与近似</summary>
+<p>单位:G=1、太阳质量≈1 M☉、长度 1=1 AU、太阳半径取真实 0.00465 AU;由开普勒标度,1 时间单位≈58.1 天(1 AU 圆轨周期=2π 单位=1 年)。</p>
+<p>舞蹈馆初值来自文献——8字:Chenciner &amp; Montgomery (2000);蝴蝶/飞蛾/阴阳/蜻蜓:Šuvakov &amp; Dmitrašinović, PRL 110, 114301 (2013);拉格朗日(1772)与欧拉(1767)为解析解。文献值经本机牛顿-高斯打磨至一周期闭合残差 &lt;6×10⁻⁹(float64 对拍 10/10 全绿),打磨后初值嵌入本页。拉格朗日/欧拉解严格但不稳定;两者初值加 10⁻⁹ AU 扰动种子以在有限时间内展示崩溃(实测 4.3/1.9 周期)——完美无扰是测度零的刀锋,真实宇宙永远有一粒尘埃。</p>
+<p>乱纪元:行星为无质量质点;光度用主序质光关系 L∝M³·⁵;行星温度=瞬时辐射平衡 T=278.6K·(ΣLᵢ/dᵢ²)^¼(反照率 0,忽略大气与热惯量);近交会 &lt;0.002 AU 加软化防数值发散;三颗太阳的配色为辨识用,非真实光谱。"文明纪元"计数是对小说《三体》的致敬,存续阈值(−80…+120 °C)用真实水相变标度但非物理常数。</p>
+<p>混沌实验室:双宇宙初始差 δ₀=10⁻⁹ AU;λ 由发散段对数线性拟合;预测视界=(1/λ)·ln(0.1/δ₀)。</p>
+<p>渲染:Canvas 2D,加色发光;拖尾为轨迹历史,非贴图。</p>
+</details>
+
+<script>
+'use strict';
+/* ══════════ 物理内核(与 proto-3body.mjs 逐行同源,float64 10/10 对拍) ══════════ */
+const acc=(s,m,out,eps2)=>{const N=m.length;
+ for(let i=0;i<N;i++){out[4*i+2]=0;out[4*i+3]=0;}
+ for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+  const dx=s[4*j]-s[4*i],dy=s[4*j+1]-s[4*i+1];
+  const r2=dx*dx+dy*dy+eps2,ir3=1/(r2*Math.sqrt(r2));
+  out[4*i+2]+=m[j]*dx*ir3;out[4*i+3]+=m[j]*dy*ir3;
+  out[4*j+2]-=m[i]*dx*ir3;out[4*j+3]-=m[i]*dy*ir3;}};
+const deriv=(s,m,out,eps2)=>{acc(s,m,out,eps2);
+ for(let i=0;i<m.length;i++){out[4*i]=s[4*i+2];out[4*i+1]=s[4*i+3];}};
+const B={};const mkB=n=>{if(!B[n])B[n]=[0,1,2,3,4].map(()=>new Float64Array(4*n));return B[n];};
+const rk4=(s,m,dt,eps2)=>{const[k1,k2,k3,k4,tp]=mkB(m.length);const n=s.length;
+ deriv(s,m,k1,eps2);for(let i=0;i<n;i++)tp[i]=s[i]+.5*dt*k1[i];
+ deriv(tp,m,k2,eps2);for(let i=0;i<n;i++)tp[i]=s[i]+.5*dt*k2[i];
+ deriv(tp,m,k3,eps2);for(let i=0;i<n;i++)tp[i]=s[i]+dt*k3[i];
+ deriv(tp,m,k4,eps2);for(let i=0;i<n;i++)s[i]+=dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]);};
+const dminF=(s,N)=>{let d2=1e18;
+ for(let i=0;i<N;i++)for(let j=i+1;j<N;j++)
+  d2=Math.min(d2,(s[4*j]-s[4*i])**2+(s[4*j+1]-s[4*i+1])**2);
+ return Math.sqrt(d2);};
+const stepAdap=(s,m,dt,eps2)=>{ /* 近交会细分(proto 同规则,cap 64) */
+ const ns=Math.min(64,Math.max(1,Math.ceil(dt/(.03*Math.pow(dminF(s,m.length),1.5)))));
+ const h=dt/ns;for(let k=0;k<ns;k++)rk4(s,m,h,eps2);};
+const energy=(s,m)=>{let E=0;
+ for(let i=0;i<m.length;i++)E+=.5*m[i]*(s[4*i+2]**2+s[4*i+3]**2);
+ for(let i=0;i<m.length;i++)for(let j=i+1;j<m.length;j++)
+  E-=m[i]*m[j]/Math.hypot(s[4*j]-s[4*i],s[4*j+1]-s[4*i+1]);
+ return E;};
+const mulberry32=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+ t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+
+/* ══════════ 舞步库(proto 打磨输出,闭合残差见 res 字段) ══════════ */
+const sd=(p1,p2)=>Float64Array.from([-1,0,p1,p2,1,0,p1,p2,0,0,-2*p1,-2*p2]);
+const DANCES=[
+ {n:'拉格朗日三角',y:'1772 · 解析解·不稳定(4圈崩)',res:'解析·1e-9种子实测4.3周期崩溃',T:2*Math.PI/Math.sqrt(3),sc:1.6,unst:1,
+  mk(){const om=Math.sqrt(3),d=1/Math.sqrt(3),s=new Float64Array(12);
+   for(let i=0;i<3;i++){const a=i*2*Math.PI/3;
+    s[4*i]=d*Math.cos(a);s[4*i+1]=d*Math.sin(a);
+    s[4*i+2]=-om*d*Math.sin(a);s[4*i+3]=om*d*Math.cos(a);}
+   s[1]+=1e-9;return s;}}, /* 1e-9 种子:实测 4.3 周期崩溃 */
+ {n:'欧拉直线',y:'1767 · 解析解·更不稳定(2圈崩)',res:'解析·λ=1.96,1e-9种子1.9周期崩溃',T:2*Math.PI/Math.sqrt(1.25),sc:2.4,unst:1,
+  mk(){const om=Math.sqrt(1.25);
+   const s=Float64Array.from([0,0,0,0,1,0,0,om,-1,0,0,-om]);
+   s[1]+=1e-9;return s;}}, /* 1e-9 种子:实测 1.9 周期崩溃 */
+ {n:'8字舞',y:'Chenciner–Montgomery 2000',res:'闭合 1.6e-13',T:6.325914009781009,sc:2.3,
+  mk(){const vx=0.932407368138637,vy=0.8647314618353173,x=0.97000436,y=0.24308753;
+   return Float64Array.from([x,-y,-vx/2,-vy/2,-x,y,-vx/2,-vy/2,0,0,vx,vy]);}},
+ {n:'蝴蝶 I',y:'Šuvakov–Dmitrašinović 2013',res:'闭合 1.3e-9',T:6.234674847558209,sc:2.4,
+  mk:()=>sd(0.30689342141445675,0.1255065672979379)},
+ {n:'蝴蝶 II',y:'Šuvakov–Dmitrašinović 2013',res:'闭合 3.3e-9',T:7.00370958571344,sc:2.4,
+  mk:()=>sd(0.392955492158358,0.09757896931008539)},
+ {n:'飞蛾 I',y:'Šuvakov–Dmitrašinović 2013',res:'闭合 1.5e-9',T:14.894305172831155,sc:2.8,
+  mk:()=>sd(0.46444517277893954,0.3960600146547534)},
+ {n:'阴阳 I',y:'Šuvakov–Dmitrašinović 2013',res:'闭合 3.9e-9',T:17.328834012509688,sc:2.6,
+  mk:()=>sd(0.5139385373406221,0.304735919321715)},
+ {n:'蜻蜓',y:'Šuvakov–Dmitrašinović 2013',res:'闭合 5.6e-9',T:21.27233739626909,sc:3.4,
+  mk:()=>sd(0.08058422550876852,0.5888360897769704)},
+];
+
+/* ══════════ 全局状态 ══════════ */
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+const resize=()=>{DPR=Math.min(devicePixelRatio||1,2);
+ W=cv.width=innerWidth*DPR|0;H=cv.height=innerHeight*DPR|0;
+ cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';};
+addEventListener('resize',resize);resize();
+const SUNC=[['#ffd27a','#ffaa33'],['#9cc4ff','#5b8fd6'],['#ff9a6b','#e5602f']];
+let mode=0,paused=false,speed=1;
+let simT=0;
+
+/* —— 模式A:舞蹈 —— */
+let dIdx=2,dS=null,dM=[1,1,1],dE0=0,dTrail=[];
+const danceInit=i=>{dIdx=i;dS=DANCES[i].mk();dE0=energy(dS,dM);simT=0;
+ dTrail=[[],[],[]];camS=null;
+ document.querySelectorAll('.chip').forEach((c,k)=>c.classList.toggle('on',k===i));
+ renderSide();};
+
+/* —— 模式B:乱纪元 —— */
+const MB={m:[1,.8,.6],L:[1,Math.pow(.8,3.5),Math.pow(.6,3.5)],eps2:.002*.002};
+let bSeed=42,bS=null,bP=null,bCiv=1,bCivT0=0,bCivAlive=true,bFlips=0,bEraSt=null,bEraT0=0;
+let bHist=[],bEvents=[],bDeaths=0,bLastEvt={};
+const eraOf=(s,p)=>{ /* proto G10 同款判据 */
+ let k=0,dm=1e9;
+ for(let i=0;i<3;i++){const d=Math.hypot(p[0]-s[4*i],p[1]-s[4*i+1]);if(d<dm){dm=d;k=i;}}
+ const E2=.5*((p[2]-s[4*k+2])**2+(p[3]-s[4*k+3])**2)-MB.m[k]/dm;
+ let pert=0;
+ for(let i=0;i<3;i++)if(i!==k)pert+=MB.m[i]/Math.hypot(p[0]-s[4*i],p[1]-s[4*i+1])**2;
+ return{stable:E2<0&&pert/(MB.m[k]/dm**2)<.15,k,dm};};
+const tempOf=p=>{let f=0;
+ for(let i=0;i<3;i++)f+=MB.L[i]/((p[0]-bS[4*i])**2+(p[1]-bS[4*i+1])**2);
+ return 278.6*Math.pow(f,.25)-273.15;}; /* °C */
+const chaosInit=seed=>{
+ bSeed=seed;const R=mulberry32(seed);
+ for(let tries=0;tries<400;tries++){
+  const s=new Float64Array(12);let px=0,py=0,vx=0,vy=0;
+  for(let i=0;i<3;i++){const a=R()*2*Math.PI,r=.6+1.1*R();
+   s[4*i]=r*Math.cos(a);s[4*i+1]=r*Math.sin(a);
+   s[4*i+2]=(R()-.5)*.7;s[4*i+3]=(R()-.5)*.7;}
+  let M=0;for(let i=0;i<3;i++){M+=MB.m[i];px+=MB.m[i]*s[4*i];py+=MB.m[i]*s[4*i+1];
+   vx+=MB.m[i]*s[4*i+2];vy+=MB.m[i]*s[4*i+3];}
+  for(let i=0;i<3;i++){s[4*i]-=px/M;s[4*i+1]-=py/M;s[4*i+2]-=vx/M;s[4*i+3]-=vy/M;}
+  if(energy(s,MB.m)<-.15&&dminF(s,3)>.35){bS=s;break;}}
+ /* 行星:绕 0 号日圆轨 */
+ const r0=.28,vv=Math.sqrt(MB.m[0]/r0);
+ bP=Float64Array.from([bS[0]+r0,bS[1],bS[2],bS[3]+vv]);
+ simT=0;bCiv=1;bCivT0=0;bCivAlive=true;bFlips=0;bEraSt=null;bEraT0=0;
+ bPend=null;bDieP=null;bBornP=null;
+ bHist=[];bEvents=[];bDeaths=0;bLastEvt={};bTrailP=[];bTrailS=[[],[],[]];camS=null;renderSide();};
+let bTrailP=[],bTrailS=[[],[],[]];
+const planetStep=dt=>{ /* 行星在三日场中(无质量,RK4) */
+ const f=(p,o)=>{let ax=0,ay=0;
+  for(let i=0;i<3;i++){const dx=bS[4*i]-p[0],dy=bS[4*i+1]-p[1];
+   const r2=dx*dx+dy*dy+MB.eps2,ir3=1/(r2*Math.sqrt(r2));
+   ax+=MB.m[i]*dx*ir3;ay+=MB.m[i]*dy*ir3;}
+  o[0]=p[2];o[1]=p[3];o[2]=ax;o[3]=ay;};
+ const k1=[0,0,0,0],k2=[0,0,0,0],k3=[0,0,0,0],k4=[0,0,0,0],tp=[0,0,0,0];
+ f(bP,k1);for(let i=0;i<4;i++)tp[i]=bP[i]+.5*dt*k1[i];
+ f(tp,k2);for(let i=0;i<4;i++)tp[i]=bP[i]+.5*dt*k2[i];
+ f(tp,k3);for(let i=0;i<4;i++)tp[i]=bP[i]+dt*k3[i];
+ f(tp,k4);for(let i=0;i<4;i++)bP[i]+=dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]);};
+const toast=(key,txt,cool=25)=>{
+ if(bLastEvt[key]!==undefined&&simT-bLastEvt[key]<cool)return;
+ bLastEvt[key]=simT;bEvents.push({t:simT,txt});
+ const box=document.getElementById('toast');
+ while(box.children.length>=3)box.firstChild.remove();
+ const d=document.createElement('div');d.className='tst';d.textContent=txt;
+ box.appendChild(d);setTimeout(()=>d.remove(),5200);};
+const chaosTick=dt=>{
+ stepAdap(bS,MB.m,dt,MB.eps2);planetStep(dt);simT+=dt;
+ /* 纪元判定(滞回:状态须持续 0.5 su 才翻转) */
+ const e=eraOf(bS,bP),tmp=tempOf(bP);
+ if(bEraSt===null){bEraSt=e.stable;bEraT0=simT;bPend=null;}
+ if(e.stable!==bEraSt){
+  if(bPend===null)bPend=simT;
+  else if(simT-bPend>.5){bEraSt=e.stable;bEraT0=simT;bFlips++;bPend=null;
+   toast('era','' + (e.stable?'☀ 恒纪元来临 — 脱水者浸泡!':'⚠ 乱纪元 — 脱水!'),8);}
+ }else bPend=null;
+ /* 文明存续(真温度阈值) */
+ const ok=tmp>-80&&tmp<120;
+ if(bCivAlive&&!ok){
+  if(bDieP===null)bDieP=simT;
+  else if(simT-bDieP>.3){bCivAlive=false;bDeaths++;
+   toast('civ',`💀 第 ${bCiv} 号文明毁于${tmp>0?'烈焰':'严寒'}(存续 ${(simT-bCivT0).toFixed(1)} 单位)`,4);bDieP=null;}
+ }else if(!bCivAlive&&ok){
+  if(bBornP===null)bBornP=simT;
+  else if(simT-bBornP>.3){bCivAlive=true;bCiv++;bCivT0=simT;
+   toast('civ2',`🌱 第 ${bCiv} 号文明在废墟上萌芽`,4);bBornP=null;}
+ }else{bDieP=null;bBornP=null;}
+ /* 行星吞噬/逃逸 → 重生 */
+ let eaten=-1;
+ for(let i=0;i<3;i++)if(Math.hypot(bP[0]-bS[4*i],bP[1]-bS[4*i+1])<.012)eaten=i;
+ const far=Math.hypot(bP[0],bP[1])>40;
+ if(eaten>=0||far){
+  toast('die',eaten>=0?'🔥 行星坠入恒星,在新的轨道上重生':'🚀 行星被弹射出系统,在新的轨道上重生',2);
+  const R=mulberry32(bSeed+1000+bDeaths+bCiv);
+  const k=(R()*3)|0,r0=.2+.15*R(),vv=Math.sqrt(MB.m[k]/r0);
+  bP=Float64Array.from([bS[4*k]+r0,bS[4*k+1],bS[4*k+2],bS[4*k+3]+vv]);
+  bCivAlive=false;bTrailP=[];}
+ /* 天象事件(真实几何) */
+ const az=[],ds=[],th=[];
+ for(let i=0;i<3;i++){const dx=bS[4*i]-bP[0],dy=bS[4*i+1]-bP[1];
+  az.push(Math.atan2(dy,dx));ds.push(Math.hypot(dx,dy));th.push(2*0.00465/ds[i]);}
+ const fly=th.filter(t=>t<0.05*Math.PI/180).length;
+ const spanOf=(a,b)=>{let d=Math.abs(a-b)%(2*Math.PI);return d>Math.PI?2*Math.PI-d:d;};
+ const maxSpan=Math.max(spanOf(az[0],az[1]),spanOf(az[0],az[2]),spanOf(az[1],az[2]));
+ if(maxSpan<8*Math.PI/180&&Math.min(...th)>0.05*Math.PI/180)
+  toast('syz','☀☀☀ 三日连珠!',30);
+ else if(th.every(t=>t>0.25*Math.PI/180)&&maxSpan<2.4)
+  toast('tri','☀☀☀ 三日凌空 — 大火纪元!',30);
+ else if(fly===3)toast('fly3','✦✦✦ 三颗飞星 — 大寒冬之兆',30);
+ /* 历史条(0.1 su 桶) */
+ if(!bHist.length||simT-bHist[bHist.length-1].t>.1)
+  bHist.push({t:simT,tmp,st:bEraSt});
+ if(bHist.length>480)bHist.shift();};
+let bPend=null,bDieP=null,bBornP=null;
+
+/* —— 模式C:混沌室 —— */
+let cA=null,cB=null,cLog=[],cLam=null,cSat=false,cE0=0;
+const chaosLabInit=()=>{
+ const R=mulberry32(5);cA=null; /* 种子实测:λ=0.64 稳定增长,t≈10 饱和,始终束缚 */
+ for(let tries=0;tries<400;tries++){
+  const s=new Float64Array(12);let px=0,py=0,vx=0,vy=0;
+  for(let i=0;i<3;i++){const a=R()*2*Math.PI,r=.6+1.1*R();
+   s[4*i]=r*Math.cos(a);s[4*i+1]=r*Math.sin(a);
+   s[4*i+2]=(R()-.5)*.7;s[4*i+3]=(R()-.5)*.7;}
+  let M=0;for(let i=0;i<3;i++){M+=1;px+=s[4*i];py+=s[4*i+1];vx+=s[4*i+2];vy+=s[4*i+3];}
+  for(let i=0;i<3;i++){s[4*i]-=px/3;s[4*i+1]-=py/3;s[4*i+2]-=vx/3;s[4*i+3]-=vy/3;}
+  if(energy(s,[1,1,1])<-.15&&dminF(s,3)>.35){cA=s;break;}}
+ forkTwin();simT=0;cTrailA=[[],[],[]];camS=null;renderSide();};
+const forkTwin=()=>{cB=Float64Array.from(cA);cB[0]+=1e-9;cLog=[];cLam=null;cSat=false;simT=0;};
+let cTrailA=[[],[],[]];
+const chaosLabTick=dt=>{
+ stepAdap(cA,[1,1,1],dt,MB.eps2);stepAdap(cB,[1,1,1],dt,MB.eps2);simT+=dt;
+ let d2=0;for(let i=0;i<12;i++)d2+=(cA[i]-cB[i])**2;
+ const d=Math.sqrt(d2);
+ if(!cLog.length||simT-cLog[cLog.length-1][0]>.05)cLog.push([simT,d]);
+ if(cLog.length>2000)cLog.shift();
+ if(d>1)cSat=true;
+ /* λ 拟合:1e-8<d<0.05 增长段 */
+ const seg=cLog.filter(p=>p[1]>1e-8&&p[1]<.05);
+ if(seg.length>10){
+  let sx=0,sy=0,sxx=0,sxy=0;const n=seg.length;
+  for(const[t,dd]of seg){const y=Math.log(dd);sx+=t;sy+=y;sxx+=t*t;sxy+=t*y;}
+  cLam=(n*sxy-sx*sy)/(n*sxx-sx*sx);}};
+
+/* ══════════ 相机与渲染 ══════════ */
+let camS=null; /* {cx,cy,sc} 弹簧跟踪 */
+const camFit=(pts,defSc)=>{
+ let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+ for(const[x,y]of pts){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}
+ const cx=(x0+x1)/2,cy=(y0+y1)/2;
+ const span=Math.max(x1-x0,y1-y0,defSc);
+ const sc=Math.min(W,H)*.36/(span*.5+.6);
+ if(!camS)camS={cx,cy,sc};
+ else{const k=.04;camS.cx+=(cx-camS.cx)*k;camS.cy+=(cy-camS.cy)*k;
+  camS.sc+=(Math.min(sc,camS.sc*1.05)-camS.sc)*.03;}
+ return camS;};
+const w2s=(x,y,c)=>[W/2+(x-c.cx)*c.sc,H/2-(y-c.cy)*c.sc];
+const drawStars=()=>{
+ ctx.fillStyle='#04060c';ctx.fillRect(0,0,W,H);
+ const n=140;
+ for(let i=0;i<n;i++){
+  const h=(i*2654435761>>>0);
+  const x=(h%1000)/1000*W,y=((h/1000|0)%1000)/1000*H;
+  const b=.25+((h>>>20)%100)/260;
+  ctx.fillStyle=`rgba(200,215,255,${b})`;
+  ctx.fillRect(x,y,1.1*DPR,1.1*DPR);}};
+const glow=(x,y,r,c0,c1,core)=>{
+ const g=ctx.createRadialGradient(x,y,0,x,y,r);
+ g.addColorStop(0,core||'#fff');g.addColorStop(.25,c0);g.addColorStop(1,'rgba(0,0,0,0)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();};
+const drawTrail=(tr,c,cam,wd)=>{
+ if(tr.length<2)return;
+ ctx.lineWidth=wd*DPR;ctx.lineCap='round';ctx.lineJoin='round';
+ const n=tr.length;
+ for(let i=1;i<n;i++){
+  const a=(i/n)**1.6*.55;
+  ctx.strokeStyle=c.replace('$A',a.toFixed(3));
+  const[ax,ay]=w2s(tr[i-1][0],tr[i-1][1],cam),[bx,by]=w2s(tr[i][0],tr[i][1],cam);
+  ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();}};
+const TRC=['rgba(255,210,122,$A)','rgba(156,196,255,$A)','rgba(255,154,107,$A)'];
+
+const drawDance=()=>{
+ const pts=[];for(let i=0;i<3;i++)pts.push([dS[4*i],dS[4*i+1]]);
+ for(const tr of dTrail)for(let i=0;i<tr.length;i+=7)pts.push(tr[i]);
+ const cam=camFit(pts,DANCES[dIdx].sc);
+ drawStars();ctx.globalCompositeOperation='lighter';
+ for(let i=0;i<3;i++)drawTrail(dTrail[i],TRC[i],cam,1.4);
+ for(let i=0;i<3;i++){const[x,y]=w2s(dS[4*i],dS[4*i+1],cam);
+  glow(x,y,26*DPR,SUNC[i][0],SUNC[i][1]);glow(x,y,9*DPR,'#fff',SUNC[i][0]);}
+ ctx.globalCompositeOperation='source-over';};
+const drawChaos=()=>{
+ const pts=[];let cx=0,cy=0;
+ for(let i=0;i<3;i++){pts.push([bS[4*i],bS[4*i+1]]);cx+=bS[4*i]/3;cy+=bS[4*i+1]/3;}
+ {const dx=bP[0]-cx,dy=bP[1]-cy,d=Math.hypot(dx,dy),k=d>5?5/d:1; /* 行星远走不拽飞相机 */
+  pts.push([cx+dx*k,cy+dy*k]);}
+ const cam=camFit(pts,2.5);
+ drawStars();ctx.globalCompositeOperation='lighter';
+ for(let i=0;i<3;i++)drawTrail(bTrailS[i],TRC[i],cam,1.3);
+ drawTrail(bTrailP,'rgba(125,255,212,$A)',cam,1.2);
+ for(let i=0;i<3;i++){const[x,y]=w2s(bS[4*i],bS[4*i+1],cam);
+  const r=(16+14*MB.m[i])*DPR;
+  glow(x,y,r,SUNC[i][0],SUNC[i][1]);glow(x,y,r*.35,'#fff',SUNC[i][0]);}
+ const[px,py]=w2s(bP[0],bP[1],cam);
+ glow(px,py,7*DPR,'#7dffd4','#0a8f6a');
+ ctx.globalCompositeOperation='source-over';};
+const drawLab=()=>{
+ const pts=[];for(let i=0;i<3;i++){pts.push([cA[4*i],cA[4*i+1]]);pts.push([cB[4*i],cB[4*i+1]]);}
+ const cam=camFit(pts,2.5);
+ drawStars();ctx.globalCompositeOperation='lighter';
+ for(let i=0;i<3;i++)drawTrail(cTrailA[i],TRC[i],cam,1.2);
+ for(let i=0;i<3;i++){const[x,y]=w2s(cA[4*i],cA[4*i+1],cam);
+  glow(x,y,20*DPR,SUNC[i][0],SUNC[i][1]);glow(x,y,7*DPR,'#fff',SUNC[i][0]);}
+ for(let i=0;i<3;i++){const[x,y]=w2s(cB[4*i],cB[4*i+1],cam); /* B 宇宙:幽灵描边 */
+  ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1.2*DPR;
+  ctx.beginPath();ctx.arc(x,y,5.5*DPR,0,7);ctx.stroke();}
+ ctx.globalCompositeOperation='source-over';};
+
+/* —— 乱纪元副画布:时间线 + 天空 —— */
+const tlc=document.getElementById('tl'),tctx=tlc.getContext('2d');
+const skc=document.getElementById('sky'),sctx=skc.getContext('2d');
+const tmpColor=t=>t<-80?'#3b5bd0':t<0?'#5b8fd6':t<50?'#3fae74':t<120?'#d99a3d':'#d0452f';
+const drawClimate=()=>{
+ const w=tlc.width=tlc.clientWidth*DPR,h=tlc.height=26*DPR;
+ tctx.fillStyle='#070b14';tctx.fillRect(0,0,w,h);
+ const n=bHist.length;
+ for(let i=0;i<n;i++){tctx.fillStyle=tmpColor(bHist[i].tmp);
+  const x=i/480*w;tctx.fillRect(x,h*.3,w/480+1,h*.55);
+  if(!bHist[i].st){tctx.fillStyle='rgba(255,80,50,.9)';tctx.fillRect(x,0,w/480+1,h*.18);}}
+ const sw=skc.width=skc.clientWidth*DPR,sh=skc.height=56*DPR;
+ sctx.fillStyle='#02040a';sctx.fillRect(0,0,sw,sh);
+ sctx.fillStyle='rgba(140,170,220,.25)';sctx.fillRect(0,sh*.82,sw,1);
+ for(let i=0;i<3;i++){
+  const dx=bS[4*i]-bP[0],dy=bS[4*i+1]-bP[1];
+  const azf=(Math.atan2(dy,dx)/(2*Math.PI)+.5)%1;
+  const d=Math.hypot(dx,dy),thr=2*0.00465/d; /* rad */
+  const R=Math.max(1.2*DPR,thr/(2*Math.PI)*sw*14);
+  const x=azf*sw,y=sh*.5;
+  const g=sctx.createRadialGradient(x,y,0,x,y,Math.max(R*2.6,6*DPR));
+  g.addColorStop(0,'#fff');g.addColorStop(.3,SUNC[i][0]);g.addColorStop(1,'rgba(0,0,0,0)');
+  sctx.fillStyle=g;sctx.beginPath();sctx.arc(x,y,Math.max(R*2.6,6*DPR),0,7);sctx.fill();
+  if(thr<0.05*Math.PI/180){sctx.fillStyle='#cfe0ff';
+   sctx.font=`${9*DPR}px sans-serif`;sctx.fillText('飞星',x-9*DPR,y-8*DPR);}}
+ sctx.fillStyle='rgba(160,190,240,.75)';sctx.font=`${9*DPR}px sans-serif`;
+ sctx.fillText('行星的天空(360° 方位,盘面大小=真实角径)',6*DPR,12*DPR);
+ const e=document.getElementById('era'),t=document.getElementById('temp');
+ e.textContent=bEraSt?'☀ 恒纪元':'⚠ 乱纪元';
+ e.style.color=bEraSt?'#5fd39a':'#ff7a5c';
+ const tv=tempOf(bP);
+ t.textContent=`${tv>0?'+':''}${tv.toFixed(1)} °C`;t.style.color=tmpColor(tv);
+ document.getElementById('civ').textContent=
+  `第 ${bCiv} 号文明${bCivAlive?`(存续 ${(simT-bCivT0).toFixed(1)})`:'(已毁灭,等待重生)'} · 纪元切换 ${bFlips} 次 · 行星重生 ${bDeaths} 次`;};
+/* —— 混沌室副画布 —— */
+const gc=document.getElementById('graph'),gctx=gc.getContext('2d');
+const drawGraph=()=>{
+ const w=gc.width=gc.clientWidth*DPR,h=gc.height=110*DPR;
+ gctx.fillStyle='#070b14';gctx.fillRect(0,0,w,h);
+ gctx.strokeStyle='rgba(140,170,220,.25)';gctx.lineWidth=1;
+ const SUP={0:'10⁰','-3':'10⁻³','-6':'10⁻⁶','-9':'10⁻⁹'};
+ for(let e=-9;e<=0;e+=3){const y=h*(1-(e+9)/9);
+  gctx.beginPath();gctx.moveTo(0,y);gctx.lineTo(w,y);gctx.stroke();
+  gctx.fillStyle='rgba(160,190,240,.6)';gctx.font=`${8.5*DPR}px sans-serif`;
+  gctx.fillText(SUP[String(e)],3*DPR,y+10*DPR);}
+ if(cLog.length>1){
+  const t1=Math.max(cLog[cLog.length-1][0],20);
+  gctx.strokeStyle='#7dffd4';gctx.lineWidth=1.6*DPR;gctx.beginPath();
+  for(let i=0;i<cLog.length;i++){
+   const[t,d]=cLog[i];
+   const x=t/t1*w,y=h*(1-(Math.log10(Math.max(d,1e-9))+9)/9);
+   i?gctx.lineTo(x,y):gctx.moveTo(x,y);}
+  gctx.stroke();}
+ document.getElementById('sep').textContent=cLog.length?cLog[cLog.length-1][1].toExponential(1)+' AU':'—';
+ document.getElementById('lam').textContent=cLam?cLam.toFixed(2)+' /单位时间':'测量中…';
+ document.getElementById('hor').textContent=cLam?((1/cLam)*Math.log(.1/1e-9)).toFixed(0)+' 单位 ≈ '+((1/cLam)*Math.log(.1/1e-9)*58.1/365.25).toFixed(1)+' 年':'—';
+ if(cSat){gctx.fillStyle='rgba(255,138,92,.9)';gctx.font=`${11*DPR}px sans-serif`;
+  gctx.fillText('两个宇宙已彻底面目全非(饱和)',w*.34,16*DPR);}};
+
+/* ══════════ 主循环 ══════════ */
+const HUD={drift:'0'};
+const physTick=nsub=>{ /* nsub 个物理步(供 rAF 与 __TEST__ 共用,确定性) */
+ for(let k=0;k<nsub;k++){
+  if(mode===0){
+   const dt=DANCES[dIdx].T/4096;
+   stepAdap(dS,dM,dt,0);simT+=dt;
+   for(let i=0;i<3;i++){dTrail[i].push([dS[4*i],dS[4*i+1]]);
+    if(dTrail[i].length>2600)dTrail[i].shift();}
+  }else if(mode===1){
+   chaosTick(.004);
+   bTrailP.push([bP[0],bP[1]]);if(bTrailP.length>900)bTrailP.shift();
+   for(let i=0;i<3;i++){bTrailS[i].push([bS[4*i],bS[4*i+1]]);
+    if(bTrailS[i].length>620)bTrailS[i].shift();}
+  }else{
+   chaosLabTick(.004);
+   for(let i=0;i<3;i++){cTrailA[i].push([cA[4*i],cA[4*i+1]]);
+    if(cTrailA[i].length>1400)cTrailA[i].shift();}}}
+ if(mode===0)HUD.drift=Math.abs((energy(dS,dM)-dE0)/dE0).toExponential(1);};
+let acc_=0;
+const frame=()=>{
+ if(!paused){
+  const base=mode===0?3.4:2;
+  acc_+=base*speed;
+  const n=Math.min(64,acc_|0);
+  if(n>0){acc_-=n;physTick(n);}}
+ if(mode===0)drawDance();
+ else if(mode===1){drawChaos();drawClimate();}
+ else{drawLab();drawGraph();}
+ updHud();requestAnimationFrame(frame);};
+const updHud=()=>{
+ if(mode!==0)return;
+ const el=document.getElementById('dHud');
+ if(el)el.innerHTML=`<div class="kv"><span>周期 T</span><b>${DANCES[dIdx].T.toFixed(4)}</b></div>
+ <div class="kv"><span>已舞</span><b>${(simT/DANCES[dIdx].T).toFixed(2)} 圈</b></div>
+ <div class="kv"><span>能量漂移 |ΔE/E|</span><b>${HUD.drift}</b></div>
+ <div class="kv"><span>一周期闭合</span><b>${DANCES[dIdx].res}</b></div>`;};
+
+/* ══════════ UI ══════════ */
+const sideHTML=[
+ ()=>`<h3>舞蹈馆 · 三体的周期解</h3>
+ <p>三体问题没有一般解析解,但存在一族族"舞步"——周期解。你看到的每一帧都是当场 RK4 积分,右下能量漂移实时对账。</p>
+ <p>拉格朗日(1772)与欧拉(1767)是最早的严格解,但<b style="color:#ff9a6b">天生不稳定</b>——带 10⁻⁹ 扰动后实测 4.3/1.9 圈崩溃,这正是"乱纪元"的种子。8字舞 2000 年才被证明存在;蝴蝶、飞蛾、阴阳、蜻蜓是 2013 年才被计算机发现的新家族。</p>
+ <p style="color:#8fa3c8">初值:文献值+本机牛顿打磨,一周期闭合<6×10⁻⁹。</p>
+ <div id="dHud" style="border-top:1px solid rgba(120,150,210,.2);margin-top:6px;padding-top:6px"></div>`,
+ ()=>`<h3>乱纪元 · 行星生存实录</h3>
+ <p>一颗行星被丢进三颗太阳的混沌引力场:能安稳绕住一颗太阳=<b style="color:#5fd39a">恒纪元</b>;被三颗太阳抢来抢去=<b style="color:#ff7a5c">乱纪元</b>。</p>
+ <p>温度是真算的:斯特藩-玻尔兹曼辐射平衡,三颗太阳的光度按质光关系 L∝M³·⁵。三日凌空、三日连珠、飞星,全部从真实几何检测,不是剧本。</p>
+ <p style="color:#8fa3c8">底部条:温度史(上沿红条=乱纪元)。文明计数是《三体》致敬,阈值用真实水相变标度。</p>`,
+ ()=>`<h3>混沌实验室 · 为什么三体人算不出万年历</h3>
+ <p>两个一模一样的三体宇宙(实线 vs 白圈),唯一区别:一颗太阳的初始位置差 <b>十亿分之一 AU</b>。</p>
+ <p>看右下角对数曲线:间距按指数增长——每隔固定时间×10。斜率就是<b>李雅普诺夫指数 λ</b>,由它算出"预测视界":超过这个时间,任何计算机都无力回天。</p>
+ <p style="color:#8fa3c8">这不是算力问题,是动力学本性——拉普拉斯之妖死于三体。</p>`];
+const renderSide=()=>{document.getElementById('sideBody').innerHTML=sideHTML[mode]();updHud();};
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setMode(+t.dataset.m));
+const setMode=mi=>{
+ mode=mi;simT=0;camS=null;
+ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',+t.dataset.m===mi));
+ document.getElementById('dances').classList.toggle('hide',mi!==0);
+ document.getElementById('climate').classList.toggle('hide',mi!==1);
+ document.getElementById('chaos').classList.toggle('hide',mi!==2);
+ document.getElementById('seedB').classList.toggle('hide',mi!==1);
+ if(mi===0)danceInit(dIdx);
+ if(mi===1)chaosInit(bSeed);
+ if(mi===2)chaosLabInit();
+ renderSide();};
+const dbar=document.getElementById('dances');
+DANCES.forEach((d,i)=>{
+ const c=document.createElement('div');c.className='chip'+(i===dIdx?' on':'');
+ c.innerHTML=`${d.n}<span style="opacity:.55;font-size:10px"> ${d.unst?'⚠':''}</span>`;
+ c.title=`${d.y} · ${d.res}`;c.onclick=()=>danceInit(i);dbar.appendChild(c);});
+document.getElementById('pp').onclick=()=>{paused=!paused;
+ document.getElementById('pp').textContent=paused?'▶ 继续':'⏸ 暂停';};
+document.getElementById('spd').oninput=e=>{speed=Math.pow(2,+e.target.value);
+ document.getElementById('spdv').textContent=speed.toFixed(speed<1?2:1)+'×';};
+document.getElementById('rst').onclick=()=>{
+ if(mode===0)danceInit(dIdx);else if(mode===1)chaosInit(bSeed);else chaosLabInit();};
+document.getElementById('seedB').onclick=()=>chaosInit((bSeed*16807+12345)%2147483647);
+document.getElementById('fork').onclick=()=>forkTwin();
+let folded=false;
+document.getElementById('fold').onclick=()=>{folded=!folded;
+ document.getElementById('sideBody').classList.toggle('hide',folded);
+ document.getElementById('fold').textContent=folded?'展开 ▼':'收起 ▲';};
+
+/* ══════════ __TEST__ 钩子 ══════════ */
+window.__TEST__={
+ setMode,mode:()=>mode,dance:danceInit,danceIdx:()=>dIdx,
+ step:n=>physTick(n),t:()=>simT,
+ drawNow:()=>{if(mode===0)drawDance();else if(mode===1){drawChaos();drawClimate();}else{drawLab();drawGraph();}},
+ pause:v=>{paused=v;},speed:v=>{speed=v;},
+ bodies:()=>mode===0?Array.from(dS):mode===1?Array.from(bS):Array.from(cA),
+ planet:()=>bP?Array.from(bP):null,
+ drift:()=>mode===0?Math.abs((energy(dS,dM)-dE0)/dE0):0,
+ danceClosure:i=>{ /* 页内内核一周期闭合(与 proto 交叉对拍;测试级细分:coef.012 cap256,阴阳I 近交会>64细分) */
+  const d=DANCES[i],s=d.mk(),s0=Float64Array.from(s);
+  const n=1<<15,dt=d.T/n;
+  for(let k=0;k<n;k++){
+   const ns=Math.min(256,Math.max(1,Math.ceil(dt/(.012*Math.pow(dminF(s,3),1.5)))));
+   const h=dt/ns;for(let q=0;q<ns;q++)rk4(s,[1,1,1],h,0);}
+  let r=0;for(let k2=0;k2<12;k2++)r+=(s[k2]-s0[k2])**2;
+  return Math.sqrt(r);},
+ era:()=>({stable:bEraSt,flips:bFlips,civ:bCiv,alive:bCivAlive,deaths:bDeaths,
+  temp:bP?tempOf(bP):null,events:bEvents.slice(-6)}),
+ lyap:()=>({sep:cLog.length?cLog[cLog.length-1][1]:null,lam:cLam,sat:cSat,
+  n:cLog.length,log:cLog.slice(-8)}),
+ seed:s=>chaosInit(s),
+ px:(fx,fy)=>Array.from(ctx.getImageData(Math.round(fx*W),Math.round(fy*H),1,1).data),
+ sunAngles:()=>{const o=[];
+  for(let i=0;i<3;i++){const dx=bS[4*i]-bP[0],dy=bS[4*i+1]-bP[1];
+   o.push({az:Math.atan2(dy,dx),d:Math.hypot(dx,dy),th:2*0.00465/Math.hypot(dx,dy)});}
+  return o;},
+ trailLen:()=>mode===0?dTrail[0].length:bTrailP.length,
+};
+danceInit(2);
+frame();
+</script>

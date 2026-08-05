@@ -1,0 +1,398 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>地月潮汐离婚</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='12' cy='16' r='8' fill='%234a86c8'/><circle cx='26' cy='10' r='3.4' fill='%23d8e2f0'/></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#030a12;color:#cfdcec;
+ font:13px/1.55 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+canvas{display:block}
+#cv{position:fixed;inset:0}
+.card{position:fixed;background:rgba(8,15,26,.84);border:1px solid rgba(110,160,210,.22);
+ border-radius:10px;backdrop-filter:blur(10px);padding:10px 12px}
+#hdr{top:10px;left:12px;max-width:min(540px,calc(100vw - 24px))}
+#hdr h1{font-size:17px;color:#fff;letter-spacing:.06em}
+#hdr .sub{font-size:11px;color:#88a4c4;margin:2px 0 8px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:4px 12px;border-radius:999px;border:1px solid rgba(120,170,220,.3);cursor:pointer;
+ font-size:12px;color:#a8c0da;user-select:none;transition:.15s}
+.tab:hover{border-color:#4fc3d9}
+.tab.on{background:#0f3a4a;color:#fff;border-color:#4fc3d9}
+#side{top:10px;right:12px;width:min(305px,calc(100vw - 24px));max-height:calc(100vh - 230px);overflow-y:auto}
+#side h3{font-size:13px;color:#4fc3d9;margin-bottom:4px}
+#side p{font-size:12px;color:#a8c0da;margin-bottom:6px}
+.kv{display:flex;justify-content:space-between;font-size:12px;padding:1px 0}
+.kv b{color:#eaf2fc;font-weight:600;font-variant-numeric:tabular-nums}
+#fold{position:absolute;top:8px;right:10px;cursor:pointer;color:#6fa0cf;font-size:12px;user-select:none}
+#tm{bottom:12px;left:12px;right:12px;max-width:none}
+#tmRow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#tt{flex:1;min-width:220px;accent-color:#4fc3d9}
+#tRead{font-size:14px;font-weight:700;color:#ffd27a;min-width:130px;font-variant-numeric:tabular-nums}
+.btn{background:#12283f;color:#dfe9f8;border:1px solid #33587f;border-radius:7px;
+ padding:4px 11px;font-size:12px;cursor:pointer;user-select:none}
+.btn:hover{background:#1b3653}
+.btn.on{background:#0f3a4a;border-color:#4fc3d9;color:#aef0ff}
+.btn.warn{border-color:#c85a3f;color:#ffb49a}
+.btn.warn.on{background:#4a1408;border-color:#ff7a55;color:#ffd0c0}
+#flags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.flag{font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid rgba(217,164,65,.45);
+ color:#e8c887;cursor:pointer;user-select:none}
+.flag:hover{background:rgba(217,164,65,.12)}
+#crash{position:fixed;top:22%;left:50%;transform:translateX(-50%);background:rgba(50,8,4,.94);
+ border:1px solid #ff6a48;border-radius:10px;padding:12px 20px;max-width:min(480px,90vw);z-index:9;color:#ffc9b8;font-size:13px}
+#crash b{color:#ff9d80}
+#honest{position:fixed;bottom:118px;right:12px;max-width:min(360px,calc(100vw - 24px));
+ font-size:11px;color:#7d90ad;background:rgba(8,15,26,.88);border:1px solid rgba(110,160,210,.2);border-radius:8px;padding:6px 10px;z-index:8}
+#honest summary{cursor:pointer;color:#9db4d4}
+#honest p{margin:4px 0}
+.hide{display:none!important}
+@media(max-width:720px){#side{display:none}}
+</style>
+<canvas id="cv"></canvas>
+<div id="crash" class="hide"></div>
+
+<div class="card" id="hdr">
+ <h1>地月潮汐离婚</h1>
+ <div class="sub">宇宙十八 · 一场持续四十五亿年、每年 3.82 厘米的分离 —— 全部读数当场真算</div>
+ <div class="tabs">
+  <div class="tab on" data-m="0">① 时间机器</div>
+  <div class="tab" data-m="1">② 力学后台</div>
+  <div class="tab" data-m="2">③ 终局剧场</div>
+ </div>
+</div>
+
+<div class="card" id="side">
+ <div id="fold">收起 ▲</div>
+ <div id="sideBody"></div>
+</div>
+
+<div class="card" id="tm">
+ <div id="tmRow">
+  <span id="tRead">今天</span>
+  <input type="range" id="tt" min="-1000" max="1000" step="0.5" value="0">
+  <button class="btn on" id="mCal">校准模型</button>
+  <button class="btn warn" id="mNaive">天真·常数Q</button>
+  <button class="btn" id="pp">⏸</button>
+  <button class="btn" id="scl">真比例:开</button>
+ </div>
+ <div id="flags"></div>
+</div>
+
+<details id="honest"><summary>诚实声明 · 单位与近似</summary>
+<p>核心链条:月轨半长轴 a(t) → 开普勒得月角速 → <b>总角动量守恒</b>反解地球自转与日长。L=C⊕ω+μ√(GMa);太阳潮汐持续抽走 L 的几个百分点,此处忽略(声明);两体开普勒月长 27.29d,与观测 27.32d 差 0.13% 来自太阳摄动,不建模。</p>
+<p>今日锚:a=384,400km、退行 3.82cm/yr(阿波罗激光反射镜实测)。地质锚:2.46Ga Joffre(Lantink 2022)、1.4Ga 下马岭(Meyers &amp; Malinverno PNAS 2018, a=340,900km)、0.62Ga Elatina 韵律岩(Williams 2000, a/a₀=0.965±0.005,本页取区间内 0.9615 与珊瑚锚保持 a 单调)、0.38Ga 泥盆纪珊瑚日轮 400 天/年(Wells 1963)、4.5Ga 形成于 3.8R⊕(大碰撞,流体洛希界 2.88R⊕ 外)。锚间为单调 PCHIP 样条——锚点之间是插值,不是数据。文献日长均为太阳日口径,页内由恒星自转换算(P_solar=2π/(ω−2π/yr));今日检验:恒星日 23.934h→太阳日 24.000h。</p>
+<p>"天真·常数Q"模型:把今天的耗散强度当宇宙常数外推,回推 15.5 亿年月球即进洛希界解体——与月岩 45 亿岁矛盾,<b>它是本页刻意保留的"模型失败展品"</b>:今天的海洋盆地恰好接近潮汐共振,耗散异常强,不能代表全史。</p>
+<p>未来:速率沿用今日常数Q(海洋沸腾(~1-2Gyr)后耗散会崩塌,到达时间高度不确定——但终点位形 a=86.9R⊕、日=月=47.2 天由角动量守恒唯一决定,与速率无关;而红巨星 ~7.6Gyr 会先到,这张终点票永远用不上)。最后日全食 +5.2 亿年:月近地点角径<日远日点角径的阈值,月轨偏心率取常数 0.0549。</p>
+<p>可视:潮汐鼓包与滞后角放大数万倍(真实鼓包<1m/滞后~3°);"真比例:开"时地月距离/半径为真实比例,关闭时距离√压缩。年长取恒定 365.25 今日。数值:float64 对拍 12/12(proto-tides.mjs)。</p>
+</details>
+
+<script>
+'use strict';
+/* ══════ 物理内核(与 proto-tides.mjs 同源,12/12) ══════ */
+const GG=6.6743e-11,ME=5.9722e24,MM=7.342e22,RE=6.371e6,RM=1.7374e6;
+const CE=.3307*ME*RE*RE,MU=ME*MM/(ME+MM),MT=ME+MM;
+const A0=3.844e8,ADOT0=3.82e-2,GYR=1e9,YR=3.15576e7,ECC=.0549;
+const OM0=7.292115e-5,RS=6.957e8,DS=1.495979e11,ES=.0167;
+const nOf=a=>Math.sqrt(GG*MT/a**3);
+const Lorb=a=>MU*Math.sqrt(GG*MT*a);
+const LTOT=CE*OM0+Lorb(A0);
+const omOf=a=>(LTOT-Lorb(a))/CE;
+const dayOf=a=>2*Math.PI/omOf(a)/3600;
+const solarDayOf=a=>2*Math.PI/(omOf(a)-2*Math.PI/YR)/3600; /* 太阳日(文献日长口径) */
+const dpyOf=a=>YR/3600/solarDayOf(a);
+const monthOf=a=>2*Math.PI/nOf(a)/86400;
+const CC=ADOT0*A0**5.5;
+const aNaive=tG=>{ /* a^6.5 线性;t Gyr(负=过去) */
+ const v=A0**6.5+6.5*CC*tG*GYR;
+ return v>0?v**(1/6.5):0;};
+const T_CRASH=-(2/13)*A0/ADOT0/GYR; /* −1.548 Gyr */
+/* 校准锚点(Mm) 与 proto 同 */
+let A380=A0;{let lo=3e8,hi=A0; /* 珊瑚 400=太阳日/年 */
+ for(let i=0;i<100;i++){const m=(lo+hi)/2;(dpyOf(m)>400?lo=m:hi=m);}A380=(lo+hi)/2;}
+const ANCH=[[-4.5,3.8*RE/1e6],[-2.46,321.8],[-1.4,340.9],[-.62,.9615*384.4],[-.38,A380/1e6],[0,384.4]];
+const ANAMES=['4.5Ga 大碰撞形成','2.46Ga Joffre 铁建造','1.4Ga 下马岭页岩','0.62Ga Elatina 韵律岩','0.38Ga 泥盆纪珊瑚','今天'];
+const pchip=pts=>{const n=pts.length,x=pts.map(p=>p[0]),y=pts.map(p=>p[1]);
+ const h=[],d=[];
+ for(let i=0;i<n-1;i++){h.push(x[i+1]-x[i]);d.push((y[i+1]-y[i])/h[i]);}
+ const m=[d[0]];
+ for(let i=1;i<n-1;i++)m.push(d[i-1]*d[i]<=0?0:3*(h[i-1]+h[i])/((2*h[i]+h[i-1])/d[i-1]+(h[i]+2*h[i-1])/d[i]));
+ m.push(d[n-2]);
+ return t=>{let i=x.findIndex(xx=>xx>t);i=i===-1?n-2:Math.max(0,Math.min(n-2,i-1));
+  const s=(t-x[i])/h[i],s2=s*s,s3=s2*s;
+  return y[i]*(2*s3-3*s2+1)+h[i]*m[i]*(s3-2*s2+s)+y[i+1]*(-2*s3+3*s2)+h[i]*m[i+1]*(s3-s2);};};
+const aCalS=pchip(ANCH);
+const aCal=tG=>tG<=0?Math.max(1,aCalS(Math.max(tG,-4.5)))*1e6:aNaive(tG); /* 未来沿常数Q(声明) */
+const AF=(()=>{ /* 双同步外根 */
+ let lo=A0,hi=250*RE;
+ for(let i=0;i<200;i++){const m=(lo+hi)/2;(omOf(m)-nOf(m)>0?lo=m:hi=m);}return (lo+hi)/2;})();
+const rocheF=2.44*RE*Math.pow((ME/(4/3*Math.PI*RE**3))/(MM/(4/3*Math.PI*RM**3)),1/3);
+const thSunMin=2*RS/(DS*(1+ES)),thSunMax=2*RS/(DS*(1-ES));
+const A_LASTTOT=2*RM/thSunMin/(1-ECC);
+const T_LASTTOT=(A_LASTTOT**6.5-A0**6.5)/(6.5*CC)/GYR; /* +0.52 Gyr */
+const arcmin=r=>r*180/Math.PI*60;
+
+/* ══════ 状态 ══════ */
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+const resize=()=>{DPR=Math.min(devicePixelRatio||1,2);
+ W=cv.width=innerWidth*DPR|0;H=cv.height=innerHeight*DPR|0;
+ cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';};
+addEventListener('resize',resize);resize();
+let mode=0,paused=false,model=0,trueScale=true; /* model 0=校准 1=天真 */
+let tG=0;            /* 当前时间 Gyr */
+let phE=0,phM=0;     /* 地球自转/月公转相位(动画) */
+let simT=0;
+const tOf=s=>s<0?-4.5*Math.pow(-s/1000,3):10*Math.pow(s/1000,3);
+const sOf=t=>t<0?-1000*Math.cbrt(-t/4.5):1000*Math.cbrt(t/10);
+const aNow=()=>model===0?aCal(tG):aNaive(tG);
+const crashed=()=>model===1&&tG<T_CRASH;
+
+/* ══════ 渲染 ══════ */
+const stars=()=>{ctx.fillStyle='#030a12';ctx.fillRect(0,0,W,H);
+ for(let i=0;i<130;i++){const h=(i*2654435761>>>0);
+  const x=(h%991)/991*W,y=((h/991|0)%991)/991*H,b=.2+((h>>>21)%100)/300;
+  ctx.fillStyle=`rgba(190,210,240,${b})`;ctx.fillRect(x,y,1.1*DPR,1.1*DPR);}};
+const earthDraw=(x,y,r,withBulge,bulgeAng,rot)=>{
+ if(withBulge){ /* 鼓包(放大声明):沿 bulgeAng 的椭圆壳 */
+  ctx.save();ctx.translate(x,y);ctx.rotate(bulgeAng);
+  ctx.fillStyle='rgba(79,195,217,.30)';
+  ctx.beginPath();ctx.ellipse(0,0,r*1.30,r*1.02,0,0,7);ctx.fill();ctx.restore();}
+ const g=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);
+ g.addColorStop(0,'#7fb4e8');g.addColorStop(.55,'#2f6fb4');g.addColorStop(1,'#0d2c55');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+ /* 自转标记(小陆块) */
+ ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+ ctx.fillStyle='rgba(120,200,140,.75)';
+ ctx.beginPath();ctx.ellipse(r*.45,-r*.28,r*.30,r*.20,.5,0,7);ctx.fill();
+ ctx.beginPath();ctx.ellipse(-r*.4,r*.3,r*.22,r*.15,-.4,0,7);ctx.fill();
+ ctx.restore();};
+const moonDraw=(x,y,r,rot)=>{
+ const g=ctx.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);
+ g.addColorStop(0,'#e8edf4');g.addColorStop(.7,'#a9b2c0');g.addColorStop(1,'#5a6270');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,Math.max(r,1.2*DPR),0,7);ctx.fill();
+ if(r>5*DPR){ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+  ctx.fillStyle='rgba(90,98,112,.5)';
+  ctx.beginPath();ctx.arc(r*.3,-r*.2,r*.22,0,7);ctx.fill();
+  ctx.beginPath();ctx.arc(-r*.25,r*.3,r*.15,0,7);ctx.fill();ctx.restore();}};
+
+const drawMachine=()=>{
+ stars();
+ const a=aNow();
+ const cx=W*.42,cy=H*.5;
+ let rEpx,apx;
+ if(trueScale){ /* 真比例:半径与距离同尺 */
+  const span=Math.max(a*1.15,12*RE);
+  const k=Math.min(W*.44,H*.42)/span;
+  rEpx=Math.max(RE*k,3.5*DPR);apx=a*k;
+  var rMpx=Math.max(RM*k,2*DPR);
+ }else{rEpx=30*DPR;apx=Math.min(W,H)*.34*Math.sqrt(a/(90*RE));rMpx=9*DPR;}
+ if(crashed()){ /* 天真模型撞进洛希界:固定尺度画碎环(a=0 不入几何) */
+  const kf=Math.min(W*.44,H*.42)/(8*RE);
+  const rEc=RE*kf;
+  ctx.strokeStyle='rgba(255,106,72,.5)';ctx.setLineDash([4*DPR,4*DPR]);
+  ctx.lineWidth=1*DPR;ctx.beginPath();ctx.arc(cx,cy,rocheF*kf,0,7);ctx.stroke();ctx.setLineDash([]);
+  for(let i=0;i<64;i++){const an=i/64*2*Math.PI+phE*.2,rr=rocheF*kf*(.55+.4*((i*2654435761>>>8)%100)/100);
+   ctx.fillStyle=`rgba(230,200,180,${.5+.4*((i*7919)%10)/10})`;
+   ctx.beginPath();ctx.arc(cx+rr*Math.cos(an),cy+rr*Math.sin(an),1.6*DPR,0,7);ctx.fill();}
+  earthDraw(cx,cy,rEc,false,0,phE);
+  ctx.fillStyle='rgba(255,160,120,.85)';ctx.font=`${11*DPR}px sans-serif`;
+  ctx.fillText('月球碎成环(洛希界内)·地球自转 4.1 小时',cx+rEc+10*DPR,cy);
+ }else{
+ /* 洛希界(流体) */
+ ctx.strokeStyle='rgba(255,106,72,.5)';ctx.setLineDash([4*DPR,4*DPR]);
+ ctx.lineWidth=1*DPR;ctx.beginPath();ctx.arc(cx,cy,rocheF/a*apx,0,7);ctx.stroke();ctx.setLineDash([]);
+ /* 轨道 */
+ ctx.strokeStyle='rgba(140,170,210,.3)';ctx.beginPath();ctx.arc(cx,cy,apx,0,7);ctx.stroke();
+ /* 双同步终点圈(未来侧) */
+ if(tG>0){ctx.strokeStyle='rgba(217,164,65,.35)';ctx.setLineDash([2*DPR,5*DPR]);
+  ctx.beginPath();ctx.arc(cx,cy,AF/a*apx,0,7);ctx.stroke();ctx.setLineDash([]);}
+  if(trueScale){ /* 小目标光晕增读性 */
+   const g=ctx.createRadialGradient(cx,cy,0,cx,cy,rEpx*5);
+   g.addColorStop(0,'rgba(90,160,230,.5)');g.addColorStop(1,'rgba(0,0,0,0)');
+   ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,rEpx*5,0,7);ctx.fill();}
+  earthDraw(cx,cy,rEpx,!trueScale,phM+.05,phE); /* 非真比例才画鼓包(真比例下<1m 不可见,诚实) */
+  const mx=cx+apx*Math.cos(phM),my=cy+apx*Math.sin(phM);
+  if(trueScale){
+   const g2=ctx.createRadialGradient(mx,my,0,mx,my,rMpx*6);
+   g2.addColorStop(0,'rgba(225,232,244,.55)');g2.addColorStop(1,'rgba(0,0,0,0)');
+   ctx.fillStyle=g2;ctx.beginPath();ctx.arc(mx,my,rMpx*6,0,7);ctx.fill();}
+  moonDraw(mx,my,rMpx,phM);
+  if(trueScale){ctx.fillStyle='rgba(150,180,220,.7)';ctx.font=`${10*DPR}px sans-serif`;
+   ctx.fillText('地球',cx+8*DPR,cy-8*DPR);ctx.fillText('月球',mx+8*DPR,my-8*DPR);}
+ }
+ /* 角径对比小窗(左下,避开声明面板) */
+ const bx=170*DPR,by=H-235*DPR,R0=34*DPR;
+ ctx.strokeStyle='rgba(255,210,122,.85)';ctx.lineWidth=1.4*DPR;
+ ctx.beginPath();ctx.arc(bx,by,R0*arcmin(2*RS/DS)/32,0,7);ctx.stroke();
+ ctx.textAlign='center';ctx.font=`${10*DPR}px sans-serif`;
+ if(!crashed()){
+  ctx.fillStyle='rgba(216,226,240,.92)';
+  ctx.beginPath();ctx.arc(bx,by,R0*arcmin(2*RM/a)/32,0,7);ctx.fill();
+  ctx.fillStyle='rgba(160,185,220,.8)';
+  ctx.fillText('天空角径对比(黄圈=太阳)',bx,by+R0+16*DPR);
+  ctx.fillText(eclipseLabel(a),bx,by+R0+30*DPR);
+ }else{ctx.fillStyle='rgba(255,160,120,.8)';
+  ctx.fillText('天空里已没有月亮',bx,by+R0+16*DPR);}
+ ctx.textAlign='left';};
+const eclipseLabel=a=>{
+ const mPer=2*RM/(a*(1-ECC)),mApo=2*RM/(a*(1+ECC));
+ if(mApo>thSunMax)return'月盘恒大于日盘:全食为常态';
+ if(mPer>thSunMin)return'全食与环食并存(如今天)';
+ return'月盘已不够大:只剩环食'};
+const drawMech=()=>{
+ stars();
+ const cx=W*.40,cy=H*.52,r=110*DPR;
+ const a=crashed()?rocheF:aNow(); /* 撞毁态不入除零 */
+ const mAng=phM,mR=Math.min(W,H)*.40;
+ /* 鼓包领先角(夸大声明) */
+ const lead=.10;
+ earthDraw(cx,cy,r,true,mAng+lead,phE);
+ const mx=cx+mR*Math.cos(mAng),my=cy+mR*Math.sin(mAng);
+ moonDraw(mx,my,26*DPR,mAng);
+ /* 力矩箭头:近鼓包拉月球向前,月球拉鼓包向后 */
+ const arrow=(x1,y1,x2,y2,c)=>{ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=2.2*DPR;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const an=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-9*DPR*Math.cos(an-.4),y2-9*DPR*Math.sin(an-.4));
+  ctx.lineTo(x2-9*DPR*Math.cos(an+.4),y2-9*DPR*Math.sin(an+.4));ctx.closePath();ctx.fill();};
+ const bx=cx+r*1.22*Math.cos(mAng+lead),by=cy+r*1.22*Math.sin(mAng+lead);
+ const tx=-Math.sin(mAng),ty=Math.cos(mAng);
+ arrow(mx,my,mx+tx*46*DPR,my+ty*46*DPR,'rgba(120,230,170,.95)');
+ arrow(bx,by,bx-tx*34*DPR,by-ty*34*DPR,'rgba(255,150,110,.95)');
+ ctx.fillStyle='rgba(120,230,170,.9)';ctx.font=`${11*DPR}px sans-serif`;
+ ctx.fillText('鼓包引力拽月球向前 → 月升轨',mx+14*DPR,my-14*DPR);
+ ctx.fillStyle='rgba(255,150,110,.9)';
+ ctx.fillText('月球反拽鼓包 → 地球刹车',bx-40*DPR,by-26*DPR);
+ /* L 账本条 */
+ const Ls=CE*omOf(a)/LTOT,Lo=Lorb(a)/LTOT;
+ const bw=Math.min(W*.5,420*DPR),bx0=W*.06,by0=H-150*DPR;
+ ctx.fillStyle='rgba(160,185,220,.9)';ctx.font=`${11.5*DPR}px sans-serif`;
+ ctx.fillText(`角动量账本(总量守恒=100%):地球自转 ${(Ls*100).toFixed(1)}% | 月球轨道 ${(Lo*100).toFixed(1)}%`,bx0,by0-10*DPR);
+ ctx.fillStyle='#123a55';ctx.fillRect(bx0,by0,bw,14*DPR);
+ ctx.fillStyle='#4fc3d9';ctx.fillRect(bx0,by0,bw*Ls,14*DPR);
+ ctx.fillStyle='#d9a441';ctx.fillRect(bx0+bw*Ls,by0,bw*Lo,14*DPR);
+ ctx.strokeStyle='rgba(200,220,240,.4)';ctx.strokeRect(bx0,by0,bw,14*DPR);
+ ctx.fillStyle='rgba(160,185,220,.75)';
+ ctx.fillText(`力矩 ∝ a⁻⁶:月球每远一倍,刹车力弱 64 倍 — 离婚越到后面越慢`,bx0,by0+30*DPR);};
+const drawFinale=()=>{
+ stars();
+ const cx=W*.5,cy=H*.44;
+ /* 终局:双同步,两球相向锁定 */
+ const k=Math.min(W,H)*.36/(AF*1.12);
+ const rE=Math.max(RE*k,3*DPR),rM=Math.max(RM*k,1.8*DPR),apx=AF*k;
+ ctx.strokeStyle='rgba(140,170,210,.3)';ctx.beginPath();ctx.arc(cx,cy,apx,0,7);ctx.stroke();
+ const an=phM*.3;
+ const g=ctx.createRadialGradient(cx,cy,0,cx,cy,rE*5);
+ g.addColorStop(0,'rgba(90,160,230,.5)');g.addColorStop(1,'rgba(0,0,0,0)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,rE*5,0,7);ctx.fill();
+ earthDraw(cx,cy,rE,false,0,an); /* 同步:自转=公转 */
+ const fmx=cx+apx*Math.cos(an),fmy=cy+apx*Math.sin(an);
+ const g2=ctx.createRadialGradient(fmx,fmy,0,fmx,fmy,rM*6);
+ g2.addColorStop(0,'rgba(225,232,244,.55)');g2.addColorStop(1,'rgba(0,0,0,0)');
+ ctx.fillStyle=g2;ctx.beginPath();ctx.arc(fmx,fmy,rM*6,0,7);ctx.fill();
+ moonDraw(fmx,fmy,rM,an);
+ ctx.fillStyle='rgba(150,180,220,.7)';ctx.font=`${10*DPR}px sans-serif`;
+ ctx.fillText('地球(47.2 天自转一圈)',cx+8*DPR,cy-10*DPR);
+ ctx.fillText('月球(永远同一面对地)',fmx+8*DPR,fmy-10*DPR);
+ ctx.fillStyle='rgba(217,164,65,.9)';ctx.font=`${12*DPR}px sans-serif`;ctx.textAlign='center';
+ ctx.fillText('理论终点:a=86.9 R⊕ · 日=月=47.2 天 · 两两相向锁定(由角动量守恒唯一决定)',cx,cy-apx-16*DPR);
+ ctx.fillStyle='rgba(255,150,110,.85)';
+ ctx.fillText('但这张终点票永远用不上——太阳红巨星(~76 亿年)会先到',cx,cy+apx+34*DPR);
+ ctx.textAlign='left';};
+
+/* ══════ 主循环 ══════ */
+const physTick=n=>{ /* 动画相位推进(确定性;1 步=1/60 视觉秒) */
+ for(let k=0;k<n;k++){
+  const a=aNow();
+  if(!crashed()){
+   const sc=2*Math.PI/(2*60);   /* 视觉:今日日长≈2秒一圈,其余按 ω/n 真比例缩放 */
+   phE+=sc*(omOf(a)/OM0);
+   phM+=sc*(nOf(a)/OM0);}
+  simT+=1/60;}};
+let acc_=0,last=0;
+const frame=ts=>{
+ if(!paused){acc_+=1;const n=acc_|0;acc_-=n;physTick(n);}
+ if(mode===0)drawMachine();else if(mode===1)drawMech();else drawFinale();
+ updSide();requestAnimationFrame(frame);};
+
+/* ══════ UI ══════ */
+const fmtT=t=>{
+ if(Math.abs(t)<5e-5)return'今天';
+ const s=Math.abs(t)>=1?`${Math.abs(t).toFixed(2)} Gyr`:`${(Math.abs(t)*1000).toFixed(0)} Myr`;
+ return t<0?`${s} 前`:`${s} 后`;};
+const sideHTML=[
+ ()=>{const cr=crashed(),a=aNow(),d=cr?2*Math.PI/(LTOT/CE)/3600:dayOf(a);
+  return`<h3>时间机器 · 潮汐真算读数</h3>
+  <div class="kv"><span>地月距离 a</span><b>${cr?'月球已解体':`${(a/1e6).toFixed(1)} Mm(${(a/RE).toFixed(1)} R⊕)`}</b></div>
+  <div class="kv"><span>一天(太阳日)</span><b>${cr?d.toFixed(2):solarDayOf(a).toFixed(2)} 小时${cr?'(全部角动量归地球)':''}</b></div>
+  <div class="kv"><span>一天(恒星日)</span><b>${d.toFixed(2)} 小时</b></div>
+  <div class="kv"><span>一月(恒星月)</span><b>${cr?'—':monthOf(a).toFixed(2)+' 天'}</b></div>
+  <div class="kv"><span>一年天数(太阳日)</span><b>${cr?'—':dpyOf(a).toFixed(1)+' 天'}</b></div>
+  <div class="kv"><span>月退行速率(模型)</span><b>${cr?'—':(CC*a**-5.5*100).toFixed(2)+' cm/yr'}</b></div>
+  <div class="kv"><span>月角径(平均)</span><b>${cr?'—':arcmin(2*RM/a).toFixed(1)+'′ vs 日 31.4-32.5′'}</b></div>
+  <p style="margin-top:6px">${model===0?'校准模型:锚在 6 个数据点上(5 地质+今天,下方旗标可点),锚间是单调样条插值;日长文献口径=太阳日。':'<b style="color:#ff9d80">天真模型:把今天的刹车力当宇宙常数。</b>回推 15.5 亿年月球就撞进洛希界——但月岩 45 亿岁。<b>今天的海洋恰好接近共振,刹车异常猛,不能代表全史。</b>'}</p>
+  <p style="color:#7d90ad">日长由角动量守恒反解:月球偷走多少,地球就慢多少。激光测距:3.82 cm/yr,是你指甲生长的速度。</p>`;},
+ ()=>`<h3>力学后台 · 谁在偷地球的自转</h3>
+ <p>地球自转(24h)比月球公转(27.3d)快 → 潮汐鼓包被地球自转<b>拖到月球前方</b>约 3°(图中放大)。</p>
+ <p>前方的鼓包用引力<b style="color:#78e6aa">拽月球向前</b>——月球加速升轨;月球反过来<b style="color:#ff9670">拽住鼓包</b>——地球刹车。一笔角动量交易,账本在下方,总量守恒。</p>
+ <p style="color:#7d90ad">力矩∝a⁻⁶:离得越远刹车越弱,所以分离先快后慢。今天月潮耗散 3.16 TW(真算,文献 3.0-3.2),够点亮全球电网 1.5 倍——全变成了海水的热。</p>`,
+ ()=>`<h3>终局剧场 · 三张日期票</h3>
+ <div class="kv"><span>+5.2 亿年</span><b>最后一次日全食</b></div>
+ <p style="color:#7d90ad">月球退到 402 Mm,近地点月盘也盖不住远日点日盘,只剩环食。日全食是宇宙级巧合,而且限时。</p>
+ <div class="kv"><span>~+10-20 亿年</span><b>海洋沸腾,刹车失灵</b></div>
+ <p style="color:#7d90ad">太阳变亮蒸干海洋,潮汐耗散崩塌——之后的时间表全部不可信(声明)。</p>
+ <div class="kv"><span>+76 亿年</span><b>红巨星吞噬轨道</b></div>
+ <p style="color:#7d90ad">双同步终点(a=86.9R⊕,日=月=47.2 天)由角动量算得出、等不到。地月的离婚协议永远差最后一个签字。</p>`];
+const updSide=()=>{const el=document.getElementById('sideBody');
+ if(el._m!==mode||mode===0){el.innerHTML=sideHTML[mode]();el._m=mode;}};
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setMode(+t.dataset.m));
+const setMode=mi=>{mode=mi;
+ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',+t.dataset.m===mi));
+ document.getElementById('tm').classList.toggle('hide',mi===2);
+ updSide();};
+const tt=document.getElementById('tt');
+const setT=g=>{tG=Math.max(-4.5,Math.min(10,g));tt.value=sOf(tG);
+ document.getElementById('tRead').textContent=fmtT(tG);
+ const c=document.getElementById('crash');
+ if(crashed()){c.classList.remove('hide');
+  c.innerHTML=`<b>💥 天真模型在此已解体</b>:常数 Q 回推让月球 ${(-T_CRASH).toFixed(2)} Gyr 前进入洛希界碎成环。<br>但阿波罗月岩 45 亿岁 —— <b>是模型错了,不是月亮错了</b>:今天的海洋盆地接近潮汐共振,耗散异常强,不能当宇宙常数外推。切回「校准模型」看地质锚点怎么救场。`;
+ }else c.classList.add('hide');};
+tt.oninput=()=>setT(tOf(+tt.value));
+document.getElementById('mCal').onclick=()=>{model=0;
+ document.getElementById('mCal').classList.add('on');document.getElementById('mNaive').classList.remove('on');setT(tG);};
+document.getElementById('mNaive').onclick=()=>{model=1;
+ document.getElementById('mNaive').classList.add('on');document.getElementById('mCal').classList.remove('on');setT(tG);};
+document.getElementById('pp').onclick=()=>{paused=!paused;
+ document.getElementById('pp').textContent=paused?'▶':'⏸';};
+document.getElementById('scl').onclick=()=>{trueScale=!trueScale;
+ document.getElementById('scl').textContent='真比例:'+(trueScale?'开':'关');};
+const flags=document.getElementById('flags');
+ANCH.forEach((p,i)=>{const f=document.createElement('div');f.className='flag';
+ f.textContent=ANAMES[i];f.onclick=()=>setT(p[0]);flags.appendChild(f);});
+[['最后日全食',T_LASTTOT],['双同步(理论)',9.99]].forEach(([nm,t])=>{
+ const f=document.createElement('div');f.className='flag';f.style.borderColor='rgba(79,195,217,.5)';f.style.color='#8fd9e8';
+ f.textContent=nm;f.onclick=()=>setT(t);flags.appendChild(f);});
+let folded=false;
+document.getElementById('fold').onclick=()=>{folded=!folded;
+ document.getElementById('sideBody').classList.toggle('hide',folded);
+ document.getElementById('fold').textContent=folded?'展开 ▼':'收起 ▲';};
+
+/* ══════ __TEST__ ══════ */
+window.__TEST__={
+ setMode,mode:()=>mode,setT,t:()=>tG,model:m=>{(m?document.getElementById('mNaive'):document.getElementById('mCal')).click();},
+ modelIdx:()=>model,trueScale:v=>{trueScale=v;},
+ state:()=>{const a=aNow();return{a,aRE:a/RE,day:dayOf(a),solar:solarDayOf(a),month:monthOf(a),
+  dpy:dpyOf(a),adot:CC*a**-5.5*100,crash:crashed(),
+  eclipse:eclipseLabel(a),LspinFrac:CE*omOf(a)/LTOT}},
+ consts:()=>({A0,T_CRASH,AF_RE:AF/RE,PF:monthOf(AF),T_LASTTOT,roche_RE:rocheF/RE,
+  anchors:ANCH,LTOT}),
+ aCal:t=>aCal(t),aNaive:t=>aNaive(t),dayOfA:a=>dayOf(a),
+ step:n=>physTick(n),drawNow:()=>{if(mode===0)drawMachine();else if(mode===1)drawMech();else drawFinale();},
+ pause:v=>{paused=v;},
+ px:(fx,fy)=>Array.from(ctx.getImageData(Math.round(fx*W),Math.round(fy*H),1,1).data),
+ phases:()=>({phE,phM}),
+};
+setT(0);updSide();
+requestAnimationFrame(frame);
+</script>
